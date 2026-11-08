@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Europa UI Preview</title>
+<style>
+  :root {
+    --bg: #f4f9fa;
+    --bg-raised: #fbfefe;
+    --surface-glass: rgba(251,254,254,.74);
+    --sidebar: rgba(248,252,253,.78);
+    --text: #12232b;
+    --text-2: #5e7480;
+    --text-3: #8ba0a9;
+    --line: #dfe9ec;
+    --line-strong: #c8d6da;
+    --accent: #0b7387;
+    --accent-ink: #0b7387;
+    --accent-soft: #ddf3f6;
+    --accent-contrast: #fbfefe;
+    --gold: #b77912;
+    --gold-soft: rgba(183,121,18,.10);
+    --success: #3f7a4e;
+    --danger: #b3372b;
+    --stage: #eaf3f4;
+    --art-stage: #06151d;
+    --shadow-1: 0 1px 2px rgba(18,35,43,.05), 0 8px 24px rgba(18,35,43,.06);
+    --shadow-2: 0 10px 30px rgba(18,35,43,.10), 0 36px 90px rgba(18,35,43,.14);
+    --highlight: rgba(255,255,255,.60);
+    color-scheme: light;
+  }
+  [data-theme="dark"] {
+    --bg: #07161e;
+    --bg-raised: #0b202b;
+    --surface-glass: rgba(11,32,43,.70);
+    --sidebar: rgba(7,22,30,.72);
+    --text: #f1f9fa;
+    --text-2: #9db4be;
+    --text-3: #68818c;
+    --line: rgba(241,249,250,.10);
+    --line-strong: rgba(241,249,250,.18);
+    --accent: #58d9ec;
+    --accent-ink: #58d9ec;
+    --accent-soft: rgba(88,217,236,.12);
+    --accent-contrast: #07161e;
+    --gold: #e8b84f;
+    --gold-soft: rgba(232,184,79,.12);
+    --success: #63bf7b;
+    --danger: #e4624f;
+    --stage: #030b10;
+    --art-stage: #06151d;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.24), 0 8px 24px rgba(0,0,0,.22);
+    --shadow-2: 0 18px 50px rgba(0,0,0,.34), 0 60px 140px rgba(0,0,0,.45);
+    --highlight: rgba(241,249,250,.10);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background:
+      radial-gradient(ellipse 55% 40% at 50% -8%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 70%),
+      radial-gradient(ellipse 25% 30% at 94% 105%, rgba(232,184,79,.07), transparent 72%),
+      var(--stage);
+    color: var(--text);
+    font-family: "Segoe UI Variable Display", "Segoe UI", Inter, "Microsoft YaHei UI", sans-serif;
+    font-size: 14px;
+    line-height: 22px;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  button, input { font: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .stage { min-height: 100vh; display: grid; place-items: center; padding: 24px; position: relative; }
+  .stage::before { content:""; position:absolute; width: min(82vw, 1180px); height: min(82vw, 1180px); border-radius:999px; border:1px solid color-mix(in srgb, var(--accent) 10%, transparent); top:-70%; left:-24%; pointer-events:none; }
+  .stage::after { content:""; position:absolute; width:7px; height:7px; border-radius:999px; background:var(--gold); left:calc(50% - 720px); top:74px; box-shadow:0 0 0 8px var(--gold-soft); opacity:.7; pointer-events:none; }
+  .window {
+    width: min(1360px, calc(100vw - 48px));
+    height: min(820px, calc(100vh - 48px));
+    min-height: 680px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    border: 1px solid var(--line-strong);
+    border-radius: 12px;
+    box-shadow: var(--shadow-2);
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+  }
+  .titlebar {
+    height: 52px;
+    flex: 0 0 52px;
+    display: flex;
+    align-items: center;
+    background: var(--surface-glass);
+    backdrop-filter: blur(24px) saturate(160%);
+    border-bottom: 1px solid var(--line);
+    position: relative;
+    user-select: none;
+  }
+  .titlebar::after { content:""; position:absolute; left:0; right:0; top:0; height:1px; background:var(--highlight); opacity:.5; }
+  .brand-zone { width: 232px; flex: 0 0 232px; height: 100%; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-right: 1px solid var(--line); }
+  .brand-zone img { width: 22px; height: 22px; display: none; }
+  .brand-zone .mark-light { display:block; }
+  [data-theme="dark"] .brand-zone .mark-light { display:none; }
+  [data-theme="dark"] .brand-zone .mark-dark { display:block; }
+  .brand-zone strong { font-size: 14px; font-weight: 600; }
+  .brand-dot { width: 4px; height: 4px; border-radius:999px; background:var(--gold); margin-left:1px; opacity:.9; }
+  .title-body { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; padding: 0 14px 0 20px; gap: 12px; }
+  .title-copy { color: var(--text-2); font-size: 12px; white-space: nowrap; }
+  .title-spacer { flex: 1; }
+  .title-status { display:flex; align-items:center; gap:7px; height:26px; padding:0 10px; border:1px solid var(--line); border-radius:999px; color:var(--text-2); font-size:11px; white-space:nowrap; background:color-mix(in srgb, var(--bg-raised) 55%, transparent); }
+  .title-status::before { content:""; width:5px; height:5px; border-radius:999px; background:var(--success); box-shadow:0 0 0 3px color-mix(in srgb, var(--success) 13%, transparent); }
+  .title-actions { display:flex; align-items:center; gap:2px; padding: 0 8px; }
+  .icon-btn { width:32px; height:32px; display:grid; place-items:center; border:0; border-radius:8px; background:transparent; color:var(--text-2); transition:background-color 120ms ease,color 120ms ease,transform 100ms ease; -webkit-app-region:no-drag; }
+  .icon-btn:hover { background:var(--accent-soft); color:var(--text); }
+  .icon-btn:active { transform:scale(.96); }
+  .window-divider { width:1px; height:24px; background:var(--line); margin:0 7px; }
+  .window-controls { display:flex; align-self:stretch; }
+  .win-btn { width:46px; border:0; background:transparent; color:var(--text-2); display:grid; place-items:center; transition:background-color 100ms ease,color 100ms ease; -webkit-app-region:no-drag; }
+  .win-btn:hover { background:var(--accent-soft); color:var(--text); }
+  .win-btn.close:hover { background:#c94d40; color:#fff; }
+  .app-body { flex:1; min-height:0; display:flex; }
+  .sidebar { width:232px; flex:0 0 232px; min-height:0; display:flex; flex-direction:column; padding:20px 14px 14px; border-right:1px solid var(--line); background:var(--sidebar); position:relative; }
+  .nav-label { padding:4px 10px 8px; color:var(--text-3); font-size:10px; line-height:16px; font-weight:600; }
+  .nav-item { width:100%; height:36px; display:flex; align-items:center; gap:11px; padding:0 10px; border:0; border-radius:8px; color:var(--text-2); background:transparent; text-align:left; position:relative; transition:background-color 120ms ease,color 120ms ease; }
+  .nav-item:hover { color:var(--text); background:color-mix(in srgb, var(--accent-soft) 55%, transparent); }
+  .nav-item.active { color:var(--accent-ink); background:var(--accent-soft); }
+  .nav-item.active::before { content:""; position:absolute; width:2px; height:18px; left:0; border-radius:2px; background:var(--accent); }
+  .nav-item svg { width:18px; height:18px; flex:0 0 18px; }
+  .nav-item span { font-size:13px; font-weight:500; }
+  .nav-count { margin-left:auto; font-size:10px; color:var(--text-3); font-variant-numeric:tabular-nums; }
+  .nav-group { margin-top:24px; padding-top:18px; border-top:1px solid var(--line); }
+  .game-mini { width:100%; height:52px; display:flex; align-items:center; gap:10px; padding:0 8px; border:0; border-radius:8px; text-align:left; background:transparent; color:var(--text); transition:background-color 120ms ease; }
+  .game-mini:hover { background:var(--accent-soft); }
+  .mini-icon { width:28px; height:28px; flex:0 0 28px; border-radius:8px; display:grid; place-items:center; background:color-mix(in srgb, var(--accent-soft) 75%, transparent); color:var(--accent-ink); }
+  .mini-icon svg { width:18px; height:18px; }
+  .mini-copy { min-width:0; }
+  .mini-copy strong { display:block; font-size:12px; line-height:18px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mini-copy small { display:block; margin-top:1px; font-size:10px; line-height:15px; color:var(--text-3); font-variant-numeric:tabular-nums; }
+  .side-bottom { margin-top:auto; padding-top:16px; }
+  .save-card { padding:13px; border:1px solid var(--line); border-radius:8px; background:color-mix(in srgb, var(--bg-raised) 65%, transparent); box-shadow:var(--shadow-1); }
+  .save-line { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:500; }
+  .save-line i { width:7px; height:7px; border-radius:999px; background:var(--success); box-shadow:0 0 0 4px color-mix(in srgb, var(--success) 11%, transparent); font-style:normal; }
+  .save-line span { margin-left:auto; color:var(--text-3); font-size:10px; font-weight:400; }
+  .save-meta { margin-top:8px; color:var(--text-3); font-size:10px; line-height:16px; display:flex; justify-content:space-between; }
+  .main { flex:1; min-width:0; min-height:0; padding:26px 32px 24px; display:flex; flex-direction:column; background:var(--bg); position:relative; }
+  .main::before { content:""; position:absolute; inset:0; pointer-events:none; background:radial-gradient(circle at 72% -20%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 47%); }
+  .page-head { position:relative; z-index:1; flex:0 0 auto; display:flex; align-items:flex-end; justify-content:space-between; gap:24px; padding-bottom:20px; }
+  .eyebrow { color:var(--accent-ink); font-size:10px; line-height:16px; font-weight:600; margin-bottom:5px; }
+  .page-head h1 { font-size:28px; line-height:36px; margin:0; font-weight:600; }
+  .page-head p { margin:2px 0 0; font-size:12px; line-height:18px; color:var(--text-2); }
+  .head-meta { display:flex; align-items:center; gap:8px; }
+  .meta-pill { height:26px; padding:0 10px; border-radius:999px; border:1px solid var(--line); background:color-mix(in srgb, var(--bg-raised) 64%, transparent); display:flex; align-items:center; gap:6px; color:var(--text-2); font-size:10px; white-space:nowrap; }
+  .meta-pill b { width:5px; height:5px; border-radius:999px; background:var(--accent); }
+  .game-grid { position:relative; z-index:1; flex:1; min-height:0; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:20px; }
+  .game-card { min-width:0; min-height:0; display:flex; flex-direction:column; background:var(--bg-raised); border:1px solid var(--line); border-radius:8px; overflow:hidden; box-shadow:var(--shadow-1); transition:transform 180ms cubic-bezier(.2,.8,.2,1),border-color 180ms ease,box-shadow 180ms ease; cursor:pointer; text-align:left; color:var(--text); padding:0; }
+  .game-card:hover { transform:translateY(-2px); border-color:color-mix(in srgb, var(--accent) 35%, var(--line)); box-shadow:0 12px 36px rgba(0,0,0,.23); }
+  .game-card:active { transform:scale(.987); }
+  .game-art { flex:1; min-height:0; position:relative; background:var(--art-stage); overflow:hidden; border-bottom:1px solid rgba(241,249,250,.08); }
+  .game-art > svg { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .game-art::after { content:""; position:absolute; inset:0; box-shadow:inset 0 0 0 1px rgba(255,255,255,.025), inset 0 -44px 66px rgba(3,11,16,.34); pointer-events:none; }
+  .art-topline { position:absolute; inset:14px 14px auto; display:flex; justify-content:space-between; align-items:flex-start; z-index:2; }
+  .game-index { color:rgba(241,249,250,.42); font:400 9px/16px "Cascadia Mono",Consolas,monospace; }
+  .art-badge { display:flex; align-items:center; gap:6px; height:22px; padding:0 8px; border-radius:999px; color:#a8bcc4; background:rgba(4,16,23,.52); border:1px solid rgba(241,249,250,.08); backdrop-filter:blur(8px); font-size:9px; white-space:nowrap; }
+  .art-badge i { width:5px; height:5px; border-radius:999px; background:#58d9ec; font-style:normal; }
+  .art-badge.gold i { background:#e8b84f; }
+  .game-body { flex:0 0 152px; padding:16px 16px 15px; display:flex; flex-direction:column; }
+  .card-title-row { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .card-title-row h2 { margin:0; font-size:20px; line-height:28px; font-weight:600; white-space:nowrap; }
+  .card-genre { margin-top:2px; color:var(--text-3); font-size:10px; line-height:16px; white-space:nowrap; }
+  .play-btn { width:36px; height:36px; flex:0 0 36px; border:0; border-radius:8px; background:var(--accent); color:var(--accent-contrast); display:grid; place-items:center; box-shadow:0 6px 18px color-mix(in srgb, var(--accent) 18%, transparent); transition:filter 100ms ease,transform 100ms ease; }
+  .play-btn:hover { filter:brightness(1.06); }
+  .play-btn:active { transform:scale(.97); }
+  .card-meta { margin-top:auto; padding-top:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; border-top:1px solid var(--line); color:var(--text-2); font-size:10px; }
+  .card-meta strong { font:500 11px/16px "Cascadia Mono",Consolas,monospace; color:var(--text); }
+  .card-meta .gold { color:var(--gold); }
+  .footer-row { position:relative; z-index:1; flex:0 0 102px; display:grid; grid-template-columns:1.6fr 1fr; gap:16px; margin-top:18px; }
+  .resume, .quick-stats { background:var(--bg-raised); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow-1); }
+  .resume { padding:14px 16px; display:flex; align-items:center; gap:14px; }
+  .resume-icon { width:46px; height:46px; flex:0 0 46px; border-radius:8px; display:grid; place-items:center; background:var(--accent-soft); color:var(--accent-ink); }
+  .resume-icon svg { width:24px; height:24px; }
+  .resume-copy { min-width:0; flex:1; }
+  .resume-title { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-3); }
+  .resume-title i { width:4px; height:4px; border-radius:999px; background:var(--gold); font-style:normal; }
+  .resume-copy strong { display:block; margin-top:3px; font-size:13px; line-height:19px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .resume-copy small { display:block; margin-top:1px; color:var(--text-3); font-size:10px; line-height:15px; }
+  .resume-progress { width:86px; height:3px; border-radius:999px; background:var(--line); overflow:hidden; position:relative; margin-top:7px; }
+  .resume-progress::after { content:""; position:absolute; inset:0 35% 0 0; background:var(--accent); }
+  .resume-btn { height:32px; padding:0 13px; border-radius:8px; border:1px solid var(--line); background:color-mix(in srgb, var(--bg) 45%, transparent); color:var(--text); font-size:11px; font-weight:500; white-space:nowrap; }
+  .resume-btn:hover { border-color:var(--line-strong); background:var(--accent-soft); }
+  .quick-stats { padding:14px 16px; display:grid; grid-template-columns:repeat(3,1fr); align-items:center; }
+  .stat + .stat { border-left:1px solid var(--line); padding-left:16px; }
+  .stat span { display:block; color:var(--text-3); font-size:9px; line-height:14px; white-space:nowrap; }
+  .stat strong { display:block; margin-top:4px; font:500 15px/21px "Cascadia Mono",Consolas,monospace; white-space:nowrap; }
+  .stat small { display:block; margin-top:1px; color:var(--text-3); font-size:9px; line-height:14px; }
+  .stat strong.gold { color:var(--gold); }
+  @media (max-width: 1260px) {
+    .game-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="window" role="application" aria-label="Europa 游戏库界面预览">
+    <header class="titlebar">
+      <div class="brand-zone">
+        <img class="mark-light" src="../assets/brand/europa-symbol.svg" alt="">
+        <img class="mark-dark" src="../assets/brand/europa-symbol-dark.svg" alt="">
+        <strong>Europa</strong><span class="brand-dot"></span>
+      </div>
+      <div class="title-body">
+        <span class="title-copy">小游戏合集</span>
+        <span class="title-spacer"></span>
+        <span class="title-status">本地模式</span>
+        <div class="title-actions">
+          <button class="icon-btn" id="themeToggle" aria-label="切换明暗主题" title="切换明暗主题">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4"/><path d="M12 2.7v2.2M12 19.1v2.2M2.7 12h2.2M19.1 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/></svg>
+          </button>
+          <button class="icon-btn" aria-label="音效" title="音效">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M11 5 6.8 8.4H3.8v7.2h3L11 19V5Z"/><path d="M14.7 9.2a4 4 0 0 1 0 5.6M17.4 6.8a7.4 7.4 0 0 1 0 10.4"/></svg>
+          </button>
+          <button class="icon-btn" aria-label="设置" title="设置">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.38 1.1V21H9.6v-.09A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.38H3V9.6h.09A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .38-1.1V3h3.24v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.28.31.75.5 1.1.5H21v3.24h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="window-controls">
+        <button class="win-btn" aria-label="最小化"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6h8" stroke="currentColor" stroke-width="1"/></svg></button>
+        <button class="win-btn" aria-label="最大化"><svg width="12" height="12" viewBox="0 0 12 12"><rect x="2.4" y="2.4" width="7.2" height="7.2" fill="none" stroke="currentColor" stroke-width="1"/></svg></button>
+        <button class="win-btn close" aria-label="关闭"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2.4 2.4l7.2 7.2M9.6 2.4L2.4 9.6" stroke="currentColor" stroke-width="1"/></svg></button>
+      </div>
+    </header>
+    <div class="app-body">
+      <aside class="sidebar">
+        <div class="nav-label">工作区</div>
+        <button class="nav-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></svg>
+          <span>游戏库</span><span class="nav-count">03</span>
+        </button>
+        <button class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 18V9M9 18V5M14 18v-6M19 18V8"/><path d="M3 20h18"/></svg>
+          <span>游玩记录</span>
+        </button>
+        <button class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.38 1.1V21H9.6v-.09A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.38H3V9.6h.09A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .38-1.1V3h3.24v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.28.31.75.5 1.1.5H21v3.24h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+          <span>设置</span>
+        </button>
+        <div class="nav-group">
+          <div class="nav-label">快速开始</div>
+          <button class="game-mini">
+            <span class="mini-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 18h6v-3H7v-3H4"/><path d="M10 12h5v-3h5"/><circle cx="8" cy="8" r="2"/></svg></span>
+            <span class="mini-copy"><strong>冰原跃迁</strong><small>继续第 2 关</small></span>
+          </button>
+          <button class="game-mini">
+            <span class="mini-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 17c4-1 4-9 8-8 3 .7 4-3 8-4"/><circle cx="4" cy="17" r="1.5"/><circle cx="20" cy="5" r="1.5"/></svg></span>
+            <span class="mini-copy"><strong>环带贪吃蛇</strong><small>最高 1,280</small></span>
+          </button>
+          <button class="game-mini">
+            <span class="mini-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M4 12h16M4 17h16M7 4v16M12 4v16M17 4v16"/><circle cx="7" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="7" r="1.7"/></svg></span>
+            <span class="mini-copy"><strong>星盘五子棋</strong><small>12 胜 · 5 负</small></span>
+          </button>
+        </div>
+        <div class="side-bottom">
+          <div class="save-card">
+            <div class="save-line"><i></i>本地存档<span>已开启</span></div>
+            <div class="save-meta"><span>无需账户</span><span>v0.1.0</span></div>
+          </div>
+        </div>
+      </aside>
+      <main class="main">
+        <header class="page-head">
+          <div>
+            <div class="eyebrow">EUROPA ARCADE</div>
+            <h1>游戏库</h1>
+            <p>三个小世界，随时开始。</p>
+          </div>
+          <div class="head-meta">
+            <div class="meta-pill"><b></b>3 个游戏 · 全部可离线游玩</div>
+          </div>
+        </header>
+        <section class="game-grid" aria-label="游戏列表">
+          <button class="game-card" aria-label="开始冰原跃迁">
+            <div class="game-art">
+              <svg viewBox="0 0 360 320" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <defs>
+                  <linearGradient id="p-bg" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#071a23"/><stop offset="1" stop-color="#041117"/></linearGradient>
+                  <radialGradient id="p-glow" cx=".5" cy=".5" r=".5"><stop stop-color="#58d9ec" stop-opacity=".28"/><stop offset="1" stop-color="#58d9ec" stop-opacity="0"/></radialGradient>
+                </defs>
+                <rect width="360" height="320" fill="url(#p-bg)"/>
+                <g stroke="#58d9ec" stroke-opacity=".09" fill="none"><path d="M-12 307C90 258 184 169 370 188"/><path d="M-20 338C107 276 213 183 386 210"/></g>
+                <path d="M-20 247 38 215l38 19 31-15 44 24 29-16 41 12 53-39 84 22v98H-20Z" fill="#0b2733"/>
+                <path d="M-20 280 53 245l40 18 47-27 42 22 41-11 41 23 34-18 73 37v31H-20Z" fill="#0d3442"/>
+                <path d="M-12 215C74 191 118 120 242 116c58-2 93-23 133-41" fill="none" stroke="#58d9ec" stroke-opacity=".20" stroke-width="1"/>
+                <path d="M70 231C105 204 126 167 171 154c45-13 88-35 123-73" fill="none" stroke="#58d9ec" stroke-opacity=".19" stroke-dasharray="2 7" stroke-width="1.5"/>
+                <g fill="#58d9ec">
+                  <rect x="40" y="248" width="70" height="10" rx="4"/>
+                  <rect x="142" y="204" width="73" height="10" rx="4"/>
+                  <rect x="221" y="160" width="68" height="10" rx="4"/>
+                  <rect x="291" y="121" width="40" height="10" rx="4"/>
+                </g>
+                <g fill="#0b202b"><rect x="42" y="250" width="66" height="4" rx="2"/><rect x="144" y="206" width="69" height="4" rx="2"/><rect x="223" y="162" width="64" height="4" rx="2"/></g>
+                <g fill="#e8b84f"><circle cx="130" cy="181" r="4"/><circle cx="173" cy="145" r="4"/><circle cx="258" cy="111" r="4"/><circle cx="103" cy="193" r="2.5" opacity=".5"/></g>
+                <g><circle cx="181" cy="132" r="24" fill="url(#p-glow)"/><circle cx="181" cy="132" r="7.5" fill="#58d9ec"/><circle cx="178.8" cy="129.8" r="2" fill="#c9f8fc" opacity=".85"/></g>
+                <g fill="#58d9ec" fill-opacity=".24"><circle cx="158" cy="147" r="2"/><circle cx="150" cy="154" r="1.5"/><circle cx="143" cy="160" r="1"/></g>
+                <path d="M312 54a36 36 0 0 1-48 55" fill="none" stroke="#58d9ec" stroke-opacity=".23" stroke-width="1"/>
+                <circle cx="312" cy="54" r="2.4" fill="#e8b84f"/>
+                <g fill="#ffffff" opacity=".22"><circle cx="52" cy="70" r="1"/><circle cx="96" cy="46" r="1.3"/><circle cx="274" cy="82" r="1"/><circle cx="326" cy="29" r=".9"/></g>
+              </svg>
+              <div class="art-topline"><span class="game-index">01 / PLATFORMER</span><span class="art-badge"><i></i>继续游玩</span></div>
+            </div>
+            <div class="game-body">
+              <div class="card-title-row"><div><h2>冰原跃迁</h2><div class="card-genre">横版平台跳跃 · 单人</div></div><span class="play-btn" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.4v9.2l7.7-4.6L5 3.4Z"/></svg></span></div>
+              <div class="card-meta"><span>最高分 <strong class="gold">8,420</strong></span><span>上次 · 今天</span></div>
+            </div>
+          </button>
+
+          <button class="game-card" aria-label="开始环带贪吃蛇">
+            <div class="game-art">
+              <svg viewBox="0 0 360 320" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <defs>
+                  <linearGradient id="s-bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#06181f"/><stop offset="1" stop-color="#07121a"/></linearGradient>
+                  <radialGradient id="s-glow" cx=".5" cy=".5" r=".5"><stop stop-color="#58d9ec" stop-opacity=".25"/><stop offset="1" stop-color="#58d9ec" stop-opacity="0"/></radialGradient>
+                  <pattern id="s-grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" stroke="#58d9ec" stroke-opacity=".055"/></pattern>
+                </defs>
+                <rect width="360" height="320" fill="url(#s-bg)"/>
+                <rect width="360" height="320" fill="url(#s-grid)"/>
+                <ellipse cx="188" cy="156" rx="145" ry="112" fill="none" stroke="#58d9ec" stroke-opacity=".08"/>
+                <circle cx="191" cy="131" r="130" fill="url(#s-glow)"/>
+                <path d="M48 281C67 247 105 247 125 225c18-21 10-44 32-59 20-14 49-6 66-23 15-16 35-33 62-30" fill="none" stroke="#58d9ec" stroke-opacity=".36" stroke-width="13" stroke-linecap="round"/>
+                <g fill="#58d9ec">
+                  <circle cx="45" cy="288" r="5" opacity=".4"/>
+                  <circle cx="58" cy="269" r="7" opacity=".55"/>
+                  <circle cx="77" cy="251" r="9" opacity=".72"/>
+                  <circle cx="102" cy="249" r="10"/>
+                  <circle cx="121" cy="229" r="10"/>
+                  <circle cx="122" cy="204" r="10"/>
+                  <circle cx="140" cy="187" r="10"/>
+                  <circle cx="168" cy="183" r="10"/>
+                  <circle cx="188" cy="167" r="10"/>
+                  <circle cx="216" cy="166" r="10"/>
+                  <circle cx="236" cy="149" r="10"/>
+                  <circle cx="263" cy="146" r="10"/>
+                  <circle cx="283" cy="131" r="10"/>
+                </g>
+                <g transform="translate(300 118)"><circle r="13" fill="#58d9ec"/><circle cx="-3.5" cy="-3.6" r="3.1" fill="#07161e"/><circle cx="4.3" cy="-3.2" r="3.1" fill="#07161e"/><path d="M11 3l8 4-8 3" fill="none" stroke="#e8b84f" stroke-width="2" stroke-linecap="round"/></g>
+                <g transform="translate(311 56)"><circle r="18" fill="#e8b84f" fill-opacity=".08"/><circle r="8" fill="#e8b84f"/><circle cx="-2.2" cy="-2.5" r="2.4" fill="#fff6d8" fill-opacity=".8"/></g>
+                <g fill="none" stroke="#58d9ec" stroke-opacity=".18"><path d="M22 40h42M22 48h25"/></g>
+                <g fill="#fff" opacity=".18"><circle cx="58" cy="97" r="1"/><circle cx="313" cy="190" r=".9"/><circle cx="286" cy="42" r=".7"/></g>
+              </svg>
+              <div class="art-topline"><span class="game-index">02 / ARCADE</span><span class="art-badge gold"><i></i>最高 1,280</span></div>
+            </div>
+            <div class="game-body">
+              <div class="card-title-row"><div><h2>环带贪吃蛇</h2><div class="card-genre">街机 · 无尽模式</div></div><span class="play-btn" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.4v9.2l7.7-4.6L5 3.4Z"/></svg></span></div>
+              <div class="card-meta"><span>最高分 <strong class="gold">1,280</strong></span><span>最佳 · 34 节</span></div>
+            </div>
+          </button>
+
+          <button class="game-card" aria-label="开始星盘五子棋">
+            <div class="game-art">
+              <svg viewBox="0 0 360 320" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <defs>
+                  <linearGradient id="g-bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071a22"/><stop offset="1" stop-color="#051218"/></linearGradient>
+                  <radialGradient id="g-glow" cx=".5" cy=".5" r=".5"><stop stop-color="#e8b84f" stop-opacity=".10"/><stop offset="1" stop-color="#e8b84f" stop-opacity="0"/></radialGradient>
+                </defs>
+                <rect width="360" height="320" fill="url(#g-bg)"/>
+                <circle cx="184" cy="155" r="126" fill="url(#g-glow)"/>
+                <path d="M40 250a143 143 0 0 1 268-90" fill="none" stroke="#58d9ec" stroke-opacity=".18" stroke-width="2"/>
+                <circle cx="308" cy="160" r="3" fill="#e8b84f"/>
+                <g transform="rotate(-8 180 160)">
+                  <rect x="77" y="61" width="206" height="206" rx="4" fill="#0b202b" stroke="#58d9ec" stroke-opacity=".14"/>
+                  <g stroke="#8aa7b1" stroke-opacity=".28" stroke-width="1">
+                    <path d="M92 76v176M108 76v176M124 76v176M140 76v176M156 76v176M172 76v176M188 76v176M204 76v176M220 76v176M236 76v176M252 76v176M268 76v176"/>
+                    <path d="M92 76h176M92 92h176M92 108h176M92 124h176M92 140h176M92 156h176M92 172h176M92 188h176M92 204h176M92 220h176M92 236h176M92 252h176"/>
+                  </g>
+                  <g fill="#58d9ec" fill-opacity=".32"><circle cx="140" cy="124" r="2.4"/><circle cx="188" cy="172" r="2.4"/><circle cx="236" cy="220" r="2.4"/></g>
+                  <g>
+                    <circle cx="124" cy="124" r="8" fill="#eaf8fa" stroke="#ffffff" stroke-opacity=".18" stroke-width="1"/>
+                    <circle cx="156" cy="140" r="8" fill="#eaf8fa"/>
+                    <circle cx="172" cy="156" r="8" fill="#eaf8fa"/>
+                    <circle cx="204" cy="188" r="8" fill="#eaf8fa"/>
+                    <circle cx="220" cy="204" r="8" fill="#eaf8fa"/>
+                    <circle cx="140" cy="188" r="8" fill="#07161e" stroke="#58d9ec" stroke-opacity=".25" stroke-width="1"/>
+                    <circle cx="156" cy="172" r="8" fill="#07161e" stroke="#58d9ec" stroke-opacity=".25"/>
+                    <circle cx="172" cy="140" r="8" fill="#07161e" stroke="#58d9ec" stroke-opacity=".25"/>
+                    <circle cx="188" cy="124" r="8" fill="#07161e" stroke="#58d9ec" stroke-opacity=".25"/>
+                    <circle cx="204" cy="140" r="8" fill="#07161e" stroke="#58d9ec" stroke-opacity=".25"/>
+                  </g>
+                  <circle cx="220" cy="204" r="12.5" fill="none" stroke="#e8b84f" stroke-width="1.6"/>
+                </g>
+                <g opacity=".52"><path d="M35 44h43M35 52h20" fill="none" stroke="#58d9ec" stroke-width="1"/><circle cx="34" cy="44" r="1.5" fill="#e8b84f"/></g>
+                <g fill="#fff" opacity=".18"><circle cx="56" cy="101" r="1"/><circle cx="302" cy="53" r=".9"/><circle cx="318" cy="248" r="1.2"/></g>
+              </svg>
+              <div class="art-topline"><span class="game-index">03 / STRATEGY</span><span class="art-badge"><i></i>双人 / AI</span></div>
+            </div>
+            <div class="game-body">
+              <div class="card-title-row"><div><h2>星盘五子棋</h2><div class="card-genre">策略 · 双人对战 / 人机</div></div><span class="play-btn" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.4v9.2l7.7-4.6L5 3.4Z"/></svg></span></div>
+              <div class="card-meta"><span>本周 <strong>12 胜</strong></span><span>AI · 进阶</span></div>
+            </div>
+          </button>
+        </section>
+        <footer class="footer-row">
+          <div class="resume">
+            <div class="resume-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 18h6v-3H7v-3H4"/><path d="M10 12h5v-3h5"/><circle cx="8" cy="8" r="2"/></svg></div>
+            <div class="resume-copy">
+              <div class="resume-title"><i></i>继续上次游玩</div>
+              <strong>冰原跃迁 · 第 2 关</strong>
+              <small>进度 65% · 上次游玩 24 分钟前</small>
+              <div class="resume-progress"></div>
+            </div>
+            <button class="resume-btn">继续游戏</button>
+          </div>
+          <div class="quick-stats">
+            <div class="stat"><span>本地游玩</span><strong>1h 24m</strong><small>本周</small></div>
+            <div class="stat"><span>最佳成绩</span><strong class="gold">8,420</strong><small>冰原跃迁</small></div>
+            <div class="stat"><span>存档状态</span><strong style="font-size:12px;line-height:21px;color:var(--success)">已保存</strong><small>刚刚</small></div>
+          </div>
+        </footer>
+      </main>
+    </div>
+  </div>
+</div>
+<script>
+  const root = document.documentElement;
+  const params = new URLSearchParams(location.search);
+  const initial = params.get('theme');
+  if (initial === 'light' || initial === 'dark') root.dataset.theme = initial;
+  else root.dataset.theme = 'dark';
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  });
+</script>
+</body>
+</html>

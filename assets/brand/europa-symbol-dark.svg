@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Europa symbol for dark backgrounds">
+  <path d="M 90 284 A 176 176 0 0 1 414 236" fill="none" stroke="#58D9EC" stroke-width="11" stroke-linecap="round" opacity="0.55"/>
+  <circle cx="414" cy="236" r="10" fill="#E8B84F"/>
+  <g fill="none" stroke="#58D9EC" stroke-linecap="round" stroke-width="22">
+    <path d="M 216 192 C 196 212 196 300 216 324"/>
+    <path d="M 214 194 L 342 194"/>
+    <path d="M 214 258 L 296 258"/>
+    <path d="M 214 322 L 342 322"/>
+  </g>
+</svg>

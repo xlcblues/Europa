@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Europa Brand Board</title>
+<style>
+  :root {
+    --bg: #07161e; --bg-raised: #0b202b; --bg-soft: #0e2834;
+    --text: #f1f9fa; --text-2: #9db4be; --text-3: #68818c;
+    --line: rgba(241,249,250,.10); --line-strong: rgba(241,249,250,.18);
+    --ice: #58d9ec; --ice-deep: #0b7387; --gold: #e8b84f;
+    --paper: #f4f9fa; --ink: #12232b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body { font-family: "Segoe UI Variable Display", "Segoe UI", Inter, "Microsoft YaHei UI", sans-serif; -webkit-font-smoothing: antialiased; letter-spacing: 0; }
+  .page { max-width: 1440px; margin: 0 auto; }
+  .topbar { height: 56px; padding: 0 48px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+  .top-brand { display: flex; align-items: center; gap: 12px; }
+  .top-brand img { width: 24px; height: 24px; }
+  .top-brand strong { font-size: 14px; font-weight: 600; }
+  .top-meta { color: var(--text-3); font-size: 11px; display: flex; gap: 24px; }
+  .hero { position: relative; min-height: 570px; display: grid; grid-template-columns: 1.05fr .95fr; align-items: center; gap: 64px; padding: 76px 72px 66px; overflow: hidden; border-bottom: 1px solid var(--line); }
+  .hero::before { content: ""; position: absolute; width: 880px; height: 880px; border-radius: 999px; border: 1px solid rgba(88,217,236,.11); left: -462px; top: -480px; pointer-events: none; }
+  .hero::after { content: ""; position: absolute; width: 8px; height: 8px; border-radius: 999px; background: var(--gold); left: 404px; top: 68px; box-shadow: 0 0 0 7px rgba(232,184,79,.08); pointer-events: none; }
+  .hero-mark { width: min(410px, 84%); aspect-ratio: 1; display: grid; place-items: center; position: relative; }
+  .hero-mark::before { content: ""; position: absolute; inset: 12%; border: 1px solid rgba(88,217,236,.10); border-radius: 999px; }
+  .hero-mark img { width: 100%; height: 100%; display: block; filter: drop-shadow(0 22px 48px rgba(0,0,0,.28)); }
+  .hero-copy { max-width: 520px; }
+  .eyebrow { font-size: 11px; line-height: 16px; font-weight: 600; color: var(--ice); margin: 0 0 14px; }
+  .hero-copy h1 { margin: 0; font-size: clamp(64px, 7vw, 108px); line-height: .94; font-weight: 600; letter-spacing: -.035em; }
+  .hero-copy h2 { margin: 24px 0 18px; font-size: 25px; line-height: 36px; font-weight: 500; color: var(--text); }
+  .hero-copy p { margin: 0; font-size: 15px; line-height: 26px; color: var(--text-2); max-width: 440px; }
+  .hero-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 36px; }
+  .fact { border-top: 1px solid var(--line); padding-top: 14px; }
+  .fact span { display: block; font-size: 11px; line-height: 16px; color: var(--text-3); margin-bottom: 6px; }
+  .fact strong { font-size: 14px; line-height: 20px; font-weight: 500; }
+  .section { padding: 64px 72px; border-bottom: 1px solid var(--line); }
+  .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; margin-bottom: 30px; }
+  .section-head h2 { margin: 0 0 6px; font-size: 27px; line-height: 36px; }
+  .section-head p { margin: 0; max-width: 520px; font-size: 13px; line-height: 22px; color: var(--text-2); }
+  .label { color: var(--text-3); font-size: 11px; line-height: 16px; white-space: nowrap; }
+  .logo-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1.15fr; gap: 16px; }
+  .logo-tile { min-height: 250px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+  .logo-stage { flex: 1; min-height: 200px; display: grid; place-items: center; padding: 28px; }
+  .logo-stage.light { background: var(--paper); }
+  .logo-stage.ice { background: #102c38; }
+  .logo-stage img { display: block; max-width: 78%; max-height: 110px; }
+  .logo-stage.app img { width: 148px; max-height: 148px; }
+  .logo-meta { border-top: 1px solid var(--line); padding: 12px 14px; display: flex; justify-content: space-between; gap: 12px; }
+  .logo-meta strong { font-size: 12px; font-weight: 600; }
+  .logo-meta span { color: var(--text-3); font-size: 11px; }
+  .construction { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .construction-panel { background: var(--bg-raised); border: 1px solid var(--line); border-radius: 8px; padding: 28px; min-height: 250px; }
+  .construction-panel h3 { margin: 0 0 16px; font-size: 16px; line-height: 24px; }
+  .geometry { position: relative; height: 188px; display: grid; place-items: center; }
+  .geometry img { width: 156px; height: 156px; }
+  .geometry .guides { position: absolute; inset: 8px; border: 1px dashed rgba(88,217,236,.18); border-radius: 4px; }
+  .geometry .cross-h { position:absolute; left: 12%; right: 12%; top: 50%; border-top: 1px dashed rgba(88,217,236,.12); }
+  .geometry .cross-v { position:absolute; top: 12%; bottom: 12%; left: 50%; border-left: 1px dashed rgba(88,217,236,.12); }
+  .rules { display: grid; gap: 10px; margin-top: 14px; }
+  .rule { display: grid; grid-template-columns: 20px 1fr; gap: 10px; align-items: start; font-size: 12px; line-height: 19px; color: var(--text-2); }
+  .rule i { width: 16px; height: 16px; border-radius: 999px; display:grid; place-items:center; font-style:normal; font-size: 10px; }
+  .rule i.yes { background: rgba(88,217,236,.14); color: var(--ice); }
+  .rule i.no { background: rgba(228,98,79,.12); color: #f08b7c; }
+  .palette-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .swatch { background: var(--bg-raised); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .swatch-color { height: 104px; position: relative; }
+  .swatch-color .mini { position: absolute; right: 14px; bottom: 12px; font-size: 10px; color: rgba(255,255,255,.72); }
+  .swatch-info { padding: 13px 14px 15px; }
+  .swatch-info strong { display: block; font-size: 13px; line-height: 18px; }
+  .swatch-info span { display: block; font: 400 11px/17px "Cascadia Mono", Consolas, monospace; color: var(--text-3); margin-top: 2px; }
+  .swatch-info small { display: block; font-size: 11px; line-height: 17px; color: var(--text-2); margin-top: 6px; }
+  .ratio { display: grid; grid-template-columns: 1.2fr 1fr; gap: 48px; align-items: start; }
+  .ratio-copy h3 { font-size: 20px; line-height: 30px; margin: 0 0 12px; }
+  .ratio-copy p { margin: 0 0 18px; color: var(--text-2); font-size: 13px; line-height: 22px; }
+  .ratio-bar { height: 10px; border-radius: 999px; overflow: hidden; display: flex; background: #223039; }
+  .ratio-bar .ice { width: 78%; background: var(--ice); }
+  .ratio-bar .gold { width: 8%; background: var(--gold); }
+  .ratio-bar .paper { width: 14%; background: var(--paper); }
+  .ratio-legend { display: flex; gap: 18px; margin-top: 12px; font-size: 11px; color: var(--text-2); }
+  .ratio-legend span { display: flex; align-items: center; gap: 7px; }
+  .ratio-legend b { width: 6px; height: 6px; border-radius: 999px; }
+  .type { border: 1px solid var(--line); background: var(--bg-raised); border-radius: 8px; padding: 26px 28px; }
+  .type-feature { font-size: 44px; line-height: 52px; font-weight: 600; margin-bottom: 20px; }
+  .type-row { display:grid; grid-template-columns: 96px 1fr; align-items: baseline; gap: 20px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .type-row .meta { font-size: 10px; line-height: 16px; color: var(--text-3); }
+  .type-row .sample { margin: 0; color: var(--text); }
+  .size-row { display: flex; align-items: end; gap: 34px; padding: 20px 0 0; }
+  .size-item { text-align: center; color: var(--text-3); font-size: 10px; }
+  .size-item img { display: block; margin: 0 auto 9px; }
+  .footer { padding: 32px 72px 48px; display: flex; justify-content: space-between; gap: 32px; color: var(--text-3); font-size: 11px; }
+  .family { display:flex; gap: 10px; align-items:center; flex-wrap:wrap; }
+  .family b { color: var(--text-2); font-weight:500; }
+  .family span { color: var(--text-3); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="topbar">
+    <div class="top-brand"><img src="europa-symbol-dark.svg" alt=""><strong>Europa</strong></div>
+    <div class="top-meta"><span>BRAND SYSTEM / 01</span><span>2026 · WINDOWS DESKTOP</span></div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-mark"><img src="europa-symbol-dark.svg" alt="Europa 冰脊 E 标志"></div>
+    <div class="hero-copy">
+      <p class="eyebrow">MOON OF JUPITER · 木卫二</p>
+      <h1>Europa</h1>
+      <h2>冰封之下，游戏不息。</h2>
+      <p>一座安静的桌面游戏馆。以木卫二的冰裂地表为灵感，将字母 E 化为三道冰脊，并沿用系列共有的轨道弧与星点。</p>
+      <div class="hero-facts">
+        <div class="fact"><span>定位</span><strong>Windows 小游戏合集</strong></div>
+        <div class="fact"><span>气质</span><strong>安静 · 冷冽 · 精密</strong></div>
+        <div class="fact"><span>主题</span><strong>深海夜蓝 + 冰青</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div><p class="eyebrow">01 · BRAND ASSETS</p><h2>Logo 系统</h2><p>单色几何、开放轨道、金色星点。符号在 16px–512px 范围内保持一致识别，不依赖渐变或纹理。</p></div>
+      <span class="label">SVG · VECTOR MASTER</span>
+    </div>
+    <div class="logo-grid">
+      <div class="logo-tile"><div class="logo-stage light"><img src="europa-symbol.svg" alt="浅色符号"></div><div class="logo-meta"><strong>Symbol · Light</strong><span>europa-symbol.svg</span></div></div>
+      <div class="logo-tile"><div class="logo-stage"><img src="europa-symbol-dark.svg" alt="深色符号"></div><div class="logo-meta"><strong>Symbol · Dark</strong><span>europa-symbol-dark.svg</span></div></div>
+      <div class="logo-tile"><div class="logo-stage ice app"><img src="europa-mark.svg" alt="应用图标"></div><div class="logo-meta"><strong>App Mark</strong><span>europa-mark.svg</span></div></div>
+      <div class="logo-tile"><div class="logo-stage"><img src="europa-wordmark-dark.svg" alt="深色字标"></div><div class="logo-meta"><strong>Wordmark</strong><span>europa-wordmark-dark.svg</span></div></div>
+    </div>
+    <div class="construction">
+      <div class="construction-panel">
+        <h3>几何与安全区</h3>
+        <div class="geometry">
+          <div class="guides"></div><div class="cross-h"></div><div class="cross-v"></div>
+          <img src="europa-symbol-dark.svg" alt="">
+        </div>
+        <div class="rules">
+          <div class="rule"><i class="yes">✓</i><span>外弧半径 176，开口右上；金色星点直径 20，是系列标志性元素。</span></div>
+          <div class="rule"><i class="yes">✓</i><span>E 由 22 宽圆角笔画构成，左侧脊线带有轻微弯曲，隐喻冰面与月体边缘。</span></div>
+        </div>
+      </div>
+      <div class="construction-panel">
+        <h3>使用规则</h3>
+        <div class="rules" style="margin-top:0">
+          <div class="rule"><i class="yes">✓</i><span>深色背景：冰青 #58D9EC + 金色 #E8B84F；浅色背景：深海青 #0B7387 + 暖金 #B77912。</span></div>
+          <div class="rule"><i class="no">×</i><span>不拉伸、不倾斜、不添加外发光、阴影、描边或多色渐变。</span></div>
+          <div class="rule"><i class="no">×</i><span>不拆开轨道弧与星点；星点不可替换为主题主色。</span></div>
+          <div class="rule"><i class="yes">✓</i><span>四周留白至少为符号高度的 25%；字标最小使用宽度 96px，符号最小尺寸 16px。</span></div>
+        </div>
+        <div class="size-row">
+          <div class="size-item"><img src="europa-symbol-dark.svg" width="64"><span>64</span></div>
+          <div class="size-item"><img src="europa-symbol-dark.svg" width="32"><span>32</span></div>
+          <div class="size-item"><img src="europa-symbol-dark.svg" width="16"><span>16</span></div>
+          <div class="size-item"><img src="europa-symbol-dark.svg" width="12"><span>极限</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div><p class="eyebrow">02 · COLOR SYSTEM</p><h2>由 Logo 推导的主题色</h2><p>冰青负责动作与焦点，深海底色承载长时间使用，暖金只作为星点、成就与关键状态的微弱暖度。</p></div>
+      <span class="label">ACCENT ≤ 10% · GOLD ≤ 2%</span>
+    </div>
+    <div class="palette-grid">
+      <div class="swatch"><div class="swatch-color" style="background:#58d9ec"><span class="mini" style="color:#07161e">DARK ACCENT</span></div><div class="swatch-info"><strong>Europa Ice</strong><span>#58D9EC</span><small>深色模式主色 / 焦点 / 游戏光效</small></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#0b7387"><span class="mini">LIGHT ACCENT</span></div><div class="swatch-info"><strong>Deep Cyan</strong><span>#0B7387</span><small>浅色模式主色 / 文字级强调</small></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#e8b84f"><span class="mini" style="color:#07161e">SERIES SIGNAL</span></div><div class="swatch-info"><strong>Solar Gold</strong><span>#E8B84F</span><small>星点 / 最佳成绩 / 稀有状态</small></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#07161e;border-bottom:1px solid rgba(255,255,255,.08)"><span class="mini">DARK BASE</span></div><div class="swatch-info"><strong>Midnight</strong><span>#07161E</span><small>深色模式窗口底色</small></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#0e2834"><span class="mini">DARK SURFACE</span></div><div class="swatch-info"><strong>Abyss</strong><span>#0E2834</span><small>深色模式卡片 / 悬浮面板</small></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#f4f9fa"><span class="mini" style="color:#5e7480">LIGHT BASE</span></div><div class="swatch-info"><strong>Ice Paper</strong><span>#F4F9FA</span><small>浅色模式窗口底色</small></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#fbfefe"><span class="mini" style="color:#5e7480">LIGHT SURFACE</span></div><div class="swatch-info"><strong>Frost White</strong><span>#FBFEFE</span><small>浅色模式卡片 / 输入框</small></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#12232b"><span class="mini">INK</span></div><div class="swatch-info"><strong>Cold Ink</strong><span>#12232B</span><small>浅色模式主文字 / 游戏舞台</small></div></div>
+    </div>
+    <div class="ratio" style="margin-top:36px">
+      <div class="ratio-copy"><h3>色彩面积</h3><p>界面以中性色为主，冰青只出现在当前导航、主操作、游戏状态与关键数据上。暖金是低频的“星点”，绝不用于大面积背景。</p><div class="ratio-bar"><div class="ice"></div><div class="gold"></div><div class="paper"></div></div><div class="ratio-legend"><span><b style="background:#58d9ec"></b>冰青 ≈ 8–10%</span><span><b style="background:#e8b84f"></b>暖金 ≈ 1–2%</span><span><b style="background:#f4f9fa"></b>中性层 ≈ 88%</span></div></div>
+      <div class="type"><p class="label" style="margin:0 0 12px">TYPE SPECIMEN</p><div class="type-feature">Europa</div><div class="type-row"><span class="meta">DISPLAY 28/36 · 600</span><p class="sample" style="font-size:28px;line-height:36px;font-weight:600;margin:0">游戏库</p></div><div class="type-row"><span class="meta">TITLE 20/28 · 600</span><p class="sample" style="font-size:20px;line-height:28px;font-weight:600;margin:0">冰原跃迁</p></div><div class="type-row"><span class="meta">BODY 14/22 · 400</span><p class="sample" style="font-size:14px;line-height:22px;margin:0">三个小世界，随时开始。</p></div><div class="type-row"><span class="meta">MONO 13/20 · 400</span><p class="sample" style="font:400 13px/20px 'Cascadia Mono',Consolas,monospace;margin:0">BEST · 052800 · 12:36</p></div></div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="family"><b>Solar System Software Series</b><span>Mars</span><span>·</span><span>Ceres</span><span>·</span><span>Neptune</span><span>·</span><span>Titan</span><span>·</span><span>Miranda</span><span>·</span><b style="color:#58d9ec">Europa</b></div>
+    <span>Europa brand v0.1 · 2026</span>
+  </footer>
+</div>
+</body>
+</html>

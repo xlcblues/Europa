@@ -1,0 +1,192 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 55% 40% at 50% -8%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 70%),
+    radial-gradient(ellipse 25% 30% at 94% 105%, rgba(232, 184, 79, 0.07), transparent 72%),
+    var(--stage);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 22px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  color: inherit;
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-app-region: no-drag;
+}
+
+svg {
+  display: block;
+}
+
+::selection {
+  color: var(--text);
+  background: var(--accent-soft);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  min-height: 42px;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-3) 42%, transparent);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-2) 52%, transparent);
+  background-clip: padding-box;
+}
+
+.button {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--bg-raised);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    transform 100ms ease;
+}
+
+.button:hover {
+  border-color: var(--line-strong);
+  background: color-mix(in srgb, var(--accent-soft) 54%, var(--bg-raised));
+}
+
+.button:active {
+  transform: scale(0.985);
+}
+
+.button-primary {
+  border-color: color-mix(in srgb, var(--accent) 82%, transparent);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.button-primary:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 90%, var(--text));
+  color: var(--accent-contrast);
+}
+
+.eyebrow {
+  margin-bottom: 5px;
+  color: var(--accent-ink);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.02em;
+}
+
+.gold {
+  color: var(--gold) !important;
+}
+
+.section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.section-heading.compact {
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.section-heading h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 26px;
+}
+
+.section-note {
+  color: var(--text-3);
+  font-size: 10px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+[data-reduced-motion="true"] *,
+[data-reduced-motion="true"] *::before,
+[data-reduced-motion="true"] *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
