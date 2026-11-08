@@ -36,8 +36,10 @@ function cardBadge(game: GameDefinition, stats: GameStat[], latestLevel: number 
       ? { text: `最高 ${formatScore(stat.bestScore)}`, gold: stat.bestScore > 0 }
       : { text: "可游玩", gold: false };
   }
-  if (game.id === "gomoku" && stat?.gamesPlayed) {
-    return { text: `${stat.wins} 胜`, gold: stat.wins > 0 };
+  if (game.id === "gomoku") {
+    return stat?.gamesPlayed
+      ? { text: `${stat.wins} 胜`, gold: stat.wins > 0 }
+      : { text: "可游玩", gold: false };
   }
   if (stat?.bestScore) {
     return { text: `最高 ${formatScore(stat.bestScore)}`, gold: true };

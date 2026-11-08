@@ -10,9 +10,9 @@ import {
 } from "./theme";
 import type { SettingKey } from "../services/ipc";
 import { saveSetting } from "../services/ipc";
+import { GomokuGame } from "../games/gomoku/GomokuGame";
 import { PlatformerGame } from "../games/platformer/PlatformerGame";
 import { SnakeGame } from "../games/snake/SnakeGame";
-import { GamePlaceholder } from "../shell/GamePlaceholder";
 import { LibraryPage } from "../shell/LibraryPage";
 import { RecordsPage } from "../shell/RecordsPage";
 import { SettingsPage } from "../shell/SettingsPage";
@@ -145,10 +145,7 @@ export function App() {
             <SnakeGame onBack={() => handleNavigate({ page: "library" })} />
           ) : null}
           {route.page === "game" && route.gameId === "gomoku" ? (
-            <GamePlaceholder
-              gameId={route.gameId}
-              onBack={() => handleNavigate({ page: "library" })}
-            />
+            <GomokuGame onBack={() => handleNavigate({ page: "library" })} />
           ) : null}
         </main>
       </div>

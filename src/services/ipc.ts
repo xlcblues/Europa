@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import { boardFromMoves, detectWinAt, getCell } from "../games/gomoku/gomokuEngine";
 import type { GameId } from "./gameCatalog";
 
 export interface GameStat {
@@ -11,6 +12,10 @@ export interface GameStat {
   draws: number;
   totalPlayMs: number;
   lastPlayedAt: number | null;
+  currentStreak: number;
+  longestStreak: number;
+  fastestWinMoves: number | null;
+  fastestWinMs: number | null;
 }
 
 export type SnakeMatchOutcome = "game_over" | "victory";
@@ -73,6 +78,32 @@ export interface PlatformerMatchSubmissionResult {
   stat: GameStat;
 }
 
+export type GomokuMatchOutcome = "win" | "loss" | "draw";
+
+export interface GomokuPoint {
+  x: number;
+  y: number;
+}
+
+export interface GomokuMatchSubmission {
+  sessionId: string;
+  mode: "pvp" | "ai";
+  difficulty: "beginner" | "intermediate" | "master" | null;
+  outcome: GomokuMatchOutcome;
+  winner: "black" | "white" | null;
+  moveCount: number;
+  durationMs: number;
+  usedUndo: boolean;
+  undoCount: number;
+  moves: GomokuPoint[];
+  victoryLine: GomokuPoint[] | null;
+}
+
+export interface GomokuMatchSubmissionResult {
+  recorded: boolean;
+  stat: GameStat;
+}
+
 export interface SchemaInfo {
   version: number;
   path: string;
@@ -98,6 +129,7 @@ export const BROWSER_SETTINGS_KEY = "europa.browser-settings";
 export const BROWSER_SNAKE_LEDGER_KEY = "europa.browser-snake-ledger";
 export const BROWSER_PLATFORMER_SAVE_KEY = "europa.browser-platformer-save";
 export const BROWSER_PLATFORMER_LEDGER_KEY = "europa.browser-platformer-ledger";
+export const BROWSER_GOMOKU_LEDGER_KEY = "europa.browser-gomoku-ledger";
 
 interface BrowserSnakeLedger {
   sessionIds: string[];
@@ -107,6 +139,12 @@ interface BrowserSnakeLedger {
 interface BrowserPlatformerLedger {
   sessionIds: string[];
   submissions: PlatformerMatchSubmission[];
+  stat: GameStat | null;
+}
+
+interface BrowserGomokuLedger {
+  sessionIds: string[];
+  submissions: GomokuMatchSubmission[];
   stat: GameStat | null;
 }
 
@@ -185,16 +223,30 @@ export async function submitPlatformerMatch(
   return invoke<PlatformerMatchSubmissionResult>("submit_platformer_match", { submission });
 }
 
+export async function submitGomokuMatch(
+  submission: GomokuMatchSubmission,
+): Promise<GomokuMatchSubmissionResult> {
+  if (!isTauriEnvironment()) {
+    return submitBrowserGomokuMatch(submission);
+  }
+
+  return invoke<GomokuMatchSubmissionResult>("submit_gomoku_match", { submission });
+}
+
 function loadBrowserBootstrap(): BootstrapData {
   const settings = safelyReadBrowserSettings();
   const snakeLedger = readBrowserSnakeLedger();
   const platformerLedger = readBrowserPlatformerLedger();
+  const gomokuLedger = readBrowserGomokuLedger();
   const gameStats: GameStat[] = [];
   if (snakeLedger.stat) {
     gameStats.push(snakeLedger.stat);
   }
   if (platformerLedger.stat) {
     gameStats.push(platformerLedger.stat);
+  }
+  if (gomokuLedger.stat) {
+    gameStats.push(gomokuLedger.stat);
   }
 
   return {
@@ -244,6 +296,10 @@ function submitBrowserSnakeMatch(
     draws: existingStat.draws,
     totalPlayMs: existingStat.totalPlayMs + submission.durationMs,
     lastPlayedAt: now,
+    currentStreak: existingStat.currentStreak,
+    longestStreak: existingStat.longestStreak,
+    fastestWinMoves: existingStat.fastestWinMoves,
+    fastestWinMs: existingStat.fastestWinMs,
   };
   const nextLedger: BrowserSnakeLedger = {
     sessionIds: [...ledger.sessionIds, submission.sessionId],
@@ -294,6 +350,10 @@ function emptySnakeStat(): GameStat {
     draws: 0,
     totalPlayMs: 0,
     lastPlayedAt: null,
+    currentStreak: 0,
+    longestStreak: 0,
+    fastestWinMoves: null,
+    fastestWinMs: null,
   };
 }
 
@@ -307,6 +367,10 @@ function emptyPlatformerStat(): GameStat {
     draws: 0,
     totalPlayMs: 0,
     lastPlayedAt: null,
+    currentStreak: 0,
+    longestStreak: 0,
+    fastestWinMoves: null,
+    fastestWinMs: null,
   };
 }
 
@@ -441,6 +505,10 @@ function submitBrowserPlatformerMatch(
     draws: existingStat.draws,
     totalPlayMs: existingStat.totalPlayMs + submission.durationMs,
     lastPlayedAt: now,
+    currentStreak: existingStat.currentStreak,
+    longestStreak: existingStat.longestStreak,
+    fastestWinMoves: existingStat.fastestWinMoves,
+    fastestWinMs: existingStat.fastestWinMs,
   };
   const nextLedger: BrowserPlatformerLedger = {
     sessionIds: [...ledger.sessionIds, submission.sessionId],
@@ -450,6 +518,257 @@ function submitBrowserPlatformerMatch(
   localStorage.setItem(BROWSER_PLATFORMER_LEDGER_KEY, JSON.stringify(nextLedger));
 
   return { recorded: true, stat };
+}
+
+function submitBrowserGomokuMatch(
+  submission: GomokuMatchSubmission,
+): GomokuMatchSubmissionResult {
+  validateBrowserGomokuSubmission(submission);
+  const ledger = readBrowserGomokuLedger();
+  const existingStat = ledger.stat ?? emptyGomokuStat();
+
+  const existing = ledger.submissions.find(
+    (item) => item.sessionId === submission.sessionId,
+  );
+  if (existing) {
+    if (JSON.stringify(existing) !== JSON.stringify(submission)) {
+      throw new Error("同一会话提交了不一致的对局数据。");
+    }
+    return { recorded: false, stat: existingStat };
+  }
+
+  const now = Date.now();
+  const stat = nextGomokuStat(existingStat, submission, now);
+  const nextLedger: BrowserGomokuLedger = {
+    sessionIds: [...ledger.sessionIds, submission.sessionId],
+    submissions: [...ledger.submissions, submission],
+    stat,
+  };
+  localStorage.setItem(BROWSER_GOMOKU_LEDGER_KEY, JSON.stringify(nextLedger));
+
+  return { recorded: true, stat };
+}
+
+function nextGomokuStat(
+  existingStat: GameStat,
+  submission: GomokuMatchSubmission,
+  now: number,
+): GameStat {
+  const blackWon = submission.outcome === "win";
+  const whiteWon = submission.outcome === "loss";
+  const draw = submission.outcome === "draw";
+
+  let currentStreak = existingStat.currentStreak;
+  let longestStreak = existingStat.longestStreak;
+  let fastestWinMoves = existingStat.fastestWinMoves;
+  let fastestWinMs = existingStat.fastestWinMs;
+
+  if (blackWon) {
+    currentStreak += 1;
+    longestStreak = Math.max(longestStreak, currentStreak);
+    if (fastestWinMoves === null || submission.moveCount < fastestWinMoves) {
+      fastestWinMoves = submission.moveCount;
+    }
+    if (fastestWinMs === null || submission.durationMs < fastestWinMs) {
+      fastestWinMs = submission.durationMs;
+    }
+  } else {
+    currentStreak = 0;
+  }
+
+  return {
+    gameId: "gomoku",
+    bestScore: Math.max(existingStat.bestScore, submission.moveCount),
+    gamesPlayed: existingStat.gamesPlayed + 1,
+    wins: existingStat.wins + (blackWon ? 1 : 0),
+    losses: existingStat.losses + (whiteWon ? 1 : 0),
+    draws: existingStat.draws + (draw ? 1 : 0),
+    totalPlayMs: existingStat.totalPlayMs + submission.durationMs,
+    lastPlayedAt: now,
+    currentStreak,
+    longestStreak,
+    fastestWinMoves,
+    fastestWinMs,
+  };
+}
+
+function validateBrowserGomokuSubmission(submission: GomokuMatchSubmission): void {
+  if (!/^[A-Za-z0-9_-]{8,64}$/.test(submission.sessionId)) {
+    throw new Error("对局会话 ID 无效。");
+  }
+  if (submission.mode !== "pvp" && submission.mode !== "ai") {
+    throw new Error("对局模式无效。");
+  }
+  const validDifficulty =
+    submission.difficulty === null ||
+    submission.difficulty === "beginner" ||
+    submission.difficulty === "intermediate" ||
+    submission.difficulty === "master";
+  if (!validDifficulty) {
+    throw new Error("AI 难度无效。");
+  }
+  if (submission.mode === "pvp" && submission.difficulty !== null) {
+    throw new Error("双人模式不应包含 AI 难度。");
+  }
+  if (submission.mode === "ai" && submission.difficulty === null) {
+    throw new Error("人机模式缺少 AI 难度。");
+  }
+  if (submission.outcome !== "win" && submission.outcome !== "loss" && submission.outcome !== "draw") {
+    throw new Error("对局结果无效。");
+  }
+  if (submission.winner !== "black" && submission.winner !== "white" && submission.winner !== null) {
+    throw new Error("胜方无效。");
+  }
+  if (submission.outcome === "draw" && submission.winner !== null) {
+    throw new Error("平局不应包含胜方。");
+  }
+  if (submission.outcome === "win" && submission.winner !== "black") {
+    throw new Error("胜利视角与胜方不一致。");
+  }
+  if (submission.outcome === "loss" && submission.winner !== "white") {
+    throw new Error("失败视角与胜方不一致。");
+  }
+  if (
+    !Number.isInteger(submission.durationMs) ||
+    submission.durationMs < 0 ||
+    submission.durationMs > 86_400_000
+  ) {
+    throw new Error("对局时长无效。");
+  }
+  if (!Number.isInteger(submission.undoCount) || submission.undoCount < 0 || submission.undoCount > 3) {
+    throw new Error("悔棋次数无效。");
+  }
+  if (submission.usedUndo !== (submission.undoCount > 0)) {
+    throw new Error("悔棋标记不一致。");
+  }
+  if (!Number.isInteger(submission.moveCount) || submission.moveCount < 1 || submission.moveCount > 225) {
+    throw new Error("落子数量无效。");
+  }
+  if (!Array.isArray(submission.moves) || submission.moves.length !== submission.moveCount) {
+    throw new Error("落子记录与数量不一致。");
+  }
+
+  const seen = new Set<string>();
+  for (const point of submission.moves) {
+    if (
+      !Number.isInteger(point.x) ||
+      !Number.isInteger(point.y) ||
+      point.x < 0 ||
+      point.x > 14 ||
+      point.y < 0 ||
+      point.y > 14
+    ) {
+      throw new Error("落点坐标无效。");
+    }
+    const key = `${point.x},${point.y}`;
+    if (seen.has(key)) {
+      throw new Error("落点存在重复。");
+    }
+    seen.add(key);
+  }
+
+  if (submission.winner !== null) {
+    if (!Array.isArray(submission.victoryLine) || submission.victoryLine.length === 0) {
+      throw new Error("胜利对局缺少胜利线。");
+    }
+    const board = boardFromMoves(submission.moves);
+    const lastMove = submission.moves[submission.moves.length - 1] ?? null;
+    if (!lastMove) {
+      throw new Error("落子记录无效。");
+    }
+    if (getCell(board, lastMove.x, lastMove.y) !== submission.winner) {
+      throw new Error("最后落子与胜方不一致。");
+    }
+    if (detectWinAt(board, lastMove, submission.winner) === null) {
+      throw new Error("胜利线与落子记录不一致。");
+    }
+    for (const point of submission.victoryLine) {
+      if (
+        !Number.isInteger(point.x) ||
+        !Number.isInteger(point.y) ||
+        point.x < 0 ||
+        point.x > 14 ||
+        point.y < 0 ||
+        point.y > 14
+      ) {
+        throw new Error("胜利线坐标无效。");
+      }
+      if (getCell(board, point.x, point.y) !== submission.winner) {
+        throw new Error("胜利线包含非胜方棋子。");
+      }
+    }
+  } else if (submission.victoryLine !== null) {
+    throw new Error("未获胜对局不应包含胜利线。");
+  }
+}
+
+function emptyGomokuStat(): GameStat {
+  return {
+    gameId: "gomoku",
+    bestScore: 0,
+    gamesPlayed: 0,
+    wins: 0,
+    losses: 0,
+    draws: 0,
+    totalPlayMs: 0,
+    lastPlayedAt: null,
+    currentStreak: 0,
+    longestStreak: 0,
+    fastestWinMoves: null,
+    fastestWinMs: null,
+  };
+}
+
+function readBrowserGomokuLedger(): BrowserGomokuLedger {
+  try {
+    const raw = localStorage.getItem(BROWSER_GOMOKU_LEDGER_KEY);
+    if (!raw) {
+      return { sessionIds: [], submissions: [], stat: null };
+    }
+
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { sessionIds: [], submissions: [], stat: null };
+    }
+
+    const candidate = parsed as Partial<BrowserGomokuLedger>;
+    const sessionIds = Array.isArray(candidate.sessionIds)
+      ? candidate.sessionIds.filter((value): value is string => typeof value === "string")
+      : [];
+    const submissions = Array.isArray(candidate.submissions)
+      ? candidate.submissions.filter((value): value is GomokuMatchSubmission =>
+          isGomokuSubmission(value),
+        )
+      : [];
+    const stat = isGameStat(candidate.stat) ? candidate.stat : null;
+    return { sessionIds, submissions, stat };
+  } catch {
+    return { sessionIds: [], submissions: [], stat: null };
+  }
+}
+
+function isGomokuSubmission(value: unknown): value is GomokuMatchSubmission {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const submission = value as Partial<GomokuMatchSubmission>;
+  return (
+    typeof submission.sessionId === "string" &&
+    (submission.mode === "pvp" || submission.mode === "ai") &&
+    (submission.difficulty === null ||
+      submission.difficulty === "beginner" ||
+      submission.difficulty === "intermediate" ||
+      submission.difficulty === "master") &&
+    (submission.outcome === "win" || submission.outcome === "loss" || submission.outcome === "draw") &&
+    (submission.winner === "black" || submission.winner === "white" || submission.winner === null) &&
+    typeof submission.moveCount === "number" &&
+    typeof submission.durationMs === "number" &&
+    typeof submission.usedUndo === "boolean" &&
+    typeof submission.undoCount === "number" &&
+    Array.isArray(submission.moves) &&
+    (submission.victoryLine === null || Array.isArray(submission.victoryLine))
+  );
 }
 
 const PLATFORMER_LEVEL_CRYSTALS = [9, 12, 15] as const;
@@ -667,7 +986,11 @@ function isGameStat(value: unknown): value is GameStat {
     typeof stat.losses === "number" &&
     typeof stat.draws === "number" &&
     typeof stat.totalPlayMs === "number" &&
-    (typeof stat.lastPlayedAt === "number" || stat.lastPlayedAt === null)
+    (typeof stat.lastPlayedAt === "number" || stat.lastPlayedAt === null) &&
+    typeof stat.currentStreak === "number" &&
+    typeof stat.longestStreak === "number" &&
+    (typeof stat.fastestWinMoves === "number" || stat.fastestWinMoves === null) &&
+    (typeof stat.fastestWinMs === "number" || stat.fastestWinMs === null)
   );
 }
 

@@ -21,16 +21,20 @@ describe("Europa app shell", () => {
     hydrateStore();
   });
 
-  it("opens a game placeholder from the library and returns", () => {
+  it("opens the playable gomoku game from the library and returns", () => {
     window.location.hash = "#/library";
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "打开星盘五子棋，玩法即将开放" }));
-    expect(screen.getByRole("heading", { name: "星盘五子棋", level: 1 })).toBeInTheDocument();
-    expect(screen.getByText("界面已就绪 · 玩法开发中")).toBeInTheDocument();
+    const gameGrid = screen.getByRole("region", { name: "Europa 小游戏" });
+    fireEvent.click(within(gameGrid).getByRole("button", { name: "打开星盘五子棋" }));
 
-    const preview = screen.getByRole("region", { name: "星盘对弈将在下一里程碑开放" });
-    fireEvent.click(within(preview).getByRole("button", { name: "返回游戏库" }));
+    expect(screen.getByRole("heading", { name: "星盘五子棋", level: 1 })).toBeInTheDocument();
+    expect(screen.getByText("星盘待战")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /星盘五子棋棋盘/u })).toBeInTheDocument();
+
+    const overlay = screen.getByRole("heading", { name: "星盘待战" }).closest(".gomoku-overlay");
+    expect(overlay).not.toBeNull();
+    fireEvent.click(within(overlay as HTMLElement).getByRole("button", { name: "返回游戏库" }));
     expect(screen.getByRole("heading", { name: "游戏库" })).toBeInTheDocument();
     expect(window.location.hash).toBe("#/library");
   });

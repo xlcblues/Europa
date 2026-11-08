@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  BROWSER_GOMOKU_LEDGER_KEY,
   BROWSER_PLATFORMER_LEDGER_KEY,
   BROWSER_PLATFORMER_SAVE_KEY,
   BROWSER_SETTINGS_KEY,
@@ -12,9 +13,11 @@ import {
   readBrowserSettings,
   savePlatformerCheckpoint,
   saveSetting,
+  submitGomokuMatch,
   submitPlatformerMatch,
   submitSnakeMatch,
   type GameStat,
+  type GomokuMatchSubmission,
   type PlatformerMatchSubmission,
   type PlatformerSave,
   type SnakeMatchSubmission,
@@ -54,6 +57,10 @@ function snakeStat(overrides: Partial<GameStat> = {}): GameStat {
     draws: 0,
     totalPlayMs: 900,
     lastPlayedAt: 1_760_000_000_000,
+    currentStreak: 0,
+    longestStreak: 0,
+    fastestWinMoves: null,
+    fastestWinMs: null,
     ...overrides,
   };
 }
@@ -173,6 +180,59 @@ function platformerGameOverSubmission(
         completed: false,
         reachedBeacon: false,
       },
+    ],
+    ...overrides,
+  };
+}
+
+function gomokuStat(overrides: Partial<GameStat> = {}): GameStat {
+  return {
+    gameId: "gomoku",
+    bestScore: 9,
+    gamesPlayed: 1,
+    wins: 1,
+    losses: 0,
+    draws: 0,
+    totalPlayMs: 4_200,
+    lastPlayedAt: 1_760_000_000_000,
+    currentStreak: 1,
+    longestStreak: 1,
+    fastestWinMoves: 9,
+    fastestWinMs: 4_200,
+    ...overrides,
+  };
+}
+
+function gomokuSubmission(
+  overrides: Partial<GomokuMatchSubmission> = {},
+): GomokuMatchSubmission {
+  return {
+    sessionId: "gomoku-session-0001",
+    mode: "ai",
+    difficulty: "intermediate",
+    outcome: "win",
+    winner: "black",
+    moveCount: 9,
+    durationMs: 4_200,
+    usedUndo: false,
+    undoCount: 0,
+    moves: [
+      { x: 7, y: 7 },
+      { x: 7, y: 8 },
+      { x: 8, y: 7 },
+      { x: 8, y: 8 },
+      { x: 9, y: 7 },
+      { x: 9, y: 8 },
+      { x: 10, y: 7 },
+      { x: 10, y: 8 },
+      { x: 11, y: 7 },
+    ],
+    victoryLine: [
+      { x: 7, y: 7 },
+      { x: 8, y: 7 },
+      { x: 9, y: 7 },
+      { x: 10, y: 7 },
+      { x: 11, y: 7 },
     ],
     ...overrides,
   };
@@ -357,6 +417,158 @@ describe("browser persistence fallback", () => {
     ).rejects.toThrow("死亡总数不一致。");
     expect(localStorage.getItem(BROWSER_PLATFORMER_LEDGER_KEY)).toBeNull();
   });
+  it("records gomoku wins, losses and draws with streak statistics", async () => {
+    const win = await submitGomokuMatch(gomokuSubmission());
+    expect(win.recorded).toBe(true);
+    expect(win.stat).toMatchObject({
+      gameId: "gomoku",
+      bestScore: 9,
+      gamesPlayed: 1,
+      wins: 1,
+      losses: 0,
+      draws: 0,
+      totalPlayMs: 4_200,
+      currentStreak: 1,
+      longestStreak: 1,
+      fastestWinMoves: 9,
+      fastestWinMs: 4_200,
+    });
+
+    const loss = await submitGomokuMatch(
+      gomokuSubmission({
+        sessionId: "gomoku-session-0002",
+        outcome: "loss",
+        winner: "white",
+        moveCount: 10,
+        durationMs: 6_000,
+        moves: [
+          { x: 7, y: 7 },
+          { x: 7, y: 8 },
+          { x: 8, y: 7 },
+          { x: 8, y: 8 },
+          { x: 9, y: 7 },
+          { x: 9, y: 8 },
+          { x: 10, y: 7 },
+          { x: 10, y: 8 },
+          { x: 11, y: 7 },
+          { x: 11, y: 8 },
+        ],
+        victoryLine: [
+          { x: 7, y: 8 },
+          { x: 8, y: 8 },
+          { x: 9, y: 8 },
+          { x: 10, y: 8 },
+          { x: 11, y: 8 },
+        ],
+      }),
+    );
+    expect(loss.stat).toMatchObject({
+      gamesPlayed: 2,
+      wins: 1,
+      losses: 1,
+      totalPlayMs: 10_200,
+      currentStreak: 0,
+      longestStreak: 1,
+      fastestWinMoves: 9,
+      fastestWinMs: 4_200,
+    });
+
+    const draw = await submitGomokuMatch(
+      gomokuSubmission({
+        sessionId: "gomoku-session-0003",
+        outcome: "draw",
+        winner: null,
+        moveCount: 9,
+        durationMs: 8_000,
+        moves: [
+          { x: 7, y: 7 },
+          { x: 7, y: 8 },
+          { x: 8, y: 7 },
+          { x: 8, y: 8 },
+          { x: 9, y: 7 },
+          { x: 9, y: 8 },
+          { x: 10, y: 7 },
+          { x: 10, y: 8 },
+          { x: 11, y: 7 },
+        ],
+        victoryLine: null,
+      }),
+    );
+    expect(draw.stat).toMatchObject({
+      gamesPlayed: 3,
+      wins: 1,
+      losses: 1,
+      draws: 1,
+      totalPlayMs: 18_200,
+      currentStreak: 0,
+    });
+
+    const duplicate = await submitGomokuMatch(gomokuSubmission());
+    expect(duplicate.recorded).toBe(false);
+    expect(duplicate.stat).toEqual(draw.stat);
+
+    const bootstrap = await loadBootstrap();
+    expect(bootstrap.gameStats).toEqual([draw.stat]);
+  });
+
+  it("rejects inconsistent gomoku submissions without writing local data", async () => {
+    await expect(
+      submitGomokuMatch(gomokuSubmission({ sessionId: "gomoku invalid session" })),
+    ).rejects.toThrow("对局会话 ID 无效。");
+    expect(localStorage.getItem(BROWSER_GOMOKU_LEDGER_KEY)).toBeNull();
+
+    await expect(
+      submitGomokuMatch(
+        gomokuSubmission({
+          sessionId: "gomoku-invalid-02",
+          mode: "pvp",
+          difficulty: "beginner",
+        }),
+      ),
+    ).rejects.toThrow("双人模式不应包含 AI 难度。");
+
+    await expect(
+      submitGomokuMatch(
+        gomokuSubmission({ sessionId: "gomoku-invalid-03", outcome: "loss" }),
+      ),
+    ).rejects.toThrow("失败视角与胜方不一致。");
+
+    await expect(
+      submitGomokuMatch(
+        gomokuSubmission({
+          sessionId: "gomoku-invalid-04",
+          undoCount: 2,
+          usedUndo: false,
+        }),
+      ),
+    ).rejects.toThrow("悔棋标记不一致。");
+
+    await expect(
+      submitGomokuMatch(
+        gomokuSubmission({
+          sessionId: "gomoku-invalid-05",
+          victoryLine: [
+            { x: 7, y: 7 },
+            { x: 8, y: 7 },
+            { x: 9, y: 7 },
+            { x: 10, y: 7 },
+            { x: 12, y: 7 },
+          ],
+        }),
+      ),
+    ).rejects.toThrow("胜利线包含非胜方棋子。");
+
+    await expect(
+      submitGomokuMatch(
+        gomokuSubmission({
+          sessionId: "gomoku-invalid-06",
+          outcome: "loss",
+          winner: "white",
+        }),
+      ),
+    ).rejects.toThrow("最后落子与胜方不一致。");
+    expect(localStorage.getItem(BROWSER_GOMOKU_LEDGER_KEY)).toBeNull();
+  });
 });
 
 describe("Tauri IPC boundary", () => {
@@ -373,7 +585,7 @@ describe("Tauri IPC boundary", () => {
       settings: {},
       gameStats: [],
       latestPlatformerSave: null,
-      schema: { version: 2, path: "europa.db", storageMode: "sqlite" },
+      schema: { version: 3, path: "europa.db", storageMode: "sqlite" },
     });
 
     await loadBootstrap();
@@ -457,11 +669,27 @@ describe("Tauri IPC boundary", () => {
         draws: 0,
         totalPlayMs: 6000,
         lastPlayedAt: 1,
+        currentStreak: 0,
+        longestStreak: 0,
+        fastestWinMoves: null,
+        fastestWinMs: null,
       },
     });
     await submitPlatformerMatch(submission);
     expect(invokeMock).toHaveBeenCalledWith(
       "submit_platformer_match",
+      { submission },
+      undefined,
+    );
+  });
+
+  it("submits gomoku results through the Rust command", async () => {
+    const submission = gomokuSubmission({ sessionId: "tauri-gomoku-0001" });
+    invokeMock.mockResolvedValue({ recorded: true, stat: gomokuStat() });
+
+    await submitGomokuMatch(submission);
+    expect(invokeMock).toHaveBeenCalledWith(
+      "submit_gomoku_match",
       { submission },
       undefined,
     );

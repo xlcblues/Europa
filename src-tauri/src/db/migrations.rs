@@ -59,6 +59,12 @@ CREATE UNIQUE INDEX idx_match_history_session
     ON match_history(session_id)
     WHERE session_id IS NOT NULL;
 "#;
+const V3_SCHEMA: &str = r#"
+ALTER TABLE game_stats ADD COLUMN current_streak INTEGER NOT NULL DEFAULT 0 CHECK (current_streak >= 0);
+ALTER TABLE game_stats ADD COLUMN longest_streak INTEGER NOT NULL DEFAULT 0 CHECK (longest_streak >= 0);
+ALTER TABLE game_stats ADD COLUMN fastest_win_moves INTEGER;
+ALTER TABLE game_stats ADD COLUMN fastest_win_ms INTEGER;
+"#;
 
 const MIGRATIONS: &[Migration] = &[
     Migration {
@@ -69,9 +75,13 @@ const MIGRATIONS: &[Migration] = &[
         version: 2,
         sql: V2_SCHEMA,
     },
+    Migration {
+        version: 3,
+        sql: V3_SCHEMA,
+    },
 ];
 
-pub const LATEST_VERSION: i64 = 2;
+pub const LATEST_VERSION: i64 = 3;
 
 pub fn current_version(connection: &Connection) -> Result<i64, AppError> {
     Ok(connection.query_row("PRAGMA user_version", [], |row| row.get(0))?)
@@ -98,7 +108,7 @@ pub fn run(connection: &mut Connection) -> Result<i64, AppError> {
 mod tests {
     use rusqlite::Connection;
 
-    use super::{current_version, run, LATEST_VERSION, V1_SCHEMA};
+    use super::{current_version, run, LATEST_VERSION, V1_SCHEMA, V2_SCHEMA};
     use crate::error::AppError;
 
     fn table_count(connection: &Connection) -> i64 {
@@ -165,8 +175,8 @@ mod tests {
             )
             .expect("v1 history should be insertable");
 
-        let version = run(&mut connection).expect("v1 should upgrade to v2");
-        assert_eq!(version, 2);
+        let version = run(&mut connection).expect("v1 should upgrade to the latest version");
+        assert_eq!(version, LATEST_VERSION);
 
         let history_count: i64 = connection
             .query_row("SELECT COUNT(*) FROM match_history", [], |row| row.get(0))
@@ -192,4 +202,62 @@ mod tests {
             .expect("index metadata should be readable");
         assert_eq!(index_count, 1);
     }
+    #[test]
+    fn v3_adds_streak_columns_and_preserves_v2_history() {
+        let mut connection = Connection::open_in_memory().expect("in-memory database should open");
+        connection
+            .execute_batch(V1_SCHEMA)
+            .expect("v1 schema should be installable");
+        connection
+            .execute_batch(V2_SCHEMA)
+            .expect("v2 schema should be installable");
+        connection
+            .pragma_update(None, "user_version", 2)
+            .expect("test schema version should be writable");
+        connection
+            .execute(
+                "INSERT INTO game_stats
+                 (game_id, best_score, games_played, wins, losses, draws, total_play_ms)
+                 VALUES ('snake', 100, 5, 3, 2, 0, 4000)",
+                [],
+            )
+            .expect("v2 game_stats row should be insertable");
+
+        let version = run(&mut connection).expect("v2 should upgrade to v3");
+        assert_eq!(version, LATEST_VERSION);
+        assert_eq!(version, 3);
+
+        for column in ["current_streak", "longest_streak", "fastest_win_moves", "fastest_win_ms"] {
+            let count: i64 = connection
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('game_stats') WHERE name = ?1",
+                    [column],
+                    |row| row.get(0),
+                )
+                .expect("game_stats columns should be readable");
+            assert_eq!(count, 1, "column {column} should exist");
+        }
+
+        let (best_score, current_streak, longest_streak, fastest_win_moves): (i64, i64, i64, Option<i64>) =
+            connection
+                .query_row(
+                    "SELECT best_score, current_streak, longest_streak, fastest_win_moves
+                     FROM game_stats WHERE game_id = 'snake'",
+                    [],
+                    |row| {
+                        Ok((
+                            row.get(0)?,
+                            row.get(1)?,
+                            row.get(2)?,
+                            row.get(3)?,
+                        ))
+                    },
+                )
+                .expect("existing game_stats row should remain readable");
+        assert_eq!(best_score, 100);
+        assert_eq!(current_streak, 0);
+        assert_eq!(longest_streak, 0);
+        assert_eq!(fastest_win_moves, None);
+    }
+
 }

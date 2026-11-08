@@ -116,11 +116,11 @@ mod tests {
         let path = directory.path().join("europa.db");
 
         let first = Database::open(&path).expect("first database open should succeed");
-        assert_eq!(first.schema_version(), 2);
+        assert_eq!(first.schema_version(), 3);
         drop(first);
 
         let second = Database::open(&path).expect("second database open should succeed");
-        assert_eq!(second.schema_version(), 2);
+        assert_eq!(second.schema_version(), 3);
         drop(second);
 
         let connection = Connection::open(&path).expect("database should still be readable");

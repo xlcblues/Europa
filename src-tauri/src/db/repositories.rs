@@ -1,5 +1,5 @@
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -26,6 +26,12 @@ const PLATFORMER_SCORE_ZERO_DEATH: i64 = 1000;
 const PLATFORMER_SCORE_VICTORY: i64 = 2000;
 const PLATFORMER_MAX_DURATION_MS: i64 = 86_400_000;
 const PLATFORMER_MAX_SUBMISSION_SCORE: i64 = 1_000_000;
+const GOMOKU_GAME_ID: &str = "gomoku";
+const GOMOKU_BOARD_SIZE: i64 = 15;
+const GOMOKU_WIN_LENGTH: i64 = 5;
+const GOMOKU_MAX_UNDO: i64 = 3;
+const GOMOKU_MAX_MOVES: i64 = 225;
+const GOMOKU_MAX_DURATION_MS: i64 = 86_400_000;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -38,6 +44,10 @@ pub struct GameStat {
     pub draws: i64,
     pub total_play_ms: i64,
     pub last_played_at: Option<i64>,
+    pub current_streak: i64,
+    pub longest_streak: i64,
+    pub fastest_win_moves: Option<i64>,
+    pub fastest_win_ms: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -131,6 +141,36 @@ pub struct PlatformerMatchSubmission {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlatformerMatchSubmissionResult {
+    pub recorded: bool,
+    pub stat: GameStat,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GomokuMovePoint {
+    pub x: i64,
+    pub y: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GomokuMatchSubmission {
+    pub session_id: String,
+    pub mode: String,
+    pub difficulty: Option<String>,
+    pub outcome: String,
+    pub winner: Option<String>,
+    pub move_count: i64,
+    pub duration_ms: i64,
+    pub used_undo: bool,
+    pub undo_count: i64,
+    pub moves: Vec<GomokuMovePoint>,
+    pub victory_line: Option<Vec<GomokuMovePoint>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GomokuMatchSubmissionResult {
     pub recorded: bool,
     pub stat: GameStat,
 }
@@ -428,6 +468,321 @@ pub fn submit_platformer_match(
     })
 }
 
+pub fn submit_gomoku_match(
+    connection: &mut Connection,
+    submission: &GomokuMatchSubmission,
+) -> Result<GomokuMatchSubmissionResult, AppError> {
+    validate_gomoku_submission(submission)?;
+
+    let transaction = connection.transaction()?;
+    let existing_id: Option<i64> = transaction
+        .query_row(
+            "SELECT id FROM match_history WHERE session_id = ?1",
+            [&submission.session_id],
+            |row| row.get(0),
+        )
+        .optional()?;
+
+    if existing_id.is_some() {
+        let stat = load_game_stat(&transaction, GOMOKU_GAME_ID)?
+            .unwrap_or_else(|| empty_game_stat(GOMOKU_GAME_ID));
+        transaction.commit()?;
+        return Ok(GomokuMatchSubmissionResult {
+            recorded: false,
+            stat,
+        });
+    }
+
+    let now = now_millis();
+    let detail = serde_json::json!({
+        "mode": submission.mode,
+        "difficulty": submission.difficulty,
+        "outcome": submission.outcome,
+        "winner": submission.winner,
+        "usedUndo": submission.used_undo,
+        "undoCount": submission.undo_count,
+        "victoryLine": submission.victory_line,
+    });
+    let detail_json = serde_json::to_string(&detail)?;
+
+    transaction.execute(
+        "INSERT INTO match_history
+         (game_id, outcome, score, duration_ms, detail_json, created_at, session_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![
+            GOMOKU_GAME_ID,
+            submission.outcome,
+            submission.move_count,
+            submission.duration_ms,
+            detail_json,
+            now,
+            submission.session_id,
+        ],
+    )?;
+
+    let current = load_game_stat(&transaction, GOMOKU_GAME_ID)?
+        .unwrap_or_else(|| empty_game_stat(GOMOKU_GAME_ID));
+    let next = next_gomoku_stat(&current, submission, now);
+
+    transaction.execute(
+        "INSERT INTO game_stats
+         (game_id, best_score, games_played, wins, losses, draws, total_play_ms, last_played_at,
+          current_streak, longest_streak, fastest_win_moves, fastest_win_ms)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+         ON CONFLICT(game_id) DO UPDATE SET
+             best_score = excluded.best_score,
+             games_played = excluded.games_played,
+             wins = excluded.wins,
+             losses = excluded.losses,
+             draws = excluded.draws,
+             total_play_ms = excluded.total_play_ms,
+             last_played_at = excluded.last_played_at,
+             current_streak = excluded.current_streak,
+             longest_streak = excluded.longest_streak,
+             fastest_win_moves = excluded.fastest_win_moves,
+             fastest_win_ms = excluded.fastest_win_ms",
+        params![
+            GOMOKU_GAME_ID,
+            next.best_score,
+            next.games_played,
+            next.wins,
+            next.losses,
+            next.draws,
+            next.total_play_ms,
+            next.last_played_at,
+            next.current_streak,
+            next.longest_streak,
+            next.fastest_win_moves,
+            next.fastest_win_ms,
+        ],
+    )?;
+
+    let stat = load_game_stat(&transaction, GOMOKU_GAME_ID)?
+        .unwrap_or_else(|| empty_game_stat(GOMOKU_GAME_ID));
+    transaction.commit()?;
+
+    Ok(GomokuMatchSubmissionResult {
+        recorded: true,
+        stat,
+    })
+}
+
+fn next_gomoku_stat(
+    existing: &GameStat,
+    submission: &GomokuMatchSubmission,
+    now: i64,
+) -> GameStat {
+    let black_won = submission.outcome == "win";
+    let white_won = submission.outcome == "loss";
+    let draw = submission.outcome == "draw";
+
+    let mut current_streak = existing.current_streak;
+    let mut longest_streak = existing.longest_streak;
+    let mut fastest_win_moves = existing.fastest_win_moves;
+    let mut fastest_win_ms = existing.fastest_win_ms;
+
+    if black_won {
+        current_streak += 1;
+        longest_streak = longest_streak.max(current_streak);
+        if fastest_win_moves.is_none() || submission.move_count < fastest_win_moves.unwrap_or(i64::MAX) {
+            fastest_win_moves = Some(submission.move_count);
+        }
+        if fastest_win_ms.is_none() || submission.duration_ms < fastest_win_ms.unwrap_or(i64::MAX) {
+            fastest_win_ms = Some(submission.duration_ms);
+        }
+    } else {
+        current_streak = 0;
+    }
+
+    GameStat {
+        game_id: GOMOKU_GAME_ID.to_owned(),
+        best_score: existing.best_score.max(submission.move_count),
+        games_played: existing.games_played + 1,
+        wins: existing.wins + if black_won { 1 } else { 0 },
+        losses: existing.losses + if white_won { 1 } else { 0 },
+        draws: existing.draws + if draw { 1 } else { 0 },
+        total_play_ms: existing.total_play_ms + submission.duration_ms,
+        last_played_at: Some(now),
+        current_streak,
+        longest_streak,
+        fastest_win_moves,
+        fastest_win_ms,
+    }
+}
+
+fn board_from_moves(moves: &[GomokuMovePoint]) -> Vec<Vec<Option<String>>> {
+    let mut board = vec![vec![None; GOMOKU_BOARD_SIZE as usize]; GOMOKU_BOARD_SIZE as usize];
+    for (index, point) in moves.iter().enumerate() {
+        let stone = if index % 2 == 0 { "black" } else { "white" };
+        board[point.y as usize][point.x as usize] = Some(stone.to_owned());
+    }
+    board
+}
+
+fn get_cell(board: &[Vec<Option<String>>], x: i64, y: i64) -> Option<&str> {
+    if !(0..GOMOKU_BOARD_SIZE).contains(&x) || !(0..GOMOKU_BOARD_SIZE).contains(&y) {
+        return None;
+    }
+    board[y as usize][x as usize].as_deref()
+}
+
+fn stone_wins_from(
+    board: &[Vec<Option<String>>],
+    x: i64,
+    y: i64,
+    stone: &str,
+) -> Option<Vec<GomokuMovePoint>> {
+    if get_cell(board, x, y) != Some(stone) {
+        return None;
+    }
+
+    const DIRECTIONS: [(i64, i64); 4] = [(1, 0), (0, 1), (1, 1), (1, -1)];
+    for (dx, dy) in DIRECTIONS {
+        let mut line = vec![GomokuMovePoint { x, y }];
+        let mut step = 1_i64;
+        while get_cell(board, x + dx * step, y + dy * step) == Some(stone) {
+            line.push(GomokuMovePoint {
+                x: x + dx * step,
+                y: y + dy * step,
+            });
+            step += 1;
+        }
+        step = 1;
+        while get_cell(board, x - dx * step, y - dy * step) == Some(stone) {
+            line.insert(
+                0,
+                GomokuMovePoint {
+                    x: x - dx * step,
+                    y: y - dy * step,
+                },
+            );
+            step += 1;
+        }
+        if line.len() >= GOMOKU_WIN_LENGTH as usize {
+            return Some(line);
+        }
+    }
+
+    None
+}
+
+fn validate_gomoku_submission(submission: &GomokuMatchSubmission) -> Result<(), AppError> {
+    let valid_session_id = (8..=64).contains(&submission.session_id.len())
+        && submission
+            .session_id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_');
+    if !valid_session_id {
+        return Err(AppError::Validation("对局会话 ID 无效。".to_owned()));
+    }
+
+    match submission.mode.as_str() {
+        "pvp" | "ai" => {}
+        _ => {
+            return Err(AppError::Validation("对局模式无效。".to_owned()));
+        }
+    }
+
+    let valid_difficulty = match submission.difficulty.as_deref() {
+        None | Some("beginner" | "intermediate" | "master") => true,
+        _ => false,
+    };
+    if !valid_difficulty {
+        return Err(AppError::Validation("AI 难度无效。".to_owned()));
+    }
+    if submission.mode == "pvp" && submission.difficulty.is_some() {
+        return Err(AppError::Validation("双人模式不应包含 AI 难度。".to_owned()));
+    }
+    if submission.mode == "ai" && submission.difficulty.is_none() {
+        return Err(AppError::Validation("人机模式缺少 AI 难度。".to_owned()));
+    }
+
+    match submission.outcome.as_str() {
+        "win" | "loss" | "draw" => {}
+        _ => {
+            return Err(AppError::Validation("对局结果无效。".to_owned()));
+        }
+    }
+
+    let valid_winner = match submission.winner.as_deref() {
+        None | Some("black" | "white") => true,
+        _ => false,
+    };
+    if !valid_winner {
+        return Err(AppError::Validation("胜方无效。".to_owned()));
+    }
+    if submission.outcome == "draw" && submission.winner.is_some() {
+        return Err(AppError::Validation("平局不应包含胜方。".to_owned()));
+    }
+    if submission.outcome == "win" && submission.winner.as_deref() != Some("black") {
+        return Err(AppError::Validation("胜利视角与胜方不一致。".to_owned()));
+    }
+    if submission.outcome == "loss" && submission.winner.as_deref() != Some("white") {
+        return Err(AppError::Validation("失败视角与胜方不一致。".to_owned()));
+    }
+
+    if !(0..=GOMOKU_MAX_DURATION_MS).contains(&submission.duration_ms) {
+        return Err(AppError::Validation("对局时长无效。".to_owned()));
+    }
+    if !(0..=GOMOKU_MAX_UNDO).contains(&submission.undo_count) {
+        return Err(AppError::Validation("悔棋次数无效。".to_owned()));
+    }
+    if submission.used_undo != (submission.undo_count > 0) {
+        return Err(AppError::Validation("悔棋标记不一致。".to_owned()));
+    }
+    if !(1..=GOMOKU_MAX_MOVES).contains(&submission.move_count) {
+        return Err(AppError::Validation("落子数量无效。".to_owned()));
+    }
+    if submission.moves.len() != submission.move_count as usize {
+        return Err(AppError::Validation("落子记录与数量不一致。".to_owned()));
+    }
+
+    let mut seen = BTreeSet::new();
+    for point in &submission.moves {
+        if !(0..GOMOKU_BOARD_SIZE).contains(&point.x) || !(0..GOMOKU_BOARD_SIZE).contains(&point.y) {
+            return Err(AppError::Validation("落点坐标无效。".to_owned()));
+        }
+        if !seen.insert((point.x, point.y)) {
+            return Err(AppError::Validation("落点存在重复。".to_owned()));
+        }
+    }
+
+    if submission.winner.is_some() {
+        let victory_line = match submission.victory_line.as_deref() {
+            Some(line) if !line.is_empty() => line,
+            _ => {
+                return Err(AppError::Validation("胜利对局缺少胜利线。".to_owned()));
+            }
+        };
+        let board = board_from_moves(&submission.moves);
+        let last_move = match submission.moves.last() {
+            Some(last) => last,
+            None => {
+                return Err(AppError::Validation("落子记录无效。".to_owned()));
+            }
+        };
+        let winner = submission.winner.as_deref().unwrap();
+        if get_cell(&board, last_move.x, last_move.y) != Some(winner) {
+            return Err(AppError::Validation("最后落子与胜方不一致。".to_owned()));
+        }
+        if stone_wins_from(&board, last_move.x, last_move.y, winner).is_none() {
+            return Err(AppError::Validation("胜利线与落子记录不一致。".to_owned()));
+        }
+        for point in victory_line {
+            if !(0..GOMOKU_BOARD_SIZE).contains(&point.x) || !(0..GOMOKU_BOARD_SIZE).contains(&point.y) {
+                return Err(AppError::Validation("胜利线坐标无效。".to_owned()));
+            }
+            if get_cell(&board, point.x, point.y) != Some(winner) {
+                return Err(AppError::Validation("胜利线包含非胜方棋子。".to_owned()));
+            }
+        }
+    } else if submission.victory_line.is_some() {
+        return Err(AppError::Validation("未获胜对局不应包含胜利线。".to_owned()));
+    }
+
+    Ok(())
+}
+
 fn validate_platformer_checkpoint(record: &PlatformerSave) -> Result<(), AppError> {
     let valid_slot = (1..=64).contains(&record.slot.len())
         && record
@@ -653,7 +1008,8 @@ fn load_all_settings(connection: &Connection) -> Result<BTreeMap<String, Value>,
 fn load_game_stats(connection: &Connection) -> Result<Vec<GameStat>, AppError> {
     let mut statement = connection.prepare(
         "SELECT game_id, best_score, games_played, wins, losses, draws,
-                total_play_ms, last_played_at
+                total_play_ms, last_played_at, current_streak, longest_streak,
+                fastest_win_moves, fastest_win_ms
          FROM game_stats
          ORDER BY game_id ASC",
     )?;
@@ -667,6 +1023,10 @@ fn load_game_stats(connection: &Connection) -> Result<Vec<GameStat>, AppError> {
             draws: row.get(5)?,
             total_play_ms: row.get(6)?,
             last_played_at: row.get(7)?,
+            current_streak: row.get(8)?,
+            longest_streak: row.get(9)?,
+            fastest_win_moves: row.get(10)?,
+            fastest_win_ms: row.get(11)?,
         })
     })?;
 
@@ -677,7 +1037,8 @@ fn load_game_stat(connection: &Connection, game_id: &str) -> Result<Option<GameS
     connection
         .query_row(
             "SELECT game_id, best_score, games_played, wins, losses, draws,
-                    total_play_ms, last_played_at
+                    total_play_ms, last_played_at, current_streak, longest_streak,
+                    fastest_win_moves, fastest_win_ms
              FROM game_stats
              WHERE game_id = ?1",
             [game_id],
@@ -691,6 +1052,10 @@ fn load_game_stat(connection: &Connection, game_id: &str) -> Result<Option<GameS
                     draws: row.get(5)?,
                     total_play_ms: row.get(6)?,
                     last_played_at: row.get(7)?,
+                    current_streak: row.get(8)?,
+                    longest_streak: row.get(9)?,
+                    fastest_win_moves: row.get(10)?,
+                    fastest_win_ms: row.get(11)?,
                 })
             },
         )
@@ -708,6 +1073,10 @@ fn empty_game_stat(game_id: &str) -> GameStat {
         draws: 0,
         total_play_ms: 0,
         last_played_at: None,
+        current_streak: 0,
+        longest_streak: 0,
+        fastest_win_moves: None,
+        fastest_win_ms: None,
     }
 }
 
@@ -838,9 +1207,9 @@ mod tests {
 
     use super::{
         clear_platformer_checkpoint, load_platformer_checkpoint, load_setting_value,
-        save_platformer_checkpoint, save_setting, submit_platformer_match, submit_snake_match,
-        PlatformerMatchLevelResult, PlatformerMatchSubmission, PlatformerSave,
-        SnakeMatchSubmission,
+        save_platformer_checkpoint, save_setting, submit_gomoku_match, submit_platformer_match,
+        submit_snake_match, GomokuMatchSubmission, GomokuMovePoint, PlatformerMatchLevelResult,
+        PlatformerMatchSubmission, PlatformerSave, SnakeMatchSubmission,
     };
     use crate::db::migrations;
 
@@ -1207,6 +1576,161 @@ mod tests {
 
         let result = submit_snake_match(&mut connection, &submission);
         assert!(result.is_err());
+
+        let history_count: i64 = connection
+            .query_row("SELECT COUNT(*) FROM match_history", [], |row| row.get(0))
+            .expect("history should be readable");
+        let stats_count: i64 = connection
+            .query_row("SELECT COUNT(*) FROM game_stats", [], |row| row.get(0))
+            .expect("stats should be readable");
+        assert_eq!(history_count, 0);
+        assert_eq!(stats_count, 0);
+    }
+
+    fn gomoku_submission(session_id: &str, outcome: &str) -> GomokuMatchSubmission {
+        let (moves, winner, victory_line) = match outcome {
+            "win" => (
+                vec![
+                    GomokuMovePoint { x: 7, y: 7 },
+                    GomokuMovePoint { x: 7, y: 8 },
+                    GomokuMovePoint { x: 8, y: 7 },
+                    GomokuMovePoint { x: 8, y: 8 },
+                    GomokuMovePoint { x: 9, y: 7 },
+                    GomokuMovePoint { x: 9, y: 8 },
+                    GomokuMovePoint { x: 10, y: 7 },
+                    GomokuMovePoint { x: 10, y: 8 },
+                    GomokuMovePoint { x: 11, y: 7 },
+                ],
+                Some("black".to_owned()),
+                Some(vec![
+                    GomokuMovePoint { x: 7, y: 7 },
+                    GomokuMovePoint { x: 8, y: 7 },
+                    GomokuMovePoint { x: 9, y: 7 },
+                    GomokuMovePoint { x: 10, y: 7 },
+                    GomokuMovePoint { x: 11, y: 7 },
+                ]),
+            ),
+            "loss" => (
+                vec![
+                    GomokuMovePoint { x: 3, y: 3 },
+                    GomokuMovePoint { x: 7, y: 8 },
+                    GomokuMovePoint { x: 3, y: 4 },
+                    GomokuMovePoint { x: 8, y: 8 },
+                    GomokuMovePoint { x: 3, y: 5 },
+                    GomokuMovePoint { x: 9, y: 8 },
+                    GomokuMovePoint { x: 3, y: 6 },
+                    GomokuMovePoint { x: 10, y: 8 },
+                    GomokuMovePoint { x: 4, y: 4 },
+                    GomokuMovePoint { x: 11, y: 8 },
+                ],
+                Some("white".to_owned()),
+                Some(vec![
+                    GomokuMovePoint { x: 7, y: 8 },
+                    GomokuMovePoint { x: 8, y: 8 },
+                    GomokuMovePoint { x: 9, y: 8 },
+                    GomokuMovePoint { x: 10, y: 8 },
+                    GomokuMovePoint { x: 11, y: 8 },
+                ]),
+            ),
+            _ => (
+                vec![
+                    GomokuMovePoint { x: 7, y: 7 },
+                    GomokuMovePoint { x: 7, y: 8 },
+                    GomokuMovePoint { x: 8, y: 7 },
+                    GomokuMovePoint { x: 8, y: 8 },
+                    GomokuMovePoint { x: 9, y: 7 },
+                    GomokuMovePoint { x: 9, y: 8 },
+                    GomokuMovePoint { x: 10, y: 7 },
+                    GomokuMovePoint { x: 10, y: 8 },
+                    GomokuMovePoint { x: 11, y: 7 },
+                ],
+                None,
+                None,
+            ),
+        };
+        let move_count = moves.len() as i64;
+        GomokuMatchSubmission {
+            session_id: session_id.to_owned(),
+            mode: "ai".to_owned(),
+            difficulty: Some("intermediate".to_owned()),
+            outcome: outcome.to_owned(),
+            winner,
+            move_count,
+            duration_ms: 12_000,
+            used_undo: false,
+            undo_count: 0,
+            moves,
+            victory_line,
+        }
+    }
+
+    #[test]
+    fn gomoku_match_submission_is_idempotent() {
+        let mut connection = test_connection();
+        let submission = gomoku_submission("gomoku-idem-0001", "win");
+
+        let first = submit_gomoku_match(&mut connection, &submission)
+            .expect("first gomoku submission should succeed");
+        assert!(first.recorded);
+        assert_eq!(first.stat.best_score, 9);
+        assert_eq!(first.stat.games_played, 1);
+        assert_eq!(first.stat.wins, 1);
+        assert_eq!(first.stat.losses, 0);
+        assert_eq!(first.stat.total_play_ms, 12_000);
+        assert_eq!(first.stat.current_streak, 1);
+        assert_eq!(first.stat.longest_streak, 1);
+        assert_eq!(first.stat.fastest_win_moves, Some(9));
+        assert_eq!(first.stat.fastest_win_ms, Some(12_000));
+
+        let duplicate = submit_gomoku_match(&mut connection, &submission)
+            .expect("duplicate gomoku submission should be ignored");
+        assert!(!duplicate.recorded);
+        assert_eq!(duplicate.stat.games_played, 1);
+        assert_eq!(duplicate.stat.wins, 1);
+        assert_eq!(duplicate.stat.current_streak, 1);
+
+        let history_count: i64 = connection
+            .query_row("SELECT COUNT(*) FROM match_history", [], |row| row.get(0))
+            .expect("history should be readable");
+        assert_eq!(history_count, 1);
+    }
+
+    #[test]
+    fn gomoku_stats_accumulate_streaks_and_fastest_win() {
+        let mut connection = test_connection();
+        let first = gomoku_submission("gomoku-stat-0001", "win");
+        let second = gomoku_submission("gomoku-stat-0002", "loss");
+        let third = gomoku_submission("gomoku-stat-0003", "draw");
+
+        submit_gomoku_match(&mut connection, &first).expect("win should save");
+        submit_gomoku_match(&mut connection, &second).expect("loss should save");
+        let draw = submit_gomoku_match(&mut connection, &third).expect("draw should save");
+
+        assert_eq!(draw.stat.best_score, 10);
+        assert_eq!(draw.stat.games_played, 3);
+        assert_eq!(draw.stat.wins, 1);
+        assert_eq!(draw.stat.losses, 1);
+        assert_eq!(draw.stat.draws, 1);
+        assert_eq!(draw.stat.total_play_ms, 36_000);
+        assert_eq!(draw.stat.current_streak, 0);
+        assert_eq!(draw.stat.longest_streak, 1);
+        assert_eq!(draw.stat.fastest_win_moves, Some(9));
+        assert_eq!(draw.stat.fastest_win_ms, Some(12_000));
+        assert!(draw.stat.last_played_at.is_some());
+    }
+
+    #[test]
+    fn inconsistent_gomoku_result_is_rejected_without_writes() {
+        let mut connection = test_connection();
+        let mut submission = gomoku_submission("gomoku-inv-0001", "win");
+        submission.winner = Some("white".to_owned());
+
+        let result = submit_gomoku_match(&mut connection, &submission);
+        assert!(result.is_err());
+
+        let mut duplicate_point = gomoku_submission("gomoku-inv-0002", "win");
+        duplicate_point.moves[1] = GomokuMovePoint { x: 7, y: 7 };
+        assert!(submit_gomoku_match(&mut connection, &duplicate_point).is_err());
 
         let history_count: i64 = connection
             .query_row("SELECT COUNT(*) FROM match_history", [], |row| row.get(0))

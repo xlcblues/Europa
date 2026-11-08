@@ -21,6 +21,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::bootstrap::load_bootstrap,
+            commands::gomoku::submit_gomoku_match,
             commands::platformer::clear_platformer_checkpoint,
             commands::platformer::load_platformer_checkpoint,
             commands::platformer::save_platformer_checkpoint,

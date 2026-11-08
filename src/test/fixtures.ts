@@ -12,7 +12,7 @@ export function createBootstrapData(overrides: Partial<BootstrapData> = {}): Boo
     gameStats: overrides.gameStats ?? [],
     latestPlatformerSave: overrides.latestPlatformerSave ?? null,
     schema: overrides.schema ?? {
-      version: 2,
+      version: 3,
       path: "C:\\Users\\tester\\AppData\\Roaming\\com.europa.desktop\\Europa\\europa.db",
       storageMode: "sqlite",
     },

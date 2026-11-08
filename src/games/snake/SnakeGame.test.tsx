@@ -27,6 +27,10 @@ function statForSubmission(submission: IpcModule.SnakeMatchSubmission): IpcModul
     draws: 0,
     totalPlayMs: submission.durationMs,
     lastPlayedAt: Date.now(),
+    currentStreak: 0,
+    longestStreak: 0,
+    fastestWinMoves: null,
+    fastestWinMs: null,
   };
 }
 

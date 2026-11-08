@@ -34,6 +34,10 @@ describe("Europa library", () => {
           draws: 0,
           totalPlayMs: 6_000,
           lastPlayedAt: Date.now(),
+          currentStreak: 0,
+          longestStreak: 0,
+          fastestWinMoves: null,
+          fastestWinMs: null,
         },
       ],
     });
