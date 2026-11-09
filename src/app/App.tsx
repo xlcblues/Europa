@@ -11,6 +11,7 @@ import {
 import { installAudioPauseStrategy, sharedAudio } from "../services/audio";
 import type { SettingKey } from "../services/ipc";
 import { saveSetting } from "../services/ipc";
+import { useUpdater } from "../services/updater";
 import { GomokuGame } from "../games/gomoku/GomokuGame";
 import { PlatformerGame } from "../games/platformer/PlatformerGame";
 import { SnakeGame } from "../games/snake/SnakeGame";
@@ -31,6 +32,7 @@ export function App() {
   const soundEnabled = useAppStore((state) => state.soundEnabled);
   const masterVolume = useAppStore((state) => state.masterVolume);
   const reducedMotion = useAppStore((state) => state.reducedMotion);
+  const updater = useUpdater();
   const stats = useAppStore((state) => state.gameStats);
   const schema = useAppStore((state) => state.schema);
   const bootstrapStatus = useAppStore((state) => state.bootstrapStatus);
@@ -161,6 +163,9 @@ export function App() {
               onSoundChange={handleSoundChange}
               onVolumeChange={handleVolumeChange}
               onReducedMotionChange={handleReducedMotionChange}
+              updaterState={updater.state}
+              onCheckUpdate={() => void updater.checkNow()}
+              onInstallUpdate={() => void updater.install()}
             />
           ) : null}
           {route.page === "game" && route.gameId === "platformer" ? (

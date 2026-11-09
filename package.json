@@ -1,7 +1,7 @@
 {
   "name": "europa",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Europa - a quiet Windows desktop arcade for three small games.",
   "scripts": {
@@ -12,12 +12,14 @@
     "test:run": "vitest run",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "build": "npm run typecheck && vite build",
+    "update:manifest": "node scripts/make-update-manifest.mjs",
     "tauri": "tauri",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "dependencies": {
     "@tauri-apps/api": "2.12.4",
+    "@tauri-apps/plugin-updater": "2.14.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "zustand": "5.1.0"

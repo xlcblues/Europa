@@ -2,7 +2,7 @@
 
 > Windows 桌面端小游戏合集，太阳系软件系列成员：Mars · Ceres · Neptune · Titan · Miranda · Europa
 
-**当前状态：M3 已完成，环带贪吃蛇与冰原跃迁现已可玩。星盘五子棋（M4）仍为明确标注的占位页。**
+**当前状态：v1.0.0 正式版已完成全部里程碑（M1–M7），三款小游戏均可完整游玩；自动更新、NSIS 打包与 GitHub Release 发布已就绪。**
 
 ## M1–M3 已完成
 
@@ -58,6 +58,14 @@ npm run dev
 ```powershell
 npm run tauri build
 ```
+
+生成更新清单（构建完成后执行，产物在 `src-tauri/target/release/bundle/latest.json`）：
+
+```powershell
+npm run update:manifest
+```
+
+发布时需将 `latest.json` 与 NSIS 安装包上传为 GitHub Release 附件（tag 形如 `v1.0.0`），并在 Release 中重命名 `latest.json` 后即可由应用内“设置 → 关于与更新”自动发现并安装更新。
 
 ## 本地数据
 
@@ -128,8 +136,10 @@ CI 配置位于 `.github/workflows/ci.yml`，在 Windows runner 上执行以上�
 | M1     | Tauri 骨架、设计系统、应用壳层、SQLite 基础 | 已完成 |
 | M2     | 环带贪吃蛇完整玩法、幂等结算与 schema v2     | 已完成 |
 | M3     | 冰原跃迁完整玩法、检查点与幂等结算         | 已完成 |
-| M4     | 星盘五子棋完整玩法                          | 待开始 |
-| M5+    | 音频、记录、打磨、安装包与发布              | 规划中 |
+| M4     | 星盘五子棋完整玩法                          | 已完成 |
+| M5     | 设置、音频、记录与本地化                    | 已完成 |
+| M6     | 稳定性、性能与可访问性                     | 已完成 |
+| M7     | 自动更新、打包与发布                        | 已完成 |
 
 ## 设计与规划文档
 

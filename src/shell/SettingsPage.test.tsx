@@ -10,15 +10,28 @@ function renderPage() {
   const onSoundChange = vi.fn();
   const onVolumeChange = vi.fn();
   const onReducedMotionChange = vi.fn();
+  const onCheckUpdate = vi.fn();
+  const onInstallUpdate = vi.fn();
   const view = render(
     <SettingsPage
       onThemeChange={onThemeChange}
       onSoundChange={onSoundChange}
       onVolumeChange={onVolumeChange}
       onReducedMotionChange={onReducedMotionChange}
+      updaterState={{ status: "idle" }}
+      onCheckUpdate={onCheckUpdate}
+      onInstallUpdate={onInstallUpdate}
     />,
   );
-  return { onThemeChange, onSoundChange, onVolumeChange, onReducedMotionChange, view };
+  return {
+    onThemeChange,
+    onSoundChange,
+    onVolumeChange,
+    onReducedMotionChange,
+    onCheckUpdate,
+    onInstallUpdate,
+    view,
+  };
 }
 
 describe("Europa settings shell", () => {
@@ -73,5 +86,53 @@ describe("Europa settings shell", () => {
     const slider = screen.getByRole("slider", { name: "主音量" }) as HTMLInputElement;
     expect(slider.value).toBe("55");
     expect(screen.getByText("55%")).toBeInTheDocument();
+  });
+
+  it("renders the about & updater card with version and actions", () => {
+    const { onCheckUpdate, onInstallUpdate } = renderPage();
+
+    expect(screen.getByText("关于与更新")).toBeInTheDocument();
+    expect(screen.getByText("当前版本")).toBeInTheDocument();
+    expect(screen.getByText("v1.0.0")).toBeInTheDocument();
+    expect(screen.getByText("未检查")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "检查更新" }));
+    expect(onCheckUpdate).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "下载并安装" })).not.toBeInTheDocument();
+    expect(onInstallUpdate).not.toHaveBeenCalled();
+  });
+
+  it("offers install when an update is available and shows release notes", () => {
+    const {
+      onThemeChange,
+      onSoundChange,
+      onVolumeChange,
+      onReducedMotionChange,
+      onCheckUpdate,
+      onInstallUpdate,
+      view,
+    } = renderPage();
+    view.rerender(
+      <SettingsPage
+        onThemeChange={onThemeChange}
+        onSoundChange={onSoundChange}
+        onVolumeChange={onVolumeChange}
+        onReducedMotionChange={onReducedMotionChange}
+        updaterState={{
+          status: "available",
+          currentVersion: "1.0.0",
+          version: "1.1.0",
+          body: "新增离线更新功能",
+        }}
+        onCheckUpdate={onCheckUpdate}
+        onInstallUpdate={onInstallUpdate}
+      />,
+    );
+
+    expect(screen.getByText(/发现新版本 v1.1.0/u)).toBeInTheDocument();
+    expect(screen.getByText("新增离线更新功能")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "下载并安装" }));
+    expect(onInstallUpdate).toHaveBeenCalledTimes(1);
   });
 });

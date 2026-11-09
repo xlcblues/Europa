@@ -248,7 +248,6 @@ pub fn save_setting(
     })
 }
 
-
 pub fn load_match_history(
     connection: &Connection,
     game_id: Option<&str>,
@@ -286,10 +285,9 @@ pub fn clear_game_history(
 ) -> Result<ClearResult, AppError> {
     let transaction = connection.transaction()?;
     let removed_history = match game_id {
-        Some(game_id) => transaction.execute(
-            "DELETE FROM match_history WHERE game_id = ?1",
-            [game_id],
-        )?,
+        Some(game_id) => {
+            transaction.execute("DELETE FROM match_history WHERE game_id = ?1", [game_id])?
+        }
         None => transaction.execute("DELETE FROM match_history", [])?,
     };
     let reset_stats = match game_id {
@@ -660,11 +658,7 @@ pub fn submit_gomoku_match(
     })
 }
 
-fn next_gomoku_stat(
-    existing: &GameStat,
-    submission: &GomokuMatchSubmission,
-    now: i64,
-) -> GameStat {
+fn next_gomoku_stat(existing: &GameStat, submission: &GomokuMatchSubmission, now: i64) -> GameStat {
     let black_won = submission.outcome == "win";
     let white_won = submission.outcome == "loss";
     let draw = submission.outcome == "draw";
@@ -677,7 +671,9 @@ fn next_gomoku_stat(
     if black_won {
         current_streak += 1;
         longest_streak = longest_streak.max(current_streak);
-        if fastest_win_moves.is_none() || submission.move_count < fastest_win_moves.unwrap_or(i64::MAX) {
+        if fastest_win_moves.is_none()
+            || submission.move_count < fastest_win_moves.unwrap_or(i64::MAX)
+        {
             fastest_win_moves = Some(submission.move_count);
         }
         if fastest_win_ms.is_none() || submission.duration_ms < fastest_win_ms.unwrap_or(i64::MAX) {
@@ -784,7 +780,9 @@ fn validate_gomoku_submission(submission: &GomokuMatchSubmission) -> Result<(), 
         return Err(AppError::Validation("AI 难度无效。".to_owned()));
     }
     if submission.mode == "pvp" && submission.difficulty.is_some() {
-        return Err(AppError::Validation("双人模式不应包含 AI 难度。".to_owned()));
+        return Err(AppError::Validation(
+            "双人模式不应包含 AI 难度。".to_owned(),
+        ));
     }
     if submission.mode == "ai" && submission.difficulty.is_none() {
         return Err(AppError::Validation("人机模式缺少 AI 难度。".to_owned()));
@@ -832,7 +830,8 @@ fn validate_gomoku_submission(submission: &GomokuMatchSubmission) -> Result<(), 
 
     let mut seen = BTreeSet::new();
     for point in &submission.moves {
-        if !(0..GOMOKU_BOARD_SIZE).contains(&point.x) || !(0..GOMOKU_BOARD_SIZE).contains(&point.y) {
+        if !(0..GOMOKU_BOARD_SIZE).contains(&point.x) || !(0..GOMOKU_BOARD_SIZE).contains(&point.y)
+        {
             return Err(AppError::Validation("落点坐标无效。".to_owned()));
         }
         if !seen.insert((point.x, point.y)) {
@@ -862,7 +861,9 @@ fn validate_gomoku_submission(submission: &GomokuMatchSubmission) -> Result<(), 
             return Err(AppError::Validation("胜利线与落子记录不一致。".to_owned()));
         }
         for point in victory_line {
-            if !(0..GOMOKU_BOARD_SIZE).contains(&point.x) || !(0..GOMOKU_BOARD_SIZE).contains(&point.y) {
+            if !(0..GOMOKU_BOARD_SIZE).contains(&point.x)
+                || !(0..GOMOKU_BOARD_SIZE).contains(&point.y)
+            {
                 return Err(AppError::Validation("胜利线坐标无效。".to_owned()));
             }
             if get_cell(&board, point.x, point.y) != Some(winner) {
@@ -870,7 +871,9 @@ fn validate_gomoku_submission(submission: &GomokuMatchSubmission) -> Result<(), 
             }
         }
     } else if submission.victory_line.is_some() {
-        return Err(AppError::Validation("未获胜对局不应包含胜利线。".to_owned()));
+        return Err(AppError::Validation(
+            "未获胜对局不应包含胜利线。".to_owned(),
+        ));
     }
 
     Ok(())
@@ -1299,12 +1302,11 @@ mod tests {
     use rusqlite::Connection;
 
     use super::{
-        clear_game_history, clear_platformer_checkpoint, clear_platformer_saves,
-        load_game_stat, load_game_stats, load_match_history, load_platformer_checkpoint,
-        load_setting_value, save_platformer_checkpoint, save_setting, submit_gomoku_match,
-        submit_platformer_match, submit_snake_match, GomokuMatchSubmission, GomokuMovePoint,
-        PlatformerMatchLevelResult, PlatformerMatchSubmission, PlatformerSave,
-        SnakeMatchSubmission,
+        clear_game_history, clear_platformer_checkpoint, clear_platformer_saves, load_game_stat,
+        load_game_stats, load_match_history, load_platformer_checkpoint, load_setting_value,
+        save_platformer_checkpoint, save_setting, submit_gomoku_match, submit_platformer_match,
+        submit_snake_match, GomokuMatchSubmission, GomokuMovePoint, PlatformerMatchLevelResult,
+        PlatformerMatchSubmission, PlatformerSave, SnakeMatchSubmission,
     };
     use crate::db::migrations;
 
@@ -1863,12 +1865,13 @@ mod tests {
         assert_eq!(all[2].game_id, "snake");
         assert!(all.iter().all(|entry| entry.detail.is_object()));
 
-        let snake_only =
-            load_match_history(&connection, Some("snake"), 50).expect("filtered history should load");
+        let snake_only = load_match_history(&connection, Some("snake"), 50)
+            .expect("filtered history should load");
         assert_eq!(snake_only.len(), 2);
         assert!(snake_only.iter().all(|entry| entry.game_id == "snake"));
 
-        let limited = load_match_history(&connection, None, 2).expect("limited history should load");
+        let limited =
+            load_match_history(&connection, None, 2).expect("limited history should load");
         assert_eq!(limited.len(), 2);
     }
 
@@ -1896,8 +1899,12 @@ mod tests {
         let gomoku_history =
             load_match_history(&connection, Some("gomoku"), 50).expect("history should load");
         assert_eq!(gomoku_history.len(), 1);
-        assert!(load_game_stat(&connection, "snake").expect("stat should load").is_none());
-        assert!(load_game_stat(&connection, "gomoku").expect("stat should load").is_some());
+        assert!(load_game_stat(&connection, "snake")
+            .expect("stat should load")
+            .is_none());
+        assert!(load_game_stat(&connection, "gomoku")
+            .expect("stat should load")
+            .is_some());
     }
 
     #[test]
@@ -1958,9 +1965,10 @@ mod tests {
         assert_eq!(result.cleared_saves, 2);
 
         let remaining: i64 = connection
-            .query_row("SELECT COUNT(*) FROM platformer_saves", [], |row| row.get(0))
+            .query_row("SELECT COUNT(*) FROM platformer_saves", [], |row| {
+                row.get(0)
+            })
             .expect("saves should be readable");
         assert_eq!(remaining, 0);
     }
-
 }

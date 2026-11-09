@@ -258,6 +258,24 @@ export function CloseIcon({ size, ...props }: IconProps) {
 }
 
 
+export function RefreshIcon({ size, ...props }: IconProps) {
+  return (
+    <IconFrame size={size} {...props}>
+      <path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" />
+      <path d="M17.2 3.6v4.2h-4.2" />
+    </IconFrame>
+  );
+}
+
+export function DownloadIcon({ size, ...props }: IconProps) {
+  return (
+    <IconFrame size={size} {...props}>
+      <path d="M12 3.5v10M7.5 9.5l4.5 4 4.5-4" />
+      <path d="M4.5 17.5h15" />
+    </IconFrame>
+  );
+}
+
 export function GameGlyph({ gameId, size = 18 }: { gameId: GameId; size?: number }) {
   if (gameId === "platformer") {
     return <PlatformIcon size={size} />;

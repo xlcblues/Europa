@@ -227,7 +227,12 @@ mod tests {
         assert_eq!(version, LATEST_VERSION);
         assert_eq!(version, 3);
 
-        for column in ["current_streak", "longest_streak", "fastest_win_moves", "fastest_win_ms"] {
+        for column in [
+            "current_streak",
+            "longest_streak",
+            "fastest_win_moves",
+            "fastest_win_ms",
+        ] {
             let count: i64 = connection
                 .query_row(
                     "SELECT COUNT(*) FROM pragma_table_info('game_stats') WHERE name = ?1",
@@ -238,26 +243,22 @@ mod tests {
             assert_eq!(count, 1, "column {column} should exist");
         }
 
-        let (best_score, current_streak, longest_streak, fastest_win_moves): (i64, i64, i64, Option<i64>) =
-            connection
-                .query_row(
-                    "SELECT best_score, current_streak, longest_streak, fastest_win_moves
+        let (best_score, current_streak, longest_streak, fastest_win_moves): (
+            i64,
+            i64,
+            i64,
+            Option<i64>,
+        ) = connection
+            .query_row(
+                "SELECT best_score, current_streak, longest_streak, fastest_win_moves
                      FROM game_stats WHERE game_id = 'snake'",
-                    [],
-                    |row| {
-                        Ok((
-                            row.get(0)?,
-                            row.get(1)?,
-                            row.get(2)?,
-                            row.get(3)?,
-                        ))
-                    },
-                )
-                .expect("existing game_stats row should remain readable");
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .expect("existing game_stats row should remain readable");
         assert_eq!(best_score, 100);
         assert_eq!(current_streak, 0);
         assert_eq!(longest_streak, 0);
         assert_eq!(fastest_win_moves, None);
     }
-
 }

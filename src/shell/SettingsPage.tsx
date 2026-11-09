@@ -1,5 +1,14 @@
 import type { ReactNode } from "react";
-import { InfoIcon, MonitorIcon, MoonIcon, StorageIcon, SunIcon } from "../components/Icons";
+import {
+  DownloadIcon,
+  InfoIcon,
+  MonitorIcon,
+  MoonIcon,
+  RefreshIcon,
+  StorageIcon,
+  SunIcon,
+} from "../components/Icons";
+import { FALLBACK_VERSION, type UpdaterState } from "../services/updater";
 import { formatRelativeTime } from "../app/formatters";
 import type { ThemeMode } from "../app/theme";
 import { useAppStore } from "../state/appStore";
@@ -9,6 +18,9 @@ interface SettingsPageProps {
   onSoundChange: (enabled: boolean) => void;
   onVolumeChange: (volume: number) => void;
   onReducedMotionChange: (enabled: boolean) => void;
+  updaterState: UpdaterState;
+  onCheckUpdate: () => void;
+  onInstallUpdate: () => void;
 }
 
 const themeOptions: readonly { mode: ThemeMode; label: string; detail: string }[] = [
@@ -64,6 +76,108 @@ function SettingRow({
       </div>
       <div className="setting-control">{control}</div>
     </div>
+  );
+}
+
+function UpdateCard({
+  updaterState,
+  onCheckUpdate,
+  onInstallUpdate,
+}: {
+  updaterState: UpdaterState;
+  onCheckUpdate: () => void;
+  onInstallUpdate: () => void;
+}) {
+  const currentVersion = updaterState.currentVersion ?? FALLBACK_VERSION;
+  const busy =
+    updaterState.status === "checking" ||
+    updaterState.status === "downloading" ||
+    updaterState.status === "installing";
+
+  let statusText = "未检查";
+  if (updaterState.status === "checking") {
+    statusText = "正在检查更新…";
+  } else if (updaterState.status === "latest") {
+    statusText = "已是最新版本";
+  } else if (updaterState.status === "available") {
+    statusText = `发现新版本 v${updaterState.version ?? ""}`;
+  } else if (updaterState.status === "downloading") {
+    statusText =
+      updaterState.progress && updaterState.progress > 0
+        ? `已下载 ${updaterState.progress}%`
+        : `正在下载 v${updaterState.version ?? ""}`;
+  } else if (updaterState.status === "installing") {
+    statusText = "正在安装，完成后自动重启";
+  } else if (updaterState.status === "error") {
+    statusText =
+      updaterState.message === "unsupported"
+        ? "当前环境不支持在线更新"
+        : "检查更新失败";
+  }
+
+  return (
+    <section className="settings-card about-card">
+      <div className="section-heading compact">
+        <div>
+          <div className="eyebrow">ABOUT · UPDATES</div>
+          <h2>关于与更新</h2>
+        </div>
+        <span className="status-badge">Europa v{currentVersion}</span>
+      </div>
+
+      <div className="about-meta">
+        <div className="about-meta-item">
+          <span>当前版本</span>
+          <strong>v{currentVersion}</strong>
+        </div>
+        <div className="about-meta-item">
+          <span>更新状态</span>
+          <strong
+            className={updaterState.status === "error" ? "about-status-error" : ""}
+          >
+            {statusText}
+          </strong>
+        </div>
+      </div>
+
+      {updaterState.status === "available" && updaterState.body ? (
+        <p className="about-update-notes">{updaterState.body}</p>
+      ) : null}
+
+      {updaterState.status === "downloading" ? (
+        <div
+          className={`about-update-progress${updaterState.progress ? "" : " indeterminate"}`}
+          role="progressbar"
+          aria-valuenow={updaterState.progress ?? 0}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <span style={{ width: `${updaterState.progress ?? 38}%` }} />
+        </div>
+      ) : null}
+
+      {updaterState.status === "error" && updaterState.message !== "unsupported" ? (
+        <p className="about-update-error">{updaterState.message}</p>
+      ) : null}
+
+      <div className="about-update-actions">
+        <button type="button" className="button" disabled={busy} onClick={onCheckUpdate}>
+          <RefreshIcon size={15} className={updaterState.status === "checking" ? "about-spin" : undefined} />
+          <span>{updaterState.status === "checking" ? "检查中" : "检查更新"}</span>
+        </button>
+        {updaterState.status === "available" ? (
+          <button
+            type="button"
+            className="button button-primary"
+            disabled={busy}
+            onClick={onInstallUpdate}
+          >
+            <DownloadIcon size={15} />
+            <span>下载并安装</span>
+          </button>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -169,6 +283,9 @@ export function SettingsPage({
   onSoundChange,
   onVolumeChange,
   onReducedMotionChange,
+  updaterState,
+  onCheckUpdate,
+  onInstallUpdate,
 }: SettingsPageProps) {
   const themeMode = useAppStore((state) => state.themeMode);
   const resolvedTheme = useAppStore((state) => state.resolvedTheme);
@@ -293,6 +410,12 @@ export function SettingsPage({
           <StorageDetails />
         </div>
       </div>
+
+      <UpdateCard
+        updaterState={updaterState}
+        onCheckUpdate={onCheckUpdate}
+        onInstallUpdate={onInstallUpdate}
+      />
 
       <footer className="settings-footer">
         <span>EUROPA · com.europa.desktop</span>
