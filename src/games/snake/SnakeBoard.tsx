@@ -36,6 +36,9 @@ const FALLBACK_PALETTE: BoardPalette = {
 export function SnakeBoard({ state, phase }: SnakeBoardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  // palette 只随主题/减少动态变化刷新，避免每个 tick 触发 getComputedStyle（低性能设备友好）。
+  const paletteRef = useRef<BoardPalette | null>(null);
+  const paletteKeyRef = useRef("");
   const resolvedTheme = useAppStore((store) => store.resolvedTheme);
   const reducedMotion = useAppStore((store) => store.reducedMotion);
 
@@ -60,8 +63,15 @@ export function SnakeBoard({ state, phase }: SnakeBoardProps) {
         return;
       }
 
+      const themeKey = `${resolvedTheme}:${reducedMotion}`;
+      if (paletteKeyRef.current !== themeKey) {
+        paletteKeyRef.current = themeKey;
+        paletteRef.current = readPalette(canvas);
+      }
+      const palette = paletteRef.current ?? FALLBACK_PALETTE;
+
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drawBoard(context, cssSize, state, phase, readPalette(canvas), reducedMotion);
+      drawBoard(context, cssSize, state, phase, palette, reducedMotion);
     };
 
     draw();

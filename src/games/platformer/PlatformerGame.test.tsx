@@ -218,4 +218,25 @@ describe("PlatformerGame", () => {
     expect(submitPlatformerMatchMock).not.toHaveBeenCalled();
     expect(savePlatformerCheckpointMock).toHaveBeenCalled();
   });
+  it("renders and keeps drawing with reduced motion enabled", async () => {
+    hydrateStore({
+      settings: { theme: "light", sound_enabled: true, reduced_motion: true },
+    });
+    render(<PlatformerGame onBack={vi.fn()} />);
+    await beginPlaying();
+
+    const canvas = document.querySelector("canvas");
+    const context = canvas?.getContext("2d") as unknown as
+      | { clearRect: { mock: { calls: unknown[] } } }
+      | null;
+    expect(context).not.toBeNull();
+    const drawCount = (): number => context?.clearRect.mock.calls.length ?? 0;
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect(drawCount()).toBeGreaterThan(0);
+  });
+
+
 });

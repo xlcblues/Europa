@@ -416,13 +416,14 @@ function drawOrbitalDecor(
   palette: BoardPalette,
   reducedMotion: boolean,
 ): void {
-  void reducedMotion;
+  // 减少动态：整体降低装饰轨道与核心光晕的强度，保留静态可读性。
+  const decorAlpha = reducedMotion ? 0.35 : 1;
   const centerX = size * 0.5;
   const centerY = size * 0.46;
   const ringCount = 3;
   for (let ring = 0; ring < ringCount; ring += 1) {
     const radius = size * (0.28 + ring * 0.11);
-    context.strokeStyle = colorWithAlpha(palette.accent, 0.05 + ring * 0.015);
+    context.strokeStyle = colorWithAlpha(palette.accent, (0.05 + ring * 0.015) * decorAlpha);
     context.lineWidth = 1;
     context.beginPath();
     context.ellipse(
@@ -444,7 +445,7 @@ function drawOrbitalDecor(
     centerY,
     size * 0.16,
   );
-  glow.addColorStop(0, colorWithAlpha(palette.gold, 0.16));
+  glow.addColorStop(0, colorWithAlpha(palette.gold, 0.16 * decorAlpha));
   glow.addColorStop(1, colorWithAlpha(palette.gold, 0));
   context.fillStyle = glow;
   context.beginPath();

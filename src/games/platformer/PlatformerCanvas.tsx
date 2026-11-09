@@ -19,6 +19,7 @@ interface DrawState {
   level: PlatformerLevel;
   world: PlatformerWorld;
   cameraX: number;
+  reducedMotion: boolean;
 }
 
 export function PlatformerCanvas({ world, reducedMotion, ariaLabel }: PlatformerCanvasProps) {
@@ -41,7 +42,7 @@ export function PlatformerCanvas({ world, reducedMotion, ariaLabel }: Platformer
     const context: CanvasRenderingContext2D = contextElement;
 
     let animationFrame = 0;
-    let frameCount = 0;
+    let lastDrawnWorld: PlatformerWorld | null = null;
     let width = 0;
     let height = 0;
     let dpr = 1;
@@ -57,14 +58,21 @@ export function PlatformerCanvas({ world, reducedMotion, ariaLabel }: Platformer
       canvas.height = Math.max(1, Math.round(parentHeight * dpr));
       canvas.style.width = `${parentWidth}px`;
       canvas.style.height = `${parentHeight}px`;
+      // 尺寸变化后强制重绘（即使 world 引用未变，画布也需要按新尺寸刷新）。
+      lastDrawnWorld = null;
+      draw();
     }
 
     function draw(): void {
       const currentWorld = worldRef.current;
+      // 暂停/恢复期间 world 引用不变：跳过重绘，冻结所有动画，零绘制开销。
+      if (currentWorld === lastDrawnWorld) {
+        return;
+      }
+      lastDrawnWorld = currentWorld;
       const level = getPlatformerLevel(currentWorld.levelIndex);
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
       context.clearRect(0, 0, width, height);
-      frameCount += 1;
 
       const scale = Math.min(width / PLATFORMER_LOGICAL_WIDTH, height / PLATFORMER_LOGICAL_HEIGHT);
       const offsetX = (width - PLATFORMER_LOGICAL_WIDTH * scale) * 0.5;
@@ -78,10 +86,11 @@ export function PlatformerCanvas({ world, reducedMotion, ariaLabel }: Platformer
         level,
         world: currentWorld,
         cameraX: currentWorld.camera.x,
+        reducedMotion,
       };
 
       drawSky(state);
-      drawParallax(state, frameCount);
+      drawParallax(state);
 
       // 世界对象统一按相机偏移投影：相机右移时，场景整体左移，角色不会在屏幕右缘消失。
       context.save();
@@ -89,8 +98,8 @@ export function PlatformerCanvas({ world, reducedMotion, ariaLabel }: Platformer
       drawBeacon(state);
       drawPlatforms(state);
       drawCheckpoints(state);
-      drawCrystals(state, frameCount);
-      drawSentinels(state, frameCount);
+      drawCrystals(state);
+      drawSentinels(state);
       drawPlayer(state);
       context.restore();
 
@@ -144,7 +153,7 @@ function drawSky({ context, level }: DrawState): void {
   context.fillRect(0, 0, PLATFORMER_LOGICAL_WIDTH, 420);
 }
 
-function drawParallax({ context, level, cameraX }: DrawState, frameCount: number): void {
+function drawParallax({ context, level, cameraX, world, reducedMotion }: DrawState): void {
   const layers: Array<{ factor: number; color: string; peaks: number[] }> = [
     {
       factor: 0.12,
@@ -164,7 +173,10 @@ function drawParallax({ context, level, cameraX }: DrawState, frameCount: number
   ];
 
   layers.forEach((layer, index) => {
-    const drift = index === 2 && frameCount > 0 ? (frameCount * 0.12) % 160 : 0;
+    // 视差漂移与游戏时间同步（暂停冻结、恢复续接）；减少动态时禁用漂移。
+    const drift = !reducedMotion && index === 2 && world.levelTimeMs > 0
+      ? (world.levelTimeMs * 0.0072) % 160
+      : 0;
     const startX = -(cameraX * layer.factor) % 160;
     context.fillStyle = layer.color;
     context.beginPath();
@@ -206,8 +218,9 @@ function drawPlatforms({ context, level, world }: DrawState): void {
   }
 }
 
-function drawCrystals({ context, level, world }: DrawState, frameCount: number): void {
-  const pulse = 0.72 + Math.sin(frameCount * 0.08) * 0.12;
+function drawCrystals({ context, level, world, reducedMotion }: DrawState): void {
+  // 脉冲与游戏时间同步（暂停冻结、恢复续接）；减少动态时使用静态亮度。
+  const pulse = reducedMotion ? 0.78 : 0.72 + Math.sin(world.levelTimeMs * 0.0048) * 0.12;
   for (const crystal of level.crystals) {
     if (world.collectedItemIds.includes(crystal.id)) {
       continue;
@@ -250,7 +263,7 @@ function drawCrystals({ context, level, world }: DrawState, frameCount: number):
   }
 }
 
-function drawSentinels({ context, level, world }: DrawState, frameCount: number): void {
+function drawSentinels({ context, level, world, reducedMotion }: DrawState): void {
   for (const sentinel of world.sentinels) {
     if (sentinel.defeated) {
       continue;
@@ -261,7 +274,8 @@ function drawSentinels({ context, level, world }: DrawState, frameCount: number)
       continue;
     }
 
-    const glow = 0.5 + Math.sin(frameCount * 0.1) * 0.2;
+    // 哨兵光晕与游戏时间同步（暂停冻结、恢复续接）；减少动态时使用静态光晕。
+    const glow = reducedMotion ? 0.55 : 0.5 + Math.sin(world.levelTimeMs * 0.006) * 0.2;
     context.save();
     context.fillStyle = level.palette.accentSoft;
     context.globalAlpha = glow;
