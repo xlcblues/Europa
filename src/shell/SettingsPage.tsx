@@ -7,6 +7,7 @@ import { useAppStore } from "../state/appStore";
 interface SettingsPageProps {
   onThemeChange: (mode: ThemeMode) => void;
   onSoundChange: (enabled: boolean) => void;
+  onVolumeChange: (volume: number) => void;
   onReducedMotionChange: (enabled: boolean) => void;
 }
 
@@ -166,11 +167,13 @@ function StorageDetails() {
 export function SettingsPage({
   onThemeChange,
   onSoundChange,
+  onVolumeChange,
   onReducedMotionChange,
 }: SettingsPageProps) {
   const themeMode = useAppStore((state) => state.themeMode);
   const resolvedTheme = useAppStore((state) => state.resolvedTheme);
   const soundEnabled = useAppStore((state) => state.soundEnabled);
+  const masterVolume = useAppStore((state) => state.masterVolume);
   const reducedMotion = useAppStore((state) => state.reducedMotion);
   const persistenceError = useAppStore((state) => state.persistenceError);
 
@@ -261,9 +264,28 @@ export function SettingsPage({
             </div>
             <SettingRow
               title="游戏音效"
-              description="三款游戏统一读取此开关。环带贪吃蛇已启用程序化冰环音效，关闭后立即静音。"
+              description="三款游戏统一读取此开关。关闭后立即静音。"
               control={
                 <ToggleSwitch checked={soundEnabled} label="游戏音效" onChange={onSoundChange} />
+              }
+            />
+            <SettingRow
+              title="主音量"
+              description="三款游戏共享同一音量；窗口失焦或游戏暂停时自动静音。"
+              control={
+                <div className="volume-control">
+                  <input
+                    className="volume-slider"
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={Math.round(masterVolume * 100)}
+                    aria-label="主音量"
+                    onChange={(event) => onVolumeChange(Number(event.target.value) / 100)}
+                  />
+                  <span className="volume-value">{Math.round(masterVolume * 100)}%</span>
+                </div>
               }
             />
           </section>

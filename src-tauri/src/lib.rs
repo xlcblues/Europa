@@ -26,6 +26,9 @@ pub fn run() {
             commands::platformer::load_platformer_checkpoint,
             commands::platformer::save_platformer_checkpoint,
             commands::platformer::submit_platformer_match,
+            commands::records::clear_game_history,
+            commands::records::clear_platformer_saves,
+            commands::records::load_match_history,
             commands::settings::save_setting,
             commands::snake::submit_snake_match
         ])

@@ -1,14 +1,5 @@
+import { sharedAudio, type ToneStep } from "../../services/audio";
 export type SnakeSound = "start" | "eat" | "pause" | "resume" | "game-over" | "victory";
-
-type AudioContextConstructor = new () => AudioContext;
-
-interface ToneStep {
-  frequency: number;
-  durationMs: number;
-  delayMs?: number;
-  gain?: number;
-  type?: OscillatorType;
-}
 
 const SOUND_PATTERNS: Record<SnakeSound, readonly ToneStep[]> = {
   start: [
@@ -33,75 +24,20 @@ const SOUND_PATTERNS: Record<SnakeSound, readonly ToneStep[]> = {
 };
 
 export class SnakeAudio {
-  private context: AudioContext | null = null;
-  private enabled: boolean;
-
   constructor(enabled: boolean) {
-    this.enabled = enabled;
+    sharedAudio.setEnabled(enabled);
   }
 
   setEnabled(enabled: boolean): void {
-    this.enabled = enabled;
+    sharedAudio.setEnabled(enabled);
   }
 
   play(sound: SnakeSound): void {
-    if (!this.enabled) {
-      return;
-    }
-
-    const context = this.ensureContext();
-    if (!context) {
-      return;
-    }
-
-    if (context.state === "suspended") {
-      void context.resume().catch(() => undefined);
-    }
-
-    for (const step of SOUND_PATTERNS[sound]) {
-      const startAt = context.currentTime + (step.delayMs ?? 0) / 1000;
-      const endAt = startAt + step.durationMs / 1000;
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-
-      oscillator.type = step.type ?? "sine";
-      oscillator.frequency.setValueAtTime(step.frequency, startAt);
-      gain.gain.setValueAtTime(0.0001, startAt);
-      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, step.gain ?? 0.03), startAt + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.0001, endAt);
-      oscillator.connect(gain);
-      gain.connect(context.destination);
-      oscillator.start(startAt);
-      oscillator.stop(endAt + 0.01);
-    }
+    sharedAudio.play(SOUND_PATTERNS[sound]);
   }
 
   close(): void {
-    if (this.context && this.context.state !== "closed") {
-      void this.context.close().catch(() => undefined);
-    }
-    this.context = null;
-  }
-
-  private ensureContext(): AudioContext | null {
-    if (this.context) {
-      return this.context;
-    }
-    if (typeof window === "undefined") {
-      return null;
-    }
-
-    const AudioContextClass = window.AudioContext
-      ?? (window as Window & { webkitAudioContext?: AudioContextConstructor }).webkitAudioContext;
-    if (!AudioContextClass) {
-      return null;
-    }
-
-    try {
-      this.context = new AudioContextClass();
-      return this.context;
-    } catch {
-      return null;
-    }
+    // The shared context belongs to the app-level audio service; a single
+    // game must not close it for the rest of the app.
   }
 }

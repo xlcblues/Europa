@@ -175,6 +175,31 @@ pub struct GomokuMatchSubmissionResult {
     pub stat: GameStat,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchHistoryEntry {
+    pub id: i64,
+    pub game_id: String,
+    pub outcome: String,
+    pub score: i64,
+    pub duration_ms: i64,
+    pub created_at: i64,
+    pub detail: Value,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClearResult {
+    pub removed_history: i64,
+    pub reset_stats: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SavesClearResult {
+    pub cleared_saves: i64,
+}
+
 pub fn load_bootstrap(
     connection: &Connection,
     database_path: &Path,
@@ -220,6 +245,74 @@ pub fn save_setting(
         key: key.to_owned(),
         value,
         updated_at,
+    })
+}
+
+
+pub fn load_match_history(
+    connection: &Connection,
+    game_id: Option<&str>,
+    limit: i64,
+) -> Result<Vec<MatchHistoryEntry>, AppError> {
+    let limit = limit.clamp(1, 200);
+    let mut statement = connection.prepare(
+        "SELECT id, game_id, outcome, score, duration_ms, detail_json, created_at
+         FROM match_history
+         WHERE (?1 IS NULL OR game_id = ?1)
+         ORDER BY created_at DESC, id DESC
+         LIMIT ?2",
+    )?;
+    let mut rows = statement.query(params![game_id, limit])?;
+
+    let mut entries = Vec::new();
+    while let Some(row) = rows.next()? {
+        let detail_json: String = row.get(5)?;
+        entries.push(MatchHistoryEntry {
+            id: row.get(0)?,
+            game_id: row.get(1)?,
+            outcome: row.get(2)?,
+            score: row.get(3)?,
+            duration_ms: row.get(4)?,
+            created_at: row.get(6)?,
+            detail: serde_json::from_str(&detail_json).unwrap_or(Value::Null),
+        });
+    }
+    Ok(entries)
+}
+
+pub fn clear_game_history(
+    connection: &mut Connection,
+    game_id: Option<&str>,
+) -> Result<ClearResult, AppError> {
+    let transaction = connection.transaction()?;
+    let removed_history = match game_id {
+        Some(game_id) => transaction.execute(
+            "DELETE FROM match_history WHERE game_id = ?1",
+            [game_id],
+        )?,
+        None => transaction.execute("DELETE FROM match_history", [])?,
+    };
+    let reset_stats = match game_id {
+        Some(game_id) => {
+            transaction.execute("DELETE FROM game_stats WHERE game_id = ?1", [game_id])?
+        }
+        None => transaction.execute("DELETE FROM game_stats", [])?,
+    };
+    transaction.commit()?;
+
+    Ok(ClearResult {
+        removed_history: removed_history as i64,
+        reset_stats: reset_stats as i64,
+    })
+}
+
+pub fn clear_platformer_saves(connection: &mut Connection) -> Result<SavesClearResult, AppError> {
+    let transaction = connection.transaction()?;
+    let cleared_saves = transaction.execute("DELETE FROM platformer_saves", [])?;
+    transaction.commit()?;
+
+    Ok(SavesClearResult {
+        cleared_saves: cleared_saves as i64,
     })
 }
 
@@ -1206,10 +1299,12 @@ mod tests {
     use rusqlite::Connection;
 
     use super::{
-        clear_platformer_checkpoint, load_platformer_checkpoint, load_setting_value,
-        save_platformer_checkpoint, save_setting, submit_gomoku_match, submit_platformer_match,
-        submit_snake_match, GomokuMatchSubmission, GomokuMovePoint, PlatformerMatchLevelResult,
-        PlatformerMatchSubmission, PlatformerSave, SnakeMatchSubmission,
+        clear_game_history, clear_platformer_checkpoint, clear_platformer_saves,
+        load_game_stat, load_game_stats, load_match_history, load_platformer_checkpoint,
+        load_setting_value, save_platformer_checkpoint, save_setting, submit_gomoku_match,
+        submit_platformer_match, submit_snake_match, GomokuMatchSubmission, GomokuMovePoint,
+        PlatformerMatchLevelResult, PlatformerMatchSubmission, PlatformerSave,
+        SnakeMatchSubmission,
     };
     use crate::db::migrations;
 
@@ -1741,4 +1836,131 @@ mod tests {
         assert_eq!(history_count, 0);
         assert_eq!(stats_count, 0);
     }
+    #[test]
+    fn match_history_is_listed_newest_first_and_filtered_by_game() {
+        let mut connection = test_connection();
+        submit_snake_match(
+            &mut connection,
+            &snake_submission("history-snake-0001", 3, false, 900),
+        )
+        .expect("snake match should save");
+        submit_gomoku_match(
+            &mut connection,
+            &gomoku_submission("history-gomoku-0001", "win"),
+        )
+        .expect("gomoku match should save");
+        submit_snake_match(
+            &mut connection,
+            &snake_submission("history-snake-0002", 396, true, 3000),
+        )
+        .expect("second snake match should save");
+
+        let all = load_match_history(&connection, None, 50).expect("history should load");
+        assert_eq!(all.len(), 3);
+        assert_eq!(all[0].game_id, "snake");
+        assert_eq!(all[0].score, 4460);
+        assert_eq!(all[1].game_id, "gomoku");
+        assert_eq!(all[2].game_id, "snake");
+        assert!(all.iter().all(|entry| entry.detail.is_object()));
+
+        let snake_only =
+            load_match_history(&connection, Some("snake"), 50).expect("filtered history should load");
+        assert_eq!(snake_only.len(), 2);
+        assert!(snake_only.iter().all(|entry| entry.game_id == "snake"));
+
+        let limited = load_match_history(&connection, None, 2).expect("limited history should load");
+        assert_eq!(limited.len(), 2);
+    }
+
+    #[test]
+    fn clear_game_history_removes_only_the_target_game_and_resets_its_stats() {
+        let mut connection = test_connection();
+        submit_snake_match(
+            &mut connection,
+            &snake_submission("clear-snake-0001", 3, false, 900),
+        )
+        .expect("snake match should save");
+        submit_gomoku_match(
+            &mut connection,
+            &gomoku_submission("clear-gomoku-0001", "win"),
+        )
+        .expect("gomoku match should save");
+
+        let result = clear_game_history(&mut connection, Some("snake")).expect("clear should work");
+        assert_eq!(result.removed_history, 1);
+        assert_eq!(result.reset_stats, 1);
+
+        let snake_history =
+            load_match_history(&connection, Some("snake"), 50).expect("history should load");
+        assert!(snake_history.is_empty());
+        let gomoku_history =
+            load_match_history(&connection, Some("gomoku"), 50).expect("history should load");
+        assert_eq!(gomoku_history.len(), 1);
+        assert!(load_game_stat(&connection, "snake").expect("stat should load").is_none());
+        assert!(load_game_stat(&connection, "gomoku").expect("stat should load").is_some());
+    }
+
+    #[test]
+    fn clear_all_history_resets_every_stat_and_entry() {
+        let mut connection = test_connection();
+        submit_snake_match(
+            &mut connection,
+            &snake_submission("clearall-snake-0001", 3, false, 900),
+        )
+        .expect("snake match should save");
+        submit_gomoku_match(
+            &mut connection,
+            &gomoku_submission("clearall-gomoku-0001", "win"),
+        )
+        .expect("gomoku match should save");
+
+        let result = clear_game_history(&mut connection, None).expect("clear all should work");
+        assert_eq!(result.removed_history, 2);
+        assert_eq!(result.reset_stats, 2);
+
+        let history = load_match_history(&connection, None, 50).expect("history should load");
+        assert!(history.is_empty());
+        let stats = load_game_stats(&connection).expect("stats should load");
+        assert!(stats.is_empty());
+    }
+
+    #[test]
+    fn clear_platformer_saves_removes_all_checkpoints() {
+        let mut connection = test_connection();
+        save_platformer_checkpoint(
+            &mut connection,
+            &PlatformerSave {
+                slot: "slot-a".to_owned(),
+                level_id: 1,
+                checkpoint_id: "checkpoint-1".to_owned(),
+                score: 1200,
+                lives: 3,
+                details: serde_json::json!({ "x": 1, "y": 2 }),
+                updated_at: 100,
+            },
+        )
+        .expect("first checkpoint should save");
+        save_platformer_checkpoint(
+            &mut connection,
+            &PlatformerSave {
+                slot: "slot-b".to_owned(),
+                level_id: 2,
+                checkpoint_id: "checkpoint-2".to_owned(),
+                score: 800,
+                lives: 2,
+                details: serde_json::json!({ "x": 3, "y": 4 }),
+                updated_at: 200,
+            },
+        )
+        .expect("second checkpoint should save");
+
+        let result = clear_platformer_saves(&mut connection).expect("clear should work");
+        assert_eq!(result.cleared_saves, 2);
+
+        let remaining: i64 = connection
+            .query_row("SELECT COUNT(*) FROM platformer_saves", [], |row| row.get(0))
+            .expect("saves should be readable");
+        assert_eq!(remaining, 0);
+    }
+
 }

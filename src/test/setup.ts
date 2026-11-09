@@ -5,6 +5,7 @@ import { afterEach, beforeEach } from "vitest";
 
 import { resetAppBootstrapForTests } from "../app/bootstrap";
 import { resetAppStoreForTests } from "../state/appStore";
+import { sharedAudio } from "../services/audio";
 import { installCanvasContextMock } from "./canvas";
 import { installMatchMedia } from "./media";
 
@@ -19,6 +20,7 @@ beforeEach(() => {
   installCanvasContextMock();
   resetAppBootstrapForTests();
   resetAppStoreForTests();
+  sharedAudio.resetForTests();
   delete document.documentElement.dataset.theme;
   delete document.documentElement.dataset.reducedMotion;
   delete (window as TauriTestWindow).__TAURI_INTERNALS__;

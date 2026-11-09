@@ -2,13 +2,17 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   BROWSER_GOMOKU_LEDGER_KEY,
+  BROWSER_HISTORY_KEY,
   BROWSER_PLATFORMER_LEDGER_KEY,
   BROWSER_PLATFORMER_SAVE_KEY,
   BROWSER_SETTINGS_KEY,
   BROWSER_SNAKE_LEDGER_KEY,
+  clearGameHistory,
   clearPlatformerCheckpoint,
+  clearPlatformerSaves,
   isTauriEnvironment,
   loadBootstrap,
+  loadMatchHistory,
   loadPlatformerCheckpoint,
   readBrowserSettings,
   savePlatformerCheckpoint,
@@ -569,6 +573,92 @@ describe("browser persistence fallback", () => {
     ).rejects.toThrow("最后落子与胜方不一致。");
     expect(localStorage.getItem(BROWSER_GOMOKU_LEDGER_KEY)).toBeNull();
   });
+
+  it("lists recorded matches newest first and filters by game", async () => {
+    await submitSnakeMatch(snakeSubmission({ sessionId: "history-snake-0001" }));
+    await submitGomokuMatch(
+      gomokuSubmission({ sessionId: "history-gomoku-0001", outcome: "win" }),
+    );
+
+    const all = await loadMatchHistory();
+    expect(all.length).toBe(2);
+    expect(all[0]?.gameId).toBe("gomoku");
+    expect(all[0]?.score).toBe(9);
+    expect(all[1]?.gameId).toBe("snake");
+    expect(all[1]?.score).toBe(30);
+    expect(all.every((entry) => typeof entry.createdAt === "number")).toBe(true);
+    expect(all.every((entry) => entry.detail && typeof entry.detail === "object")).toBe(true);
+
+    const snakeOnly = await loadMatchHistory("snake", 50);
+    expect(snakeOnly.length).toBe(1);
+    expect(snakeOnly[0]?.gameId).toBe("snake");
+
+    const limited = await loadMatchHistory(undefined, 1);
+    expect(limited.length).toBe(1);
+    expect(limited[0]?.gameId).toBe("gomoku");
+  });
+
+  it("clears a single game history and resets only that game statistic", async () => {
+    await submitSnakeMatch(snakeSubmission({ sessionId: "clear-snake-0001" }));
+    await submitGomokuMatch(
+      gomokuSubmission({ sessionId: "clear-gomoku-0001", outcome: "win" }),
+    );
+
+    const result = await clearGameHistory("snake");
+    expect(result.removedHistory).toBe(1);
+    expect(result.resetStats).toBe(1);
+
+    const remaining = await loadMatchHistory();
+    expect(remaining.length).toBe(1);
+    expect(remaining[0]?.gameId).toBe("gomoku");
+
+    const bootstrap = await loadBootstrap();
+    const snakeStat = bootstrap.gameStats.find((stat) => stat.gameId === "snake");
+    expect(snakeStat).toBeUndefined();
+    expect(bootstrap.gameStats.some((stat) => stat.gameId === "gomoku")).toBe(true);
+  });
+
+  it("clears all history and statistics including browser ledgers", async () => {
+    await submitSnakeMatch(snakeSubmission({ sessionId: "clearall-snake-0001" }));
+    await submitPlatformerMatch(
+      platformerVictorySubmission({ sessionId: "clearall-platformer-0001" }),
+    );
+
+    const result = await clearGameHistory();
+    expect(result.removedHistory).toBe(2);
+    expect(result.resetStats).toBe(2);
+
+    expect(await loadMatchHistory()).toEqual([]);
+    const bootstrap = await loadBootstrap();
+    expect(bootstrap.gameStats).toEqual([]);
+
+    // A re-submission of the same session is recorded again after clearing.
+    const resubmit = await submitSnakeMatch(snakeSubmission({ sessionId: "clearall-snake-0001" }));
+    expect(resubmit.recorded).toBe(true);
+  });
+
+  it("clears platformer checkpoints and reports how many saves were removed", async () => {
+    expect(await clearPlatformerSaves()).toEqual({ clearedSaves: 0 });
+
+    await savePlatformerCheckpoint({
+      slot: "platformer_main",
+      levelId: 2,
+      checkpointId: "checkpoint_1",
+      score: 2500,
+      lives: 2,
+      details: {},
+      updatedAt: 0,
+    });
+
+    const result = await clearPlatformerSaves();
+    expect(result).toEqual({ clearedSaves: 1 });
+    expect(localStorage.getItem(BROWSER_PLATFORMER_SAVE_KEY)).toBeNull();
+  });
+
+  it("survives corrupt history JSON by falling back to an empty list", async () => {
+    localStorage.setItem(BROWSER_HISTORY_KEY, "{not-json");
+    expect(await loadMatchHistory()).toEqual([]);
+  });
 });
 
 describe("Tauri IPC boundary", () => {
@@ -693,6 +783,63 @@ describe("Tauri IPC boundary", () => {
       { submission },
       undefined,
     );
+  });
+
+  it("loads match history through the Rust command", async () => {
+    invokeMock.mockResolvedValue([
+      {
+        id: 1,
+        gameId: "snake",
+        outcome: "game_over",
+        score: 30,
+        durationMs: 900,
+        createdAt: 1,
+        detail: { foodEaten: 3 },
+      },
+    ]);
+
+    await loadMatchHistory("snake", 20);
+    expect(invokeMock).toHaveBeenCalledWith(
+      "load_match_history",
+      { gameId: "snake", limit: 20 },
+      undefined,
+    );
+
+    invokeMock.mockReset();
+    invokeMock.mockResolvedValue([]);
+    await loadMatchHistory();
+    expect(invokeMock).toHaveBeenCalledWith(
+      "load_match_history",
+      { gameId: null, limit: 50 },
+      undefined,
+    );
+  });
+
+  it("clears game history through the Rust command", async () => {
+    invokeMock.mockResolvedValue({ removedHistory: 1, resetStats: 1 });
+
+    await clearGameHistory("snake");
+    expect(invokeMock).toHaveBeenCalledWith(
+      "clear_game_history",
+      { gameId: "snake" },
+      undefined,
+    );
+
+    invokeMock.mockReset();
+    invokeMock.mockResolvedValue({ removedHistory: 2, resetStats: 2 });
+    await clearGameHistory();
+    expect(invokeMock).toHaveBeenCalledWith(
+      "clear_game_history",
+      { gameId: null },
+      undefined,
+    );
+  });
+
+  it("clears platformer saves through the Rust command", async () => {
+    invokeMock.mockResolvedValue({ clearedSaves: 1 });
+
+    await clearPlatformerSaves();
+    expect(invokeMock).toHaveBeenCalledWith("clear_platformer_saves", {}, undefined);
   });
 });
 

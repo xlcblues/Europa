@@ -104,6 +104,25 @@ export interface GomokuMatchSubmissionResult {
   stat: GameStat;
 }
 
+export interface MatchHistoryEntry {
+  id: number;
+  gameId: string;
+  outcome: string;
+  score: number;
+  durationMs: number;
+  createdAt: number;
+  detail: unknown;
+}
+
+export interface ClearResult {
+  removedHistory: number;
+  resetStats: number;
+}
+
+export interface SavesClearResult {
+  clearedSaves: number;
+}
+
 export interface SchemaInfo {
   version: number;
   path: string;
@@ -130,6 +149,7 @@ export const BROWSER_SNAKE_LEDGER_KEY = "europa.browser-snake-ledger";
 export const BROWSER_PLATFORMER_SAVE_KEY = "europa.browser-platformer-save";
 export const BROWSER_PLATFORMER_LEDGER_KEY = "europa.browser-platformer-ledger";
 export const BROWSER_GOMOKU_LEDGER_KEY = "europa.browser-gomoku-ledger";
+export const BROWSER_HISTORY_KEY = "europa.browser-history";
 
 interface BrowserSnakeLedger {
   sessionIds: string[];
@@ -146,6 +166,10 @@ interface BrowserGomokuLedger {
   sessionIds: string[];
   submissions: GomokuMatchSubmission[];
   stat: GameStat | null;
+}
+
+interface BrowserHistoryLedger {
+  entries: MatchHistoryEntry[];
 }
 
 type TauriWindow = Window & {
@@ -233,6 +257,36 @@ export async function submitGomokuMatch(
   return invoke<GomokuMatchSubmissionResult>("submit_gomoku_match", { submission });
 }
 
+export async function loadMatchHistory(
+  gameId?: string,
+  limit?: number,
+): Promise<MatchHistoryEntry[]> {
+  if (!isTauriEnvironment()) {
+    return loadBrowserMatchHistory(gameId, limit);
+  }
+
+  return invoke<MatchHistoryEntry[]>("load_match_history", {
+    gameId: gameId ?? null,
+    limit: limit ?? 50,
+  });
+}
+
+export async function clearGameHistory(gameId?: string): Promise<ClearResult> {
+  if (!isTauriEnvironment()) {
+    return clearBrowserGameHistory(gameId);
+  }
+
+  return invoke<ClearResult>("clear_game_history", { gameId: gameId ?? null });
+}
+
+export async function clearPlatformerSaves(): Promise<SavesClearResult> {
+  if (!isTauriEnvironment()) {
+    return clearBrowserPlatformerSaves();
+  }
+
+  return invoke<SavesClearResult>("clear_platformer_saves");
+}
+
 function loadBrowserBootstrap(): BootstrapData {
   const settings = safelyReadBrowserSettings();
   const snakeLedger = readBrowserSnakeLedger();
@@ -306,6 +360,20 @@ function submitBrowserSnakeMatch(
     stat,
   };
   localStorage.setItem(BROWSER_SNAKE_LEDGER_KEY, JSON.stringify(nextLedger));
+  appendBrowserHistoryEntry({
+    id: nextHistoryId(),
+    gameId: "snake",
+    outcome: submission.outcome,
+    score: submission.score,
+    durationMs: submission.durationMs,
+    createdAt: now,
+    detail: {
+      foodEaten: submission.foodEaten,
+      finalLength: submission.finalLength,
+      speedLevel: submission.speedLevel,
+      tickMs: submission.tickMs,
+    },
+  });
 
   return { recorded: true, stat };
 }
@@ -516,6 +584,20 @@ function submitBrowserPlatformerMatch(
     stat,
   };
   localStorage.setItem(BROWSER_PLATFORMER_LEDGER_KEY, JSON.stringify(nextLedger));
+  appendBrowserHistoryEntry({
+    id: nextHistoryId(),
+    gameId: "platformer",
+    outcome: submission.outcome,
+    score: submission.score,
+    durationMs: submission.durationMs,
+    createdAt: now,
+    detail: {
+      levelsCompleted: submission.levelsCompleted,
+      crystalsCollected: submission.crystalsCollected,
+      sentinelsDefeated: submission.sentinelsDefeated,
+      deaths: submission.deaths,
+    },
+  });
 
   return { recorded: true, stat };
 }
@@ -545,8 +627,153 @@ function submitBrowserGomokuMatch(
     stat,
   };
   localStorage.setItem(BROWSER_GOMOKU_LEDGER_KEY, JSON.stringify(nextLedger));
+  appendBrowserHistoryEntry({
+    id: nextHistoryId(),
+    gameId: "gomoku",
+    outcome: submission.outcome,
+    score: submission.moveCount,
+    durationMs: submission.durationMs,
+    createdAt: now,
+    detail: {
+      mode: submission.mode,
+      difficulty: submission.difficulty,
+      winner: submission.winner,
+      moveCount: submission.moveCount,
+      usedUndo: submission.usedUndo,
+      undoCount: submission.undoCount,
+    },
+  });
 
   return { recorded: true, stat };
+}
+
+function readBrowserHistory(): MatchHistoryEntry[] {
+  try {
+    const raw = localStorage.getItem(BROWSER_HISTORY_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return [];
+    }
+
+    const candidate = (parsed as Partial<BrowserHistoryLedger>).entries;
+    if (!Array.isArray(candidate)) {
+      return [];
+    }
+
+    const entries = candidate.filter(isMatchHistoryEntry);
+    return entries.sort((a, b) => b.createdAt - a.createdAt || b.id - a.id);
+  } catch {
+    return [];
+  }
+}
+
+function writeBrowserHistory(entries: MatchHistoryEntry[]): void {
+  const ledger: BrowserHistoryLedger = { entries };
+  localStorage.setItem(BROWSER_HISTORY_KEY, JSON.stringify(ledger));
+}
+
+function appendBrowserHistoryEntry(entry: MatchHistoryEntry): void {
+  const entries = readBrowserHistory();
+  const nextEntries = [...entries, entry]
+    .sort((a, b) => b.createdAt - a.createdAt || b.id - a.id)
+    .slice(0, 200);
+  writeBrowserHistory(nextEntries);
+}
+
+function nextHistoryId(): number {
+  const entries = readBrowserHistory();
+  return entries.reduce((max, entry) => Math.max(max, entry.id), 0) + 1;
+}
+
+function isMatchHistoryEntry(value: unknown): value is MatchHistoryEntry {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const entry = value as Partial<MatchHistoryEntry>;
+  return (
+    typeof entry.id === "number" &&
+    typeof entry.gameId === "string" &&
+    typeof entry.outcome === "string" &&
+    typeof entry.score === "number" &&
+    typeof entry.durationMs === "number" &&
+    typeof entry.createdAt === "number"
+  );
+}
+
+function loadBrowserMatchHistory(gameId?: string, limit?: number): MatchHistoryEntry[] {
+  const clampedLimit = Math.max(1, Math.min(200, limit ?? 50));
+  return readBrowserHistory()
+    .filter((entry) => !gameId || entry.gameId === gameId)
+    .slice(0, clampedLimit);
+}
+
+function clearBrowserGameHistory(gameId?: string): ClearResult {
+  const entries = readBrowserHistory();
+  const removedHistory = gameId
+    ? entries.filter((entry) => entry.gameId === gameId).length
+    : entries.length;
+  const remaining = gameId ? entries.filter((entry) => entry.gameId !== gameId) : [];
+  writeBrowserHistory(remaining);
+
+  let resetStats = 0;
+  if (!gameId || gameId === "snake") {
+    resetStats += resetBrowserLedger(BROWSER_SNAKE_LEDGER_KEY);
+  }
+  if (!gameId || gameId === "platformer") {
+    resetStats += resetBrowserLedger(BROWSER_PLATFORMER_LEDGER_KEY);
+  }
+  if (!gameId || gameId === "gomoku") {
+    resetStats += resetBrowserLedger(BROWSER_GOMOKU_LEDGER_KEY);
+  }
+
+  return { removedHistory, resetStats };
+}
+
+function resetBrowserLedger(key: string): number {
+  const raw = localStorage.getItem(key);
+  if (!raw) {
+    return 0;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return 0;
+    }
+
+    const candidate = parsed as Partial<
+      BrowserSnakeLedger | BrowserPlatformerLedger | BrowserGomokuLedger
+    >;
+    const submissions = Array.isArray(
+      (candidate as Partial<BrowserPlatformerLedger>).submissions,
+    )
+      ? ((candidate as Partial<BrowserPlatformerLedger>).submissions ?? [])
+      : [];
+    const hadData =
+      Boolean(candidate.stat) ||
+      (candidate.sessionIds ?? []).length > 0 ||
+      submissions.length > 0;
+
+    const reset: Record<string, unknown> = { sessionIds: [], stat: null };
+    if (Array.isArray((candidate as Partial<BrowserPlatformerLedger>).submissions)) {
+      reset.submissions = [];
+    }
+    localStorage.setItem(key, JSON.stringify(reset));
+    return hadData ? 1 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function clearBrowserPlatformerSaves(): SavesClearResult {
+  const hadSave = localStorage.getItem(BROWSER_PLATFORMER_SAVE_KEY) !== null;
+  localStorage.removeItem(BROWSER_PLATFORMER_SAVE_KEY);
+  return { clearedSaves: hadSave ? 1 : 0 };
 }
 
 function nextGomokuStat(

@@ -8,6 +8,7 @@ import {
   watchSystemTheme,
   type ThemeMode,
 } from "./theme";
+import { installAudioPauseStrategy, sharedAudio } from "../services/audio";
 import type { SettingKey } from "../services/ipc";
 import { saveSetting } from "../services/ipc";
 import { GomokuGame } from "../games/gomoku/GomokuGame";
@@ -28,6 +29,7 @@ export function App() {
   const [route, setRoute] = useState<AppRoute>(() => parseRoute());
   const resolvedTheme = useAppStore((state) => state.resolvedTheme);
   const soundEnabled = useAppStore((state) => state.soundEnabled);
+  const masterVolume = useAppStore((state) => state.masterVolume);
   const reducedMotion = useAppStore((state) => state.reducedMotion);
   const stats = useAppStore((state) => state.gameStats);
   const schema = useAppStore((state) => state.schema);
@@ -55,6 +57,18 @@ export function App() {
   useEffect(() => {
     document.documentElement.dataset.reducedMotion = reducedMotion ? "true" : "false";
   }, [reducedMotion]);
+
+  useEffect(() => {
+    sharedAudio.setEnabled(soundEnabled);
+  }, [soundEnabled]);
+
+  useEffect(() => {
+    sharedAudio.setMasterVolume(masterVolume);
+  }, [masterVolume]);
+
+  useEffect(() => {
+    return installAudioPauseStrategy();
+  }, []);
 
   const handleNavigate = useCallback((nextRoute: AppRoute) => {
     setRoute(nextRoute);
@@ -91,6 +105,16 @@ export function App() {
     (enabled: boolean) => {
       useAppStore.getState().setSoundEnabled(enabled);
       void persistSetting("sound_enabled", enabled, "音效设置");
+    },
+    [persistSetting],
+  );
+
+  const handleVolumeChange = useCallback(
+    (volume: number) => {
+      const clamped = Math.min(1, Math.max(0, volume));
+      useAppStore.getState().setMasterVolume(clamped);
+      sharedAudio.setMasterVolume(clamped);
+      void persistSetting("master_volume", clamped, "音量");
     },
     [persistSetting],
   );
@@ -135,6 +159,7 @@ export function App() {
             <SettingsPage
               onThemeChange={handleThemeChange}
               onSoundChange={handleSoundChange}
+              onVolumeChange={handleVolumeChange}
               onReducedMotionChange={handleReducedMotionChange}
             />
           ) : null}
