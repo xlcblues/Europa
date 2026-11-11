@@ -1,6 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
 
 import { boardFromMoves, detectWinAt, getCell } from "../games/gomoku/gomokuEngine";
+import {
+  PLATFORMER_LEVEL_CHECKPOINTS,
+  PLATFORMER_LEVEL_CRYSTALS,
+  PLATFORMER_LEVEL_SENTINELS,
+  PLATFORMER_TOTAL_LEVELS,
+} from "../games/platformer/platformerTypes";
 import type { GameId } from "./gameCatalog";
 
 export interface GameStat {
@@ -998,10 +1004,8 @@ function isGomokuSubmission(value: unknown): value is GomokuMatchSubmission {
   );
 }
 
-const PLATFORMER_LEVEL_CRYSTALS = [9, 12, 15] as const;
-const PLATFORMER_LEVEL_SENTINELS = [1, 2, 3] as const;
-const PLATFORMER_LEVEL_CHECKPOINTS = [1, 1, 2] as const;
-const PLATFORMER_TOTAL_LEVELS = 3;
+const PLATFORMER_MAX_CRYSTALS = PLATFORMER_LEVEL_CRYSTALS.reduce((sum, value) => sum + value, 0);
+const PLATFORMER_MAX_SENTINELS = PLATFORMER_LEVEL_SENTINELS.reduce((sum, value) => sum + value, 0);
 const SCORE_CRYSTAL = 100;
 const SCORE_SENTINEL = 250;
 const SCORE_CHECKPOINT = 100;
@@ -1043,14 +1047,14 @@ function validateBrowserPlatformerSubmission(
   if (
     !Number.isInteger(submission.crystalsCollected) ||
     submission.crystalsCollected < 0 ||
-    submission.crystalsCollected > 36
+    submission.crystalsCollected > PLATFORMER_MAX_CRYSTALS
   ) {
     throw new Error("收集数量无效。");
   }
   if (
     !Number.isInteger(submission.sentinelsDefeated) ||
     submission.sentinelsDefeated < 0 ||
-    submission.sentinelsDefeated > 6
+    submission.sentinelsDefeated > PLATFORMER_MAX_SENTINELS
   ) {
     throw new Error("敌人数量无效。");
   }

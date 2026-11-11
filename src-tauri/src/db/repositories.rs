@@ -13,10 +13,12 @@ use crate::error::AppError;
 const MAX_SETTING_JSON_BYTES: usize = 4096;
 const SNAKE_GAME_ID: &str = "snake";
 const PLATFORMER_GAME_ID: &str = "platformer";
-const PLATFORMER_TOTAL_LEVELS: i64 = 3;
-const PLATFORMER_LEVEL_CRYSTALS: [i64; 3] = [9, 12, 15];
-const PLATFORMER_LEVEL_SENTINELS: [i64; 3] = [1, 2, 3];
-const PLATFORMER_LEVEL_CHECKPOINTS: [i64; 3] = [1, 1, 2];
+const PLATFORMER_TOTAL_LEVELS: i64 = 6;
+const PLATFORMER_LEVEL_CRYSTALS: [i64; 6] = [9, 12, 15, 15, 18, 21];
+const PLATFORMER_LEVEL_SENTINELS: [i64; 6] = [1, 2, 3, 3, 4, 5];
+const PLATFORMER_LEVEL_CHECKPOINTS: [i64; 6] = [1, 1, 2, 2, 2, 3];
+const PLATFORMER_MAX_CRYSTALS: i64 = 90; // 9+12+15+15+18+21
+const PLATFORMER_MAX_SENTINELS: i64 = 18; // 1+2+3+3+4+5
 const PLATFORMER_SCORE_CRYSTAL: i64 = 100;
 const PLATFORMER_SCORE_SENTINEL: i64 = 250;
 const PLATFORMER_SCORE_CHECKPOINT: i64 = 100;
@@ -923,10 +925,10 @@ fn validate_platformer_submission(submission: &PlatformerMatchSubmission) -> Res
     if !(0..=PLATFORMER_TOTAL_LEVELS).contains(&submission.levels_completed) {
         return Err(AppError::Validation("通关进度无效。".to_owned()));
     }
-    if !(0..=36).contains(&submission.crystals_collected) {
+    if !(0..=PLATFORMER_MAX_CRYSTALS).contains(&submission.crystals_collected) {
         return Err(AppError::Validation("收集数量无效。".to_owned()));
     }
-    if !(0..=6).contains(&submission.sentinels_defeated) {
+    if !(0..=PLATFORMER_MAX_SENTINELS).contains(&submission.sentinels_defeated) {
         return Err(AppError::Validation("哨兵数量无效。".to_owned()));
     }
     if submission.deaths < 0 {
@@ -1363,11 +1365,11 @@ mod tests {
         PlatformerMatchSubmission {
             session_id: session_id.to_owned(),
             outcome: "victory".to_owned(),
-            score: 15_750,
+            score: 33_100,
             duration_ms: 6_000,
-            levels_completed: 3,
-            crystals_collected: 36,
-            sentinels_defeated: 6,
+            levels_completed: 6,
+            crystals_collected: 90,
+            sentinels_defeated: 18,
             deaths: 0,
             level_results: vec![
                 PlatformerMatchLevelResult {
@@ -1394,13 +1396,13 @@ mod tests {
                     checkpoints_activated: 1,
                     checkpoints_total: 1,
                     deaths: 0,
-                    duration_ms: 2_000,
+                    duration_ms: 1_000,
                     completed: true,
                     reached_beacon: true,
                 },
                 PlatformerMatchLevelResult {
                     level_id: 3,
-                    score: 7_200,
+                    score: 5_200,
                     crystals_collected: 15,
                     crystals_total: 15,
                     sentinels_defeated: 3,
@@ -1408,7 +1410,49 @@ mod tests {
                     checkpoints_activated: 2,
                     checkpoints_total: 2,
                     deaths: 0,
-                    duration_ms: 3_000,
+                    duration_ms: 1_000,
+                    completed: true,
+                    reached_beacon: true,
+                },
+                PlatformerMatchLevelResult {
+                    level_id: 4,
+                    score: 5_200,
+                    crystals_collected: 15,
+                    crystals_total: 15,
+                    sentinels_defeated: 3,
+                    sentinels_total: 3,
+                    checkpoints_activated: 2,
+                    checkpoints_total: 2,
+                    deaths: 0,
+                    duration_ms: 1_000,
+                    completed: true,
+                    reached_beacon: true,
+                },
+                PlatformerMatchLevelResult {
+                    level_id: 5,
+                    score: 5_750,
+                    crystals_collected: 18,
+                    crystals_total: 18,
+                    sentinels_defeated: 4,
+                    sentinels_total: 4,
+                    checkpoints_activated: 2,
+                    checkpoints_total: 2,
+                    deaths: 0,
+                    duration_ms: 1_000,
+                    completed: true,
+                    reached_beacon: true,
+                },
+                PlatformerMatchLevelResult {
+                    level_id: 6,
+                    score: 8_400,
+                    crystals_collected: 21,
+                    crystals_total: 21,
+                    sentinels_defeated: 5,
+                    sentinels_total: 5,
+                    checkpoints_activated: 3,
+                    checkpoints_total: 3,
+                    deaths: 0,
+                    duration_ms: 1_000,
                     completed: true,
                     reached_beacon: true,
                 },
@@ -1464,6 +1508,48 @@ mod tests {
                     sentinels_total: 3,
                     checkpoints_activated: 0,
                     checkpoints_total: 2,
+                    deaths: 0,
+                    duration_ms: 0,
+                    completed: false,
+                    reached_beacon: false,
+                },
+                PlatformerMatchLevelResult {
+                    level_id: 4,
+                    score: 0,
+                    crystals_collected: 0,
+                    crystals_total: 15,
+                    sentinels_defeated: 0,
+                    sentinels_total: 3,
+                    checkpoints_activated: 0,
+                    checkpoints_total: 2,
+                    deaths: 0,
+                    duration_ms: 0,
+                    completed: false,
+                    reached_beacon: false,
+                },
+                PlatformerMatchLevelResult {
+                    level_id: 5,
+                    score: 0,
+                    crystals_collected: 0,
+                    crystals_total: 18,
+                    sentinels_defeated: 0,
+                    sentinels_total: 4,
+                    checkpoints_activated: 0,
+                    checkpoints_total: 2,
+                    deaths: 0,
+                    duration_ms: 0,
+                    completed: false,
+                    reached_beacon: false,
+                },
+                PlatformerMatchLevelResult {
+                    level_id: 6,
+                    score: 0,
+                    crystals_collected: 0,
+                    crystals_total: 21,
+                    sentinels_defeated: 0,
+                    sentinels_total: 5,
+                    checkpoints_activated: 0,
+                    checkpoints_total: 3,
                     deaths: 0,
                     duration_ms: 0,
                     completed: false,
@@ -1547,7 +1633,7 @@ mod tests {
         let first = submit_platformer_match(&mut connection, &submission)
             .expect("first platformer submission should succeed");
         assert!(first.recorded);
-        assert_eq!(first.stat.best_score, 15_750);
+        assert_eq!(first.stat.best_score, 33_100);
         assert_eq!(first.stat.games_played, 1);
         assert_eq!(first.stat.wins, 1);
         assert_eq!(first.stat.total_play_ms, 6_000);
@@ -1555,7 +1641,7 @@ mod tests {
         let duplicate = submit_platformer_match(&mut connection, &submission)
             .expect("duplicate platformer submission should be ignored");
         assert!(!duplicate.recorded);
-        assert_eq!(duplicate.stat.best_score, 15_750);
+        assert_eq!(duplicate.stat.best_score, 33_100);
         assert_eq!(duplicate.stat.games_played, 1);
         assert_eq!(duplicate.stat.total_play_ms, 6_000);
 
@@ -1575,7 +1661,7 @@ mod tests {
         let victory =
             submit_platformer_match(&mut connection, &second).expect("victory should save");
 
-        assert_eq!(victory.stat.best_score, 15_750);
+        assert_eq!(victory.stat.best_score, 33_100);
         assert_eq!(victory.stat.games_played, 2);
         assert_eq!(victory.stat.wins, 1);
         assert_eq!(victory.stat.losses, 1);
