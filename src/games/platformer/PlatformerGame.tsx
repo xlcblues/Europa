@@ -168,6 +168,8 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
     for (const event of stepResult.events) {
       handleEvent(event);
     }
+    inputRef.current.jumpPressed = false;
+    inputRef.current.downPressed = false;
   }
 
   function handleEvent(event: PlatformerEvent): void {
@@ -325,6 +327,8 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
     }
     stopLoop();
     setPhase("paused");
+    inputRef.current.jumpPressed = false;
+    inputRef.current.downPressed = false;
     getAudio().play("pause");
     saveCheckpoint();
   }
@@ -428,12 +432,16 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
       case "Space":
         event.preventDefault();
         input.jumpHeld = true;
-        input.jumpPressed = true;
+        if (!event.repeat) {
+          input.jumpPressed = true;
+        }
         break;
       case "KeyS":
       case "ArrowDown":
         event.preventDefault();
-        input.downPressed = true;
+        if (!event.repeat) {
+          input.downPressed = true;
+        }
         break;
       default:
         break;

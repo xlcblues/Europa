@@ -339,12 +339,6 @@ function drawPlayer({ context, world }: DrawState): void {
   context.translate(player.x, player.y);
   context.scale(player.facing, 1);
 
-  // 冰晶背光（柔和光环）
-  context.fillStyle = "rgba(88, 217, 236, 0.14)";
-  context.beginPath();
-  context.ellipse(0, player.height * 0.5, 28, 32, 0, 0, Math.PI * 2);
-  context.fill();
-
   // 天线：细杆 + 脉冲光点
   context.fillStyle = "#173c4b";
   context.fillRect(15, -7, 2, 9);

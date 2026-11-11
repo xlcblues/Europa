@@ -18,6 +18,7 @@ const savePlatformerCheckpointMock = vi.hoisted(() =>
 const clearPlatformerCheckpointMock = vi.hoisted(() =>
   vi.fn<(slot: string) => Promise<void>>(),
 );
+const platformerAudioPlayMock = vi.hoisted(() => vi.fn<(sound: string) => void>());
 
 vi.mock("../../services/ipc", async (importOriginal) => {
   const actual = await importOriginal<typeof IpcModule>();
@@ -28,6 +29,16 @@ vi.mock("../../services/ipc", async (importOriginal) => {
     clearPlatformerCheckpoint: clearPlatformerCheckpointMock,
   };
 });
+
+vi.mock("./platformerAudio", () => ({
+  PlatformerAudio: class {
+    setEnabled(): void {}
+    play(sound: string): void {
+      platformerAudioPlayMock(sound);
+    }
+    close(): void {}
+  },
+}));
 
 function statForSubmission(submission: IpcModule.PlatformerMatchSubmission): IpcModule.GameStat {
   return {
@@ -76,6 +87,7 @@ describe("PlatformerGame", () => {
     savePlatformerCheckpointMock.mockImplementation(async (record) => record);
     clearPlatformerCheckpointMock.mockReset();
     clearPlatformerCheckpointMock.mockResolvedValue(undefined);
+    platformerAudioPlayMock.mockClear();
     hydrateStore();
   });
 
@@ -238,5 +250,31 @@ describe("PlatformerGame", () => {
     expect(drawCount()).toBeGreaterThan(0);
   });
 
+
+  it("does not auto re-jump on landing while the jump key is held", async () => {
+    render(<PlatformerGame onBack={vi.fn()} />);
+    await beginPlaying();
+
+    // 按下跳跃（首次按下，非系统重复）。
+    fireEvent.keyDown(window, { code: "Space", repeat: false });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(120);
+    });
+
+    // 模拟 Windows 按住按键产生的系统 key-repeat，必须不会重新触发跳跃。
+    fireEvent.keyDown(window, { code: "Space", repeat: true });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(650);
+    });
+    fireEvent.keyDown(window, { code: "Space", repeat: true });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    const jumps = platformerAudioPlayMock.mock.calls.filter(
+      ([sound]) => sound === "jump",
+    ).length;
+    expect(jumps).toBe(1);
+  });
 
 });
