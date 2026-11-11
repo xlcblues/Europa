@@ -53,6 +53,8 @@ const PLAYER_WIDTH = 32;
 const PLAYER_HEIGHT = 46;
 const FALL_MARGIN = 120;
 const STOMP_TOLERANCE = 10;
+// 冰晶收集判定盒半径（像素）：按玩家身体与水晶包围盒相交判定，避免中心对中心漏检。
+const CRYSTAL_PICKUP_RADIUS = 18;
 const STOMP_BOUNCE_SPEED = 420;
 const EPSILON = 0.75;
 const SESSION_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
@@ -719,15 +721,23 @@ function collectCrystals(
   level: PlatformerLevel,
   events: PlatformerEvent[],
 ): void {
-  const playerCenterX = world.player.x + world.player.width * 0.5;
-  const playerCenterY = world.player.y + world.player.height * 0.5;
+  const playerLeft = world.player.x;
+  const playerRight = world.player.x + world.player.width;
+  const playerTop = world.player.y;
+  const playerBottom = world.player.y + world.player.height;
   for (const crystal of level.crystals) {
     if (world.collectedItemIds.includes(crystal.id)) {
       continue;
     }
+    const crystalLeft = crystal.x - CRYSTAL_PICKUP_RADIUS;
+    const crystalRight = crystal.x + CRYSTAL_PICKUP_RADIUS;
+    const crystalTop = crystal.y - CRYSTAL_PICKUP_RADIUS;
+    const crystalBottom = crystal.y + CRYSTAL_PICKUP_RADIUS;
     if (
-      Math.abs(playerCenterX - crystal.x) <= 20 &&
-      Math.abs(playerCenterY - crystal.y) <= 20
+      playerRight >= crystalLeft &&
+      playerLeft <= crystalRight &&
+      playerBottom >= crystalTop &&
+      playerTop <= crystalBottom
     ) {
       world.collectedItemIds.push(crystal.id);
       addWorldScore(world, PLATFORMER_SCORE_CRYSTAL, level.id);

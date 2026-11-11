@@ -859,3 +859,38 @@ describe("platformer run settlement", () => {
     ]);
   });
 });
+describe("crystal pickup tolerance", () => {
+  it("collects when the player body touches the crystal pickup box", () => {
+    const level = levelAt(0);
+    const crystal = level.crystals[0];
+    if (!crystal) throw new Error("missing crystal for pickup tolerance test");
+    const world = createPlatformerWorld(createInitialPlatformerContext("pickup-tolerance"), 0);
+    // 玩家中心距水晶 26px（超过旧的中心距离 20px 阈值），但身体左缘仍进入水晶判定盒（半宽 18px）。
+    world.player.x = crystal.x + 10;
+    world.player.y = crystal.y - world.player.height * 0.5;
+    world.player.previousX = world.player.x;
+    world.player.previousY = world.player.y;
+    world.player.vx = 0;
+    world.player.vy = 0;
+
+    const result = stepPlatformer(world, createPlatformerInput());
+    expect(result.world.collectedItemIds).toContain(crystal.id);
+    expect(result.events.some((event) => event.type === "crystal")).toBe(true);
+  });
+
+  it("does not collect when clearly far away", () => {
+    const level = levelAt(0);
+    const crystal = level.crystals[0];
+    if (!crystal) throw new Error("missing crystal for pickup tolerance test");
+    const world = createPlatformerWorld(createInitialPlatformerContext("pickup-tolerance"), 0);
+    world.player.x = crystal.x - 100;
+    world.player.y = crystal.y - world.player.height * 0.5;
+    world.player.previousX = world.player.x;
+    world.player.previousY = world.player.y;
+    world.player.vx = 0;
+    world.player.vy = 0;
+
+    const result = stepPlatformer(world, createPlatformerInput());
+    expect(result.world.collectedItemIds).not.toContain(crystal.id);
+  });
+});
