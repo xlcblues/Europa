@@ -635,6 +635,88 @@ describe("level 4 final sentinel real-input route", () => {
   });
 });
 
+describe("level 5 lift-c pit regression real-input route", () => {
+  it("climbs the lift to the overhang ledge and reaches the beacon without falling", () => {
+    let world = createPlatformerWorld(
+      createInitialPlatformerContext("route-level-5"),
+      4,
+      "l5-checkpoint-01",
+      { levelTimeMs: 0, levelDurationMs: 0 },
+    );
+    const livesBefore = world.lives;
+    world = idle(world, 40);
+    expect(world.player.groundPlatformId).toBe("l5-ground-e");
+    // Cross the one-way bridge into the filled-in pit region.
+    world = walk(world, 2880, "l5-ground-e");
+    world = jumpTo(world, "right", {
+      fromPlatformId: "l5-ground-e",
+      landPlatformId: "l5-oneway-a",
+      target: 2975,
+    });
+    world = walk(world, 3030, "l5-oneway-a");
+    world = walkOff(world, "right", "l5-ground-f");
+    // Regression: the pit below l5-lift-c is now continuous ground, so the
+    // player can walk all the way to l5-ground-g without falling in.
+    world = walkAcross(world, 3520, ["l5-ground-f", "l5-ground-g"]);
+    expect(world.lives).toBe(livesBefore);
+    // Wait for the moving lift near its right end and jump onto it from the side.
+    world = waitForLiftX(world, "l5-lift-c", 50);
+    world = jumpTo(world, "right", {
+      fromPlatformId: "l5-ground-f",
+      landPlatformId: "l5-lift-c",
+      target: 3600,
+      runway: 6,
+      holdFrames: 28,
+    });
+    // Step from the lift onto the overhang ledge (85px up).
+    world = jumpTo(world, "right", {
+      fromPlatformId: "l5-lift-c",
+      landPlatformId: "l5-upper-d",
+      target: 3700,
+      runway: 6,
+      holdFrames: 30,
+    });
+    world = collectCrystal(world, "l5-crystal-13", "l5-upper-d");
+    world = collectCrystal(world, "l5-crystal-14", "l5-upper-d");
+    world = collectCrystal(world, "l5-crystal-15", "l5-upper-d");
+    expect(world.lives).toBe(livesBefore);
+    // Drop back to the ground and cross the gap to the final ground.
+    world = walkOff(world, "right", "l5-ground-g");
+    world = walk(world, 4020, "l5-ground-g");
+    world = jumpRightFromEdge(world, 10);
+    expect(world.player.groundPlatformId).toBe("l5-ground-h");
+    // Climb the upper ledges over the patrolling sentinel.
+    world = jumpTo(world, "right", {
+      fromPlatformId: "l5-ground-h",
+      landPlatformId: "l5-upper-e",
+      target: 4340,
+      runway: 8,
+      holdFrames: 30,
+    });
+    world = walk(world, 4490, "l5-upper-e");
+    world = jumpTo(world, "right", {
+      fromPlatformId: "l5-upper-e",
+      landPlatformId: "l5-upper-f",
+      target: 4640,
+      runway: 8,
+      holdFrames: 30,
+    });
+    world = walk(world, 4740, "l5-upper-f");
+    world = jumpTo(world, "right", {
+      fromPlatformId: "l5-upper-f",
+      landPlatformId: "l5-upper-g",
+      target: 4900,
+      runway: 8,
+      holdFrames: 30,
+    });
+    world = walk(world, 4990, "l5-upper-g");
+    for (let frame = 0; frame < 180 && world.status === "playing"; frame += 1) {
+      world = tick(world, { right: true });
+    }
+    expect(world.status).toBe("level_complete");
+    expect(world.lives).toBe(livesBefore);
+  });
+});
 describe("movement assists", () => {
   it("allows a coyote-time jump after leaving a ledge", () => {
     let world = createPlatformerWorld(createInitialPlatformerContext("coyote-test"), 0);
