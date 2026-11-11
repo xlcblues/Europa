@@ -717,6 +717,63 @@ describe("level 5 lift-c pit regression real-input route", () => {
     expect(world.lives).toBe(livesBefore);
   });
 });
+describe("level 6 lift-c pit regression real-input route", () => {
+  it("boards the lowered lift from the side and reaches the overhang ledge without falling", () => {
+    let world = createPlatformerWorld(
+      createInitialPlatformerContext("route-level-6"),
+      5,
+      "l6-checkpoint-02",
+      { levelTimeMs: 0, levelDurationMs: 0 },
+    );
+    const livesBefore = world.lives;
+    world = idle(world, 40);
+    expect(world.player.groundPlatformId).toBe("l6-ground-g");
+    expect(world.activatedCheckpointIds).toEqual(["l6-checkpoint-02"]);
+    // Walk left across the now-filled pit onto l6-ground-f, clear of the
+    // lift's left edge, so the jump arc can land on the lift top from the side.
+    world = walkAcross(world, 3440, ["l6-ground-g", "l6-ground-f"]);
+    expect(world.player.groundPlatformId).toBe("l6-ground-f");
+    expect(world.lives).toBe(livesBefore);
+    // Wait for the moving lift near its right end and jump onto it (65px up).
+    world = waitForLiftX(world, "l6-lift-c", 50);
+    world = jumpTo(world, "right", {
+      fromPlatformId: "l6-ground-f",
+      landPlatformId: "l6-lift-c",
+      target: 3600,
+      runway: 6,
+      holdFrames: 28,
+    });
+    // Step from the lift onto the overhang ledge (70px up).
+    world = jumpTo(world, "right", {
+      fromPlatformId: "l6-lift-c",
+      landPlatformId: "l6-upper-e",
+      target: 3660,
+      runway: 6,
+      holdFrames: 30,
+    });
+    world = collectCrystal(world, "l6-crystal-13", "l6-upper-e");
+    world = collectCrystal(world, "l6-crystal-14", "l6-upper-e");
+    world = collectCrystal(world, "l6-crystal-15", "l6-upper-e");
+    expect(world.lives).toBe(livesBefore);
+    // Drop back down the left side: land either back on the moving lift or on
+    // l6-ground-g, both clear of the sentinel patrolling x3660-3860.
+    world = walk(world, 3580, "l6-upper-e");
+    let descended = false;
+    for (let frame = 0; frame < 240 && world.status === "playing"; frame += 1) {
+      world = tick(world, { left: true });
+      if (!world.player.onGround) {
+        descended = true;
+      }
+      if (descended && frame > 3 && world.player.onGround) {
+        break;
+      }
+    }
+    world = idle(world);
+    expect(["l6-lift-c", "l6-ground-g"]).toContain(world.player.groundPlatformId);
+    expect(world.activatedCheckpointIds).toEqual(["l6-checkpoint-02"]);
+    expect(world.lives).toBe(livesBefore);
+  });
+});
 describe("movement assists", () => {
   it("allows a coyote-time jump after leaving a ledge", () => {
     let world = createPlatformerWorld(createInitialPlatformerContext("coyote-test"), 0);
