@@ -599,6 +599,42 @@ describe("level 4 real-input route", () => {
   });
 });
 
+describe("level 4 final sentinel real-input route", () => {
+  it("climbs over the patrolling sentinel on the lowered platforms and reaches the beacon", () => {
+    let world = createPlatformerWorld(
+      createInitialPlatformerContext("route-level-4-final"),
+      3,
+      "l4-checkpoint-02",
+      { levelTimeMs: 0, levelDurationMs: 0 },
+    );
+    world = idle(world, 40);
+    expect(world.player.groundPlatformId).toBe("l4-ground-g");
+    expect(world.activatedCheckpointIds).toEqual(["l4-checkpoint-02"]);
+    // The sentinel patrols l4-ground-g (x3950-4250). The lowered one-way ledges
+    // l4-upper-e / l4-upper-f carry the player over it without contact.
+    world = jumpTo(world, "right", {
+      fromPlatformId: "l4-ground-g",
+      landPlatformId: "l4-upper-e",
+      target: 4010,
+    });
+    world = walk(world, 4135, "l4-upper-e");
+    world = jumpTo(world, "right", {
+      fromPlatformId: "l4-upper-e",
+      landPlatformId: "l4-upper-f",
+      target: 4310,
+    });
+    world = walk(world, 4410, "l4-upper-f");
+    world = walkOff(world, "right", "l4-ground-g");
+    expect(world.lives).toBe(3);
+    world = walk(world, 4500, "l4-ground-g");
+    for (let frame = 0; frame < 120 && world.status === "playing"; frame += 1) {
+      world = tick(world, { right: true });
+    }
+    expect(world.status).toBe("level_complete");
+    expect(world.activatedCheckpointIds).toEqual(["l4-checkpoint-02"]);
+  });
+});
+
 describe("movement assists", () => {
   it("allows a coyote-time jump after leaving a ledge", () => {
     let world = createPlatformerWorld(createInitialPlatformerContext("coyote-test"), 0);
