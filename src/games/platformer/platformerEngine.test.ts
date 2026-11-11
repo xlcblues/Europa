@@ -726,40 +726,34 @@ describe("checkpoint persistence", () => {
 });
 
 describe("platformer run settlement", () => {
-  it("awards the full victory once and exposes idempotent match results", () => {
-    const level1 = getPlatformerLevel(0);
-    const level2 = getPlatformerLevel(1);
-    const level3 = getPlatformerLevel(2);
-    const completedLevels = [level1, level2];
+    it("awards the full victory once and exposes idempotent match results", () => {
+    const lastLevel = getPlatformerLevel(PLATFORMER_LEVELS.length - 1);
+    const completedLevels = PLATFORMER_LEVELS.slice(0, -1);
     const earlierIds = {
       crystals: completedLevels.flatMap((level) => level.crystals.map((item) => item.id)),
       sentinels: completedLevels.flatMap((level) => level.sentinels.map((item) => item.id)),
-      checkpoints: completedLevels.flatMap((level) =>
-        level.checkpoints.map((item) => item.id),
-      ),
+      checkpoints: completedLevels.flatMap((level) => level.checkpoints.map((item) => item.id)),
     };
     const currentIds = {
-      crystals: level3.crystals.map((item) => item.id),
-      sentinels: level3.sentinels.map((item) => item.id),
-      checkpoints: level3.checkpoints.map((item) => item.id),
+      crystals: lastLevel.crystals.map((item) => item.id),
+      sentinels: lastLevel.sentinels.map((item) => item.id),
+      checkpoints: lastLevel.checkpoints.map((item) => item.id),
     };
-    const earlierScore =
-      levelAt(0).crystals.length * PLATFORMER_SCORE_CRYSTAL +
-      levelAt(0).sentinels.length * PLATFORMER_SCORE_SENTINEL +
-      levelAt(0).checkpoints.length * PLATFORMER_SCORE_CHECKPOINT +
-      PLATFORMER_SCORE_BEACON +
-      PLATFORMER_SCORE_FULL_COLLECTION +
-      PLATFORMER_SCORE_ZERO_DEATH +
-      levelAt(1).crystals.length * PLATFORMER_SCORE_CRYSTAL +
-      levelAt(1).sentinels.length * PLATFORMER_SCORE_SENTINEL +
-      levelAt(1).checkpoints.length * PLATFORMER_SCORE_CHECKPOINT +
+    const fullClearLevelScore = (level: PlatformerLevel): number =>
+      level.crystals.length * PLATFORMER_SCORE_CRYSTAL +
+      level.sentinels.length * PLATFORMER_SCORE_SENTINEL +
+      level.checkpoints.length * PLATFORMER_SCORE_CHECKPOINT +
       PLATFORMER_SCORE_BEACON +
       PLATFORMER_SCORE_FULL_COLLECTION +
       PLATFORMER_SCORE_ZERO_DEATH;
+    const earlierScore = completedLevels.reduce(
+      (sum, level) => sum + fullClearLevelScore(level),
+      0,
+    );
     const currentPreBeaconScore =
-      level3.crystals.length * PLATFORMER_SCORE_CRYSTAL +
-      level3.sentinels.length * PLATFORMER_SCORE_SENTINEL +
-      level3.checkpoints.length * PLATFORMER_SCORE_CHECKPOINT;
+      lastLevel.crystals.length * PLATFORMER_SCORE_CRYSTAL +
+      lastLevel.sentinels.length * PLATFORMER_SCORE_SENTINEL +
+      lastLevel.checkpoints.length * PLATFORMER_SCORE_CHECKPOINT;
     const context: PlatformerLevelContext = {
       score: earlierScore + currentPreBeaconScore,
       lives: 3,
@@ -768,40 +762,39 @@ describe("platformer run settlement", () => {
       collectedItemIds: [...earlierIds.crystals, ...currentIds.crystals],
       defeatedSentinelIds: [...earlierIds.sentinels, ...currentIds.sentinels],
       activatedCheckpointIds: [...earlierIds.checkpoints, ...currentIds.checkpoints],
-      lastCheckpointIdByLevel: {
-        "1": "l1-checkpoint-01",
-        "2": "l2-checkpoint-01",
-        "3": "l3-checkpoint-02",
-      },
-      deathsByLevel: { "1": 0, "2": 0, "3": 0 },
-      completedLevelIds: [1, 2],
-      reachedBeaconLevelIds: [1, 2],
-      levelDurations: { "1": 9000, "2": 10000 },
-      levelScores: {
-        "1": levelAt(0).crystals.length * PLATFORMER_SCORE_CRYSTAL +
-          levelAt(0).sentinels.length * PLATFORMER_SCORE_SENTINEL +
-          levelAt(0).checkpoints.length * PLATFORMER_SCORE_CHECKPOINT +
-          PLATFORMER_SCORE_BEACON +
-          PLATFORMER_SCORE_FULL_COLLECTION +
-          PLATFORMER_SCORE_ZERO_DEATH,
-        "2": levelAt(1).crystals.length * PLATFORMER_SCORE_CRYSTAL +
-          levelAt(1).sentinels.length * PLATFORMER_SCORE_SENTINEL +
-          levelAt(1).checkpoints.length * PLATFORMER_SCORE_CHECKPOINT +
-          PLATFORMER_SCORE_BEACON +
-          PLATFORMER_SCORE_FULL_COLLECTION +
-          PLATFORMER_SCORE_ZERO_DEATH,
-        "3": currentPreBeaconScore,
-      },
-      totalDurationMs: 20000,
+      lastCheckpointIdByLevel: Object.fromEntries(
+        PLATFORMER_LEVELS.map((level) => [
+          String(level.id),
+          level.checkpoints.at(-1)?.id ?? `level-${level.id}-start`,
+        ]),
+      ),
+      deathsByLevel: Object.fromEntries(
+        PLATFORMER_LEVELS.map((level) => [String(level.id), 0]),
+      ),
+      completedLevelIds: completedLevels.map((level) => level.id),
+      reachedBeaconLevelIds: completedLevels.map((level) => level.id),
+      levelDurations: Object.fromEntries(
+        completedLevels.map((level) => [String(level.id), 9000]),
+      ),
+      levelScores: Object.fromEntries([
+        ...completedLevels.map((level) => [String(level.id), fullClearLevelScore(level)]),
+        [String(lastLevel.id), currentPreBeaconScore],
+      ]),
+      totalDurationMs: 9000 * completedLevels.length,
     };
 
-    const world = createPlatformerWorld(context, 2, "l3-checkpoint-02", {
-      levelDurationMs: 1000,
-      levelTimeMs: 1000,
-    });
-    world.player.x = level3.beacon.x + 10;
+    const world = createPlatformerWorld(
+      context,
+      PLATFORMER_LEVELS.length - 1,
+      lastLevel.checkpoints.at(-1)?.id ?? `level-${lastLevel.id}-start`,
+      {
+        levelDurationMs: 1000,
+        levelTimeMs: 1000,
+      },
+    );
+    world.player.x = lastLevel.beacon.x + 10;
     world.player.previousX = world.player.x;
-    world.player.y = level3.beacon.y + 20;
+    world.player.y = lastLevel.beacon.y + 20;
     world.player.previousY = world.player.y;
     world.player.vx = 0;
     world.player.vy = 0;
@@ -818,7 +811,7 @@ describe("platformer run settlement", () => {
     expect(first.events.some((event) => event.type === "victory")).toBe(true);
     expect(first.world.status).toBe("victory");
     expect(first.world.score).toBe(expectedFinalScore);
-    expect(first.world.levelScores["3"]).toBe(
+    expect(first.world.levelScores[String(lastLevel.id)]).toBe(
       currentPreBeaconScore +
       PLATFORMER_SCORE_BEACON +
       PLATFORMER_SCORE_FULL_COLLECTION +
@@ -842,23 +835,20 @@ describe("platformer run settlement", () => {
     expect(submission).toMatchObject({
       outcome: "victory",
       score: expectedFinalScore,
-      levelsCompleted: 3,
-      crystalsCollected: 36,
-      sentinelsDefeated: 6,
+      levelsCompleted: PLATFORMER_LEVELS.length,
+      crystalsCollected: PLATFORMER_LEVELS.reduce((sum, level) => sum + level.crystals.length, 0),
+      sentinelsDefeated: PLATFORMER_LEVELS.reduce((sum, level) => sum + level.sentinels.length, 0),
       deaths: 0,
     });
-    expect(submission.levelResults.map((result) => result.completed)).toEqual([
-      true,
-      true,
-      true,
-    ]);
-    expect(submission.levelResults.map((result) => result.crystalsCollected)).toEqual([
-      9,
-      12,
-      15,
-    ]);
+    expect(submission.levelResults.map((result) => result.completed)).toEqual(
+      PLATFORMER_LEVELS.map(() => true),
+    );
+    expect(submission.levelResults.map((result) => result.crystalsCollected)).toEqual(
+      PLATFORMER_LEVELS.map((level) => level.crystals.length),
+    );
   });
 });
+
 describe("crystal pickup tolerance", () => {
   it("collects when the player body touches the crystal pickup box", () => {
     const level = levelAt(0);

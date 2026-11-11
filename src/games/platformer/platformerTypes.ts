@@ -2,7 +2,7 @@ export const PLATFORMER_LOGICAL_WIDTH = 1280;
 export const PLATFORMER_LOGICAL_HEIGHT = 720;
 export const PLATFORMER_STEP_SECONDS = 1 / 60;
 export const PLATFORMER_STEP_MS = 1000 / 60;
-export const PLATFORMER_TOTAL_LEVELS = 3;
+export const PLATFORMER_TOTAL_LEVELS = 6;
 export const PLATFORMER_INITIAL_LIVES = 3;
 export const PLATFORMER_SAVE_SLOT = "platformer_main";
 
@@ -27,9 +27,9 @@ export const PLATFORMER_SCORE_ZERO_DEATH = 1000;
 export const PLATFORMER_SCORE_BEACON = 1000;
 export const PLATFORMER_SCORE_VICTORY = 2000;
 
-export const PLATFORMER_LEVEL_CRYSTALS = [9, 12, 15] as const;
-export const PLATFORMER_LEVEL_SENTINELS = [1, 2, 3] as const;
-export const PLATFORMER_LEVEL_CHECKPOINTS = [1, 1, 2] as const;
+export const PLATFORMER_LEVEL_CRYSTALS = [9, 12, 15, 15, 18, 21] as const;
+export const PLATFORMER_LEVEL_SENTINELS = [1, 2, 3, 3, 4, 5] as const;
+export const PLATFORMER_LEVEL_CHECKPOINTS = [1, 1, 2, 2, 2, 3] as const;
 
 export type PlatformKind = "solid" | "oneWay";
 
