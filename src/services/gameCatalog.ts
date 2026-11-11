@@ -22,7 +22,7 @@ export const GAMES: readonly GameDefinition[] = [
     title: "冰原跃迁",
     category: "PLATFORMER",
     genre: "横版平台跳跃 · 单人",
-    description: "沿着 Europa 的冰脊与轨道，在三个手工关卡间跃迁。",
+    description: "沿着 Europa 的冰脊与轨道，在六个手工关卡间跃迁。",
     milestone: "M3",
     art: "platformer",
     plannedFeatures: ["跳跃手感", "检查点存档", "收集物 / 计分", "三条生命"],

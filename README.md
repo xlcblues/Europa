@@ -23,7 +23,7 @@
 
 ### M3 冰原跃迁
 
-- 冰原跃迁：3 个手工关卡（初醒冰原 / 裂隙回廊 / 潮汐之眼）、固定 60Hz 固定步长引擎、土狼时间/跳跃缓冲/可变跳跃、水晶/轨道哨兵/检查点/信标与 3 条生命。
+- 冰原跃迁：6 个手工关卡（初醒冰原 / 裂隙回廊 / 潮汐之眼 / 永夜冰脊 / 静默冰层 / 欧罗巴之心）、固定 60Hz 固定步长引擎、土狼时间/跳跃缓冲/可变跳跃、水晶/轨道哨兵/检查点/信标与 3 条生命。
 - 状态机：Ready → 1.2s 关卡导览 → Playing ↔ Paused → Complete/GameOver/Victory → Result；Esc 暂停、失焦/隐藏自动暂停、检查点存档与未完成卸载仅存档不结算。
 - 新增 Rust IPC：`load_platformer_checkpoint`、`save_platformer_checkpoint`、`clear_platformer_checkpoint`、`submit_platformer_match`；检查点按槽位 upsert 至 `platformer_saves`，结算按 `session_id` 幂等写入 `match_history` 与 `game_stats`。
 - 浏览器预览新增 `europa.browser-platformer-save` 与 `europa.browser-platformer-ledger` 降级存储。

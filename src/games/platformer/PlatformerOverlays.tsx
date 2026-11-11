@@ -173,7 +173,7 @@ function ReadyOverlay({
       </div>
       <OverlayEyebrow>EXPEDITION READY</OverlayEyebrow>
       <h2>远征待启</h2>
-      <p>穿过三道冰壳关卡，点亮全部轨道信标。收集冰晶、击退敌人，并在中继检查点存档。</p>
+      <p>穿过六道冰壳关卡，点亮全部轨道信标。收集冰晶、击退敌人，并在中继检查点存档。</p>
       <div className="platformer-ready-hints">
         <span><b>A / D</b> 或 <b>← →</b> 移动</span>
         <span><b>Space / W</b> 跳跃</span>
@@ -309,7 +309,7 @@ function EndOverlay({
       <h2>{victory ? "远征胜利" : "远征结束"}</h2>
       <p>
         {victory
-          ? "三道冰壳信标全部点亮，冰原跃迁完成。"
+          ? "六道冰壳信标全部点亮，冰原跃迁完成。"
           : "生命耗尽，远征止步于此。查看结算后可开启新的远征。"}
       </p>
       <div className="platformer-overlay-actions">
