@@ -696,7 +696,7 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
                 </strong>
               </div>
               <div>
-                <span>哨兵击倒</span>
+                <span>敌人击退</span>
                 <strong>{world?.defeatedSentinelIds.length ?? 0}</strong>
               </div>
             </div>

@@ -57,6 +57,8 @@ export interface CrystalDefinition {
   y: number;
 }
 
+export type SentinelKind = "sentinel" | "crawler" | "drifter" | "hopper";
+
 export interface SentinelDefinition {
   id: string;
   x: number;
@@ -66,6 +68,16 @@ export interface SentinelDefinition {
   patrolMinX: number;
   patrolMaxX: number;
   speed: number;
+  /** 怪物种类，默认 "sentinel"（经典哨兵）。 */
+  kind?: SentinelKind;
+  /** 浮游体垂直正弦摆动幅度（像素），默认 5。 */
+  bobAmplitude?: number;
+  /** 浮游体水平漂移周期（毫秒）。 */
+  bobPeriodMs?: number;
+  /** 弹跳兽跳跃峰值高度（像素）。 */
+  hopHeight?: number;
+  /** 弹跳兽一次跳跃的周期（毫秒）。 */
+  hopPeriodMs?: number;
 }
 
 export interface CheckpointDefinition {
@@ -152,7 +164,11 @@ export interface CameraState {
 export interface RuntimeSentinel {
   definition: SentinelDefinition;
   x: number;
+  /** 相对 definition.y 的垂直偏移（像素），用于浮游/弹跳动画。 */
+  y: number;
   direction: -1 | 1;
+  /** 动画相位（毫秒），与 levelTimeMs 同步，暂停时冻结。 */
+  phaseMs: number;
   defeated: boolean;
 }
 

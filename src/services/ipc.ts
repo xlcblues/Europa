@@ -1052,7 +1052,7 @@ function validateBrowserPlatformerSubmission(
     submission.sentinelsDefeated < 0 ||
     submission.sentinelsDefeated > 6
   ) {
-    throw new Error("哨兵数量无效。");
+    throw new Error("敌人数量无效。");
   }
   if (!Number.isInteger(submission.deaths) || submission.deaths < 0) {
     throw new Error("死亡次数无效。");
@@ -1098,7 +1098,7 @@ function validateBrowserPlatformerSubmission(
       result.sentinelsDefeated < 0 ||
       result.sentinelsDefeated > sentinelsTotal
     ) {
-      throw new Error("关卡哨兵数量无效。");
+      throw new Error("关卡敌人数量无效。");
     }
     if (
       !Number.isInteger(result.checkpointsActivated) ||
@@ -1192,7 +1192,7 @@ function validateBrowserPlatformerSubmission(
     throw new Error("收集总数不一致。");
   }
   if (submission.sentinelsDefeated !== expectedSentinels) {
-    throw new Error("哨兵总数不一致。");
+    throw new Error("敌人总数不一致。");
   }
   if (submission.deaths !== expectedDeaths) {
     throw new Error("死亡总数不一致。");

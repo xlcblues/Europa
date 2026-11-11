@@ -596,6 +596,80 @@ describe("level 3 sentinel interactions", () => {
   });
 });
 
+describe("enemy kind runtime motion", () => {
+  const patrolBoundsOk = (x: number, definition: { patrolMinX: number; patrolMaxX: number; width: number }): boolean =>
+    x >= definition.patrolMinX - 0.001 && x <= definition.patrolMaxX - definition.width + 0.001;
+
+  it("keeps crawlers patrolling along the ground", () => {
+    const level = getPlatformerLevel(0);
+    let world = createPlatformerWorld(createInitialPlatformerContext("crawler-motion"), 0);
+    const crawler = world.sentinels.find((s) => s.definition.kind === "crawler");
+    if (!crawler) throw new Error("missing crawler in level 1");
+    const definition = level.sentinels.find((d) => d.id === crawler.definition.id);
+    if (!definition) throw new Error("missing crawler definition");
+
+    for (let frame = 0; frame < 600; frame += 1) {
+      world = tick(world);
+      const current = world.sentinels.find((s) => s.definition.id === crawler.definition.id);
+      if (!current) throw new Error("crawler runtime missing");
+      expect(current.y).toBe(0);
+      expect(patrolBoundsOk(current.x, definition)).toBe(true);
+    }
+  });
+
+  it("makes drifters bob vertically while drifting horizontally", () => {
+    const level = getPlatformerLevel(1);
+    let world = createPlatformerWorld(createInitialPlatformerContext("drifter-motion"), 1);
+    const drifter = world.sentinels.find((s) => s.definition.kind === "drifter");
+    if (!drifter) throw new Error("missing drifter in level 2");
+    const definition = level.sentinels.find((d) => d.id === drifter.definition.id);
+    if (!definition) throw new Error("missing drifter definition");
+    const amplitude = definition.bobAmplitude ?? 5;
+    let sawUp = false;
+    let sawDown = false;
+
+    for (let frame = 0; frame < 900; frame += 1) {
+      world = tick(world);
+      const current = world.sentinels.find((s) => s.definition.id === drifter.definition.id);
+      if (!current) throw new Error("drifter runtime missing");
+      expect(current.y).toBeGreaterThanOrEqual(-amplitude - 0.001);
+      expect(current.y).toBeLessThanOrEqual(amplitude + 0.001);
+      expect(patrolBoundsOk(current.x, definition)).toBe(true);
+      if (current.y < -amplitude * 0.8) sawUp = true;
+      if (current.y > amplitude * 0.8) sawDown = true;
+    }
+    expect(sawUp).toBe(true);
+    expect(sawDown).toBe(true);
+  });
+
+  it("makes hoppers leap in a parabolic arc while patrolling", () => {
+    const level = getPlatformerLevel(2);
+    let world = createPlatformerWorld(createInitialPlatformerContext("hopper-motion"), 2);
+    const hopper = world.sentinels.find((s) => s.definition.kind === "hopper");
+    if (!hopper) throw new Error("missing hopper in level 3");
+    const definition = level.sentinels.find((d) => d.id === hopper.definition.id);
+    if (!definition) throw new Error("missing hopper definition");
+    const hopHeight = definition.hopHeight ?? 44;
+    let atApex = false;
+    let backOnGround = false;
+    let sawAirborne = false;
+
+    for (let frame = 0; frame < 1400; frame += 1) {
+      world = tick(world);
+      const current = world.sentinels.find((s) => s.definition.id === hopper.definition.id);
+      if (!current) throw new Error("hopper runtime missing");
+      expect(current.y).toBeGreaterThanOrEqual(-hopHeight - 0.001);
+      expect(current.y).toBeLessThanOrEqual(0.001);
+      expect(patrolBoundsOk(current.x, definition)).toBe(true);
+      if (current.y < -hopHeight * 0.95) atApex = true;
+      if (current.y < -2) sawAirborne = true;
+      if (sawAirborne && current.y >= -1) backOnGround = true;
+    }
+    expect(atApex).toBe(true);
+    expect(backOnGround).toBe(true);
+  });
+});
+
 describe("checkpoint persistence", () => {
   it("round-trips progress, score, position, and moving-platform time", () => {
     let world = createPlatformerWorld(

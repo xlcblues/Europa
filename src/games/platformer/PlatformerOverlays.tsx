@@ -173,7 +173,7 @@ function ReadyOverlay({
       </div>
       <OverlayEyebrow>EXPEDITION READY</OverlayEyebrow>
       <h2>远征待启</h2>
-      <p>穿过三道冰壳关卡，点亮全部轨道信标。收集冰晶、踏平哨兵，并在中继检查点存档。</p>
+      <p>穿过三道冰壳关卡，点亮全部轨道信标。收集冰晶、击退敌人，并在中继检查点存档。</p>
       <div className="platformer-ready-hints">
         <span><b>A / D</b> 或 <b>← →</b> 移动</span>
         <span><b>Space / W</b> 跳跃</span>
@@ -361,7 +361,7 @@ function ResultOverlay({
           <strong>{result.crystalsCollected}</strong>
         </div>
         <div>
-          <span>击倒哨兵</span>
+          <span>击退敌人</span>
           <strong>{result.sentinelsDefeated}</strong>
         </div>
         <div>

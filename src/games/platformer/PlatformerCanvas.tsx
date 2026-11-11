@@ -3,8 +3,10 @@ import { useEffect, useRef } from "react";
 import {
   PLATFORMER_LOGICAL_HEIGHT,
   PLATFORMER_LOGICAL_WIDTH,
+  type LevelPalette,
   type PlatformerLevel,
   type PlatformerWorld,
+  type RuntimeSentinel,
 } from "./platformerTypes";
 import { getPlatformerLevel } from "./platformerLevels";
 
@@ -99,7 +101,7 @@ export function PlatformerCanvas({ world, reducedMotion, ariaLabel }: Platformer
       drawPlatforms(state);
       drawCheckpoints(state);
       drawCrystals(state);
-      drawSentinels(state);
+      drawEnemies(state);
       drawPlayer(state);
       context.restore();
 
@@ -263,37 +265,325 @@ function drawCrystals({ context, level, world, reducedMotion }: DrawState): void
   }
 }
 
-function drawSentinels({ context, level, world, reducedMotion }: DrawState): void {
+interface EnemyDrawState {
+  context: CanvasRenderingContext2D;
+  sentinel: RuntimeSentinel;
+  top: number;
+  timeMs: number;
+  reducedMotion: boolean;
+  palette: LevelPalette;
+}
+
+function drawEnemies({ context, level, world, reducedMotion }: DrawState): void {
   for (const sentinel of world.sentinels) {
     if (sentinel.defeated) {
       continue;
     }
     const definition = sentinel.definition;
     const screenX = sentinel.x - world.camera.x;
-    if (screenX < -120 || screenX > PLATFORMER_LOGICAL_WIDTH + 120) {
+    if (screenX < -160 || screenX > PLATFORMER_LOGICAL_WIDTH + 160) {
       continue;
     }
-
-    // 哨兵光晕与游戏时间同步（暂停冻结、恢复续接）；减少动态时使用静态光晕。
-    const glow = reducedMotion ? 0.55 : 0.5 + Math.sin(world.levelTimeMs * 0.006) * 0.2;
-    context.save();
-    context.fillStyle = level.palette.accentSoft;
-    context.globalAlpha = glow;
-    context.beginPath();
-    context.ellipse(sentinel.x, definition.y + definition.height * 0.5, 30, 26, 0, 0, Math.PI * 2);
-    context.fill();
-    context.globalAlpha = 1;
-
-    context.fillStyle = level.palette.iceDeep;
-    context.fillRect(sentinel.x - definition.width * 0.5, definition.y, definition.width, definition.height);
-    context.fillStyle = level.palette.accent;
-    context.beginPath();
-    context.arc(sentinel.x, definition.y + definition.height * 0.5, 7, 0, Math.PI * 2);
-    context.fill();
-    context.restore();
+    const state: EnemyDrawState = {
+      context,
+      sentinel,
+      top: definition.y + sentinel.y,
+      timeMs: world.levelTimeMs,
+      reducedMotion,
+      palette: level.palette,
+    };
+    const kind = definition.kind ?? "sentinel";
+    if (kind === "crawler") {
+      drawCrawler(state);
+    } else if (kind === "drifter") {
+      drawDrifter(state);
+    } else if (kind === "hopper") {
+      drawHopper(state);
+    } else {
+      drawClassicSentinel(state);
+    }
   }
 }
 
+/** 冰核哨兵：经典的巡逻哨兵，胸口核心灯脉冲。 */
+function drawClassicSentinel({ context, sentinel, top, timeMs, reducedMotion, palette }: EnemyDrawState): void {
+  const definition = sentinel.definition;
+  const sx = sentinel.x;
+  const sy = top;
+  const glow = reducedMotion ? 0.5 : 0.5 + Math.sin(timeMs * 0.006) * 0.18;
+  const walk = reducedMotion ? 0 : Math.sin(timeMs / 150) * 3;
+
+  context.save();
+  // 脚下微弱反光（避免背景光晕）
+  context.globalAlpha = 0.16;
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.ellipse(sx + definition.width * 0.5, sy + definition.height + 2, 18, 5, 0, 0, Math.PI * 2);
+  context.fill();
+  context.globalAlpha = 1;
+
+  // 双腿
+  context.fillStyle = "#0a1a24";
+  context.beginPath();
+  context.roundRect(sx + 8, sy + 33, 8, 11 + Math.max(0, walk), 3);
+  context.fill();
+  context.beginPath();
+  context.roundRect(sx + definition.width - 16, sy + 33, 8, 11 - Math.max(0, walk), 3);
+  context.fill();
+
+  // 躯干
+  context.fillStyle = palette.iceDeep;
+  context.beginPath();
+  context.roundRect(sx + 6, sy + 9, definition.width - 12, 28, 8);
+  context.fill();
+  context.fillStyle = "rgba(216, 247, 251, 0.18)";
+  context.beginPath();
+  context.roundRect(sx + 9, sy + 11, definition.width - 18, 5, 3);
+  context.fill();
+
+  // 核心灯（脉冲）
+  context.globalAlpha = glow;
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.arc(sx + definition.width * 0.5, sy + 23, 8, 0, Math.PI * 2);
+  context.fill();
+  context.globalAlpha = 1;
+  context.fillStyle = palette.iceLight;
+  context.beginPath();
+  context.arc(sx + definition.width * 0.5, sy + 23, 3, 0, Math.PI * 2);
+  context.fill();
+
+  // 头部（单眼视窗）
+  context.fillStyle = "#0a1a24";
+  context.beginPath();
+  context.roundRect(sx + 9, sy + 1, definition.width - 18, 13, 5);
+  context.fill();
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.roundRect(sx + 12, sy + 4, definition.width - 24, 4, 2);
+  context.fill();
+  context.fillStyle = palette.iceLight;
+  context.beginPath();
+  context.arc(sx + definition.width * 0.5, sy + 6, 1.8, 0, Math.PI * 2);
+  context.fill();
+
+  context.restore();
+}
+
+/** 冰甲爬虫：低矮贴地，六足交替爬行。 */
+function drawCrawler({ context, sentinel, top, timeMs, reducedMotion, palette }: EnemyDrawState): void {
+  const definition = sentinel.definition;
+  const sy = top + (reducedMotion ? 0 : Math.sin(timeMs / 170) * 1);
+  const facing = sentinel.direction;
+
+  context.save();
+  context.translate(sentinel.x + definition.width * 0.5, sy);
+  context.scale(facing, 1);
+
+  // 六足（交替摆动）
+  const gait = reducedMotion ? 0 : Math.sin(timeMs / 130);
+  for (let i = 0; i < 3; i += 1) {
+    const offset = i - 1;
+    const swing = gait * 3 * (i % 2 === 0 ? 1 : -1);
+    context.fillStyle = "#0a1a24";
+    context.beginPath();
+    context.roundRect(-9 + offset * 7 + swing, 11, 4, 14, 2);
+    context.fill();
+    context.beginPath();
+    context.roundRect(5 + offset * 7 - swing, 11, 4, 14, 2);
+    context.fill();
+  }
+
+  // 甲壳
+  context.fillStyle = palette.iceDeep;
+  context.beginPath();
+  context.roundRect(-definition.width * 0.5 + 3, 0, definition.width - 6, 20, 7);
+  context.fill();
+  context.fillStyle = "rgba(216, 247, 251, 0.18)";
+  context.beginPath();
+  context.roundRect(-definition.width * 0.5 + 6, 3, definition.width - 12, 5, 3);
+  context.fill();
+  // 甲片接缝
+  context.globalAlpha = 0.55;
+  context.fillStyle = palette.iceMid;
+  context.beginPath();
+  context.roundRect(-definition.width * 0.5 + 13, 5, 2, 13, 1);
+  context.fill();
+  context.beginPath();
+  context.roundRect(definition.width * 0.5 - 15, 5, 2, 13, 1);
+  context.fill();
+  context.globalAlpha = 1;
+
+  // 头部（前侧）
+  context.fillStyle = "#0a1a24";
+  context.beginPath();
+  context.roundRect(6, 2, 10, 12, 4);
+  context.fill();
+  // 双眼（脉冲）
+  const eyeGlow = reducedMotion ? 1 : 0.75 + Math.sin(timeMs * 0.01) * 0.25;
+  context.globalAlpha = eyeGlow;
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.arc(9, 8, 2, 0, Math.PI * 2);
+  context.fill();
+  context.beginPath();
+  context.arc(14, 8, 2, 0, Math.PI * 2);
+  context.fill();
+  context.globalAlpha = 1;
+
+  // 尾刺（后侧）
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.moveTo(-definition.width * 0.5 + 2, 3);
+  context.lineTo(-definition.width * 0.5 - 7, 9);
+  context.lineTo(-definition.width * 0.5 + 2, 13);
+  context.closePath();
+  context.fill();
+
+  context.restore();
+}
+
+/** 裂隙浮游体：悬浮在裂隙间的发光浮游生物。 */
+function drawDrifter({ context, sentinel, top, timeMs, reducedMotion, palette }: EnemyDrawState): void {
+  const definition = sentinel.definition;
+  const sx = sentinel.x;
+  const sy = top;
+  const cx = sx + definition.width * 0.5;
+  const cy = sy + definition.height * 0.5;
+  const pulse = reducedMotion ? 1 : 0.7 + Math.sin(timeMs * 0.009) * 0.3;
+
+  context.save();
+  // 触须（下方摆动）
+  context.strokeStyle = palette.iceMid;
+  context.lineWidth = 3;
+  context.lineCap = "round";
+  for (let i = 0; i < 3; i += 1) {
+    const sway = reducedMotion ? 0 : Math.sin(timeMs / 120 + i * 1.1) * 4;
+    const x0 = cx - 11 + i * 11 + sway * 0.4;
+    const x1 = x0 + sway;
+    const x2 = cx - 11 + i * 11 + sway * 1.6;
+    context.beginPath();
+    context.moveTo(x0, sy + definition.height - 2);
+    context.quadraticCurveTo(x1, sy + definition.height + 5, x2, sy + definition.height + 10 + (i % 2) * 2);
+    context.stroke();
+  }
+
+  // 主体
+  context.fillStyle = palette.iceDeep;
+  context.beginPath();
+  context.ellipse(cx, cy, definition.width * 0.5, definition.height * 0.5 - 2, 0, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = "rgba(216, 247, 251, 0.2)";
+  context.beginPath();
+  context.ellipse(cx - 3, cy - 5, definition.width * 0.24, definition.height * 0.2, -0.3, 0, Math.PI * 2);
+  context.fill();
+
+  // 核心
+  context.globalAlpha = pulse;
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.arc(cx, cy, 7, 0, Math.PI * 2);
+  context.fill();
+  context.globalAlpha = 1;
+  context.fillStyle = palette.iceLight;
+  context.beginPath();
+  context.arc(cx, cy, 2.6, 0, Math.PI * 2);
+  context.fill();
+
+  // 侧鳍（扇动）
+  const flap = reducedMotion ? 0 : Math.sin(timeMs / 110) * 3;
+  context.fillStyle = palette.iceMid;
+  context.beginPath();
+  context.moveTo(cx - definition.width * 0.5 + 2, cy - 4);
+  context.quadraticCurveTo(cx - definition.width * 0.5 - 8, cy + 2 + flap, cx - definition.width * 0.5 + 2, cy + 8);
+  context.closePath();
+  context.fill();
+  context.beginPath();
+  context.moveTo(cx + definition.width * 0.5 - 2, cy - 4);
+  context.quadraticCurveTo(cx + definition.width * 0.5 + 8, cy + 2 - flap, cx + definition.width * 0.5 - 2, cy + 8);
+  context.closePath();
+  context.fill();
+
+  // 单眼
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.arc(cx + 4, cy - 4, 2.4, 0, Math.PI * 2);
+  context.fill();
+
+  context.restore();
+}
+
+/** 弹跳兽：周期性弹跳，落地时压缩弹簧腿并扬尘。 */
+function drawHopper({ context, sentinel, top, timeMs, reducedMotion, palette }: EnemyDrawState): void {
+  const definition = sentinel.definition;
+  const sx = sentinel.x;
+  const sy = top;
+  const cx = sx + definition.width * 0.5;
+  const hopHeight = definition.hopHeight ?? 44;
+  const airborne = hopHeight > 0 ? Math.min(1, Math.max(0, -sentinel.y / hopHeight)) : 0;
+  const stretch = 1 - airborne;
+  const bounce = reducedMotion ? 0 : Math.sin(timeMs / 90) * 1.5;
+
+  context.save();
+  // 落地冲击尘（接近地面时）
+  if (airborne < 0.3) {
+    context.globalAlpha = 0.28 * (1 - airborne / 0.3);
+    context.fillStyle = palette.iceLight;
+    context.beginPath();
+    context.ellipse(cx, sy + definition.height - 2, 13, 4, 0, 0, Math.PI * 2);
+    context.fill();
+    context.globalAlpha = 1;
+  }
+
+  // 弹簧腿
+  const legTop = sy + definition.height - 2 - stretch * 8;
+  context.strokeStyle = palette.accent;
+  context.lineWidth = 4;
+  context.lineCap = "round";
+  context.beginPath();
+  context.moveTo(cx - 12, legTop);
+  context.lineTo(cx - 12, legTop + 5 + stretch * 3);
+  context.stroke();
+  context.beginPath();
+  context.moveTo(cx + 12, legTop);
+  context.lineTo(cx + 12, legTop + 5 + stretch * 3);
+  context.stroke();
+
+  // 身体
+  context.fillStyle = palette.iceDeep;
+  context.beginPath();
+  context.roundRect(cx - 17, sy + 4, 34, definition.height - 12 + stretch * 8, 12);
+  context.fill();
+  context.fillStyle = "rgba(216, 247, 251, 0.18)";
+  context.beginPath();
+  context.roundRect(cx - 13, sy + 7, 26, 5, 3);
+  context.fill();
+
+  // 大眼睛
+  const eyeGlow = reducedMotion ? 1 : 0.8 + Math.sin(timeMs * 0.01) * 0.2;
+  context.globalAlpha = eyeGlow;
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.arc(cx, sy + 13 + stretch * 2, 6, 0, Math.PI * 2);
+  context.fill();
+  context.globalAlpha = 1;
+  context.fillStyle = palette.iceLight;
+  context.beginPath();
+  context.arc(cx + 1.5, sy + 11 + stretch * 2, 2.2, 0, Math.PI * 2);
+  context.fill();
+
+  // 顶部小天线（琥珀警示灯）
+  context.fillStyle = "#0a1a24";
+  context.beginPath();
+  context.roundRect(cx - 1.5, sy - 4 + bounce, 3, 9, 1.5);
+  context.fill();
+  context.fillStyle = palette.beacon;
+  context.beginPath();
+  context.arc(cx, sy - 5 + bounce, 2.2, 0, Math.PI * 2);
+  context.fill();
+
+  context.restore();
+}
 function drawCheckpoints({ context, level, world }: DrawState): void {
   for (const checkpoint of level.checkpoints) {
     const activated = world.activatedCheckpointIds.includes(checkpoint.id);
@@ -333,90 +623,181 @@ function drawPlayer({ context, world }: DrawState): void {
   const timeMs = world.levelTimeMs;
   const moving = player.onGround && Math.abs(player.vx) > 8;
   const swing = !player.onGround ? 2.5 : moving ? Math.sin(timeMs / 130) * 4 : 0;
+  const landing = world.landedFlashMs > 0;
+  const landingT = landing ? Math.min(1, world.landedFlashMs / 300) : 0;
+  const squashY = landing ? Math.sin(landingT * Math.PI) * 3.2 : 0;
 
   context.save();
   context.globalAlpha = blink ? 0.4 : 1;
-  context.translate(player.x, player.y);
+  context.translate(player.x, player.y + squashY);
   context.scale(player.facing, 1);
+  if (landing) {
+    context.scale(1 + squashY * 0.02, 1 - squashY * 0.03);
+  }
 
-  // 天线：细杆 + 脉冲光点
+  // 背包装备（探测背包 + 扫描天线，位于身后）
+  context.fillStyle = "#0b202b";
+  context.beginPath();
+  context.roundRect(-5, 8, 10, 20, 4);
+  context.fill();
+  context.fillStyle = "#58d9ec";
+  context.beginPath();
+  context.roundRect(-4, 10, 8, 6, 2);
+  context.fill();
   context.fillStyle = "#173c4b";
-  context.fillRect(15, -7, 2, 9);
+  context.beginPath();
+  context.arc(-4, 13, 3, 0, Math.PI * 2);
+  context.fill();
+  context.strokeStyle = "#173c4b";
+  context.lineWidth = 1.5;
+  context.beginPath();
+  context.moveTo(-4, 8);
+  context.lineTo(-8, 4);
+  context.stroke();
+  context.fillStyle = "#58d9ec";
+  context.beginPath();
+  context.arc(-8, 4, 2, 0, Math.PI * 2);
+  context.fill();
+
+  // 头顶天线：细杆 + 脉冲光点
+  context.fillStyle = "#173c4b";
+  context.fillRect(15, -8, 2, 9);
   const antennaGlow = 0.65 + Math.sin(timeMs / 90) * 0.35;
   context.globalAlpha = (blink ? 0.4 : 1) * antennaGlow;
   context.fillStyle = "#58d9ec";
   context.beginPath();
-  context.arc(16, -8, 3.5, 0, Math.PI * 2);
+  context.arc(16, -9, 3.5, 0, Math.PI * 2);
   context.fill();
   context.fillStyle = "#d8f7fb";
   context.beginPath();
-  context.arc(16, -8, 1.4, 0, Math.PI * 2);
+  context.arc(16, -9, 1.4, 0, Math.PI * 2);
   context.fill();
   context.globalAlpha = blink ? 0.4 : 1;
 
-  // 手臂（两侧短臂）
-  context.fillStyle = "#0b202b";
-  context.beginPath();
-  context.roundRect(0, 22, 5, 11, 2);
-  context.fill();
-  context.beginPath();
-  context.roundRect(27, 22, 5, 11, 2);
-  context.fill();
+  // 手臂（肩关节 + 前臂 + 手部光点）
+  for (const armX of [1, 26]) {
+    context.fillStyle = "#0b202b";
+    context.beginPath();
+    context.roundRect(armX, 17, 6, 9, 3);
+    context.fill();
+    context.fillStyle = "#173c4b";
+    context.beginPath();
+    context.roundRect(armX + 1, 23, 4, 8, 2);
+    context.fill();
+    context.globalAlpha = (blink ? 0.4 : 1) * 0.9;
+    context.fillStyle = "#58d9ec";
+    context.beginPath();
+    context.arc(armX + 3, 32, 1.6, 0, Math.PI * 2);
+    context.fill();
+    context.globalAlpha = blink ? 0.4 : 1;
+  }
 
-  // 腿部（行走摆动 / 滞空收腿）
-  const legY = 34;
-  const legWidth = 8;
-  const legHeight = 12;
+  // 腿部（行走摆动 / 滞空收腿），带护膝与靴底光
+  const legY = 33;
+  const legHeight = 13;
   for (const foot of [
-    { x: 6 + swing, y: legY },
-    { x: 18 - swing, y: legY },
+    { x: 5 + swing, y: legY },
+    { x: 19 - swing, y: legY },
   ]) {
     context.fillStyle = "#0b202b";
     context.beginPath();
-    context.roundRect(foot.x, foot.y, legWidth, legHeight, 2);
+    context.roundRect(foot.x, foot.y, 7, legHeight, 3);
     context.fill();
     context.fillStyle = "#58d9ec";
     context.beginPath();
-    context.roundRect(foot.x + 1, foot.y + legHeight - 5, legWidth - 2, 5, 2);
+    context.roundRect(foot.x + 1, foot.y + 3, 5, 4, 1.5);
+    context.fill();
+    context.fillStyle = "#58d9ec";
+    context.beginPath();
+    context.roundRect(foot.x, foot.y + legHeight - 4, 7, 4, 2);
     context.fill();
   }
 
   // 躯干
   context.fillStyle = "#0b202b";
   context.beginPath();
-  context.roundRect(3, 14, 26, 24, 7);
+  context.roundRect(3, 14, 26, 26, 7);
+  context.fill();
+  // 躯干侧通风口
+  context.fillStyle = "#173c4b";
+  context.beginPath();
+  context.roundRect(6, 26, 3, 6, 1.5);
+  context.fill();
+  context.beginPath();
+  context.roundRect(23, 26, 3, 6, 1.5);
   context.fill();
 
   // 胸口核心灯
   context.fillStyle = "#58d9ec";
   context.beginPath();
-  context.roundRect(7, 20, 18, 9, 4);
+  context.roundRect(7, 19, 18, 10, 5);
   context.fill();
   context.fillStyle = "#d8f7fb";
   context.beginPath();
-  context.roundRect(10, 22, 12, 5, 2);
+  context.roundRect(10, 21, 12, 6, 3);
+  context.fill();
+
+  // 腰带
+  context.fillStyle = "#173c4b";
+  context.beginPath();
+  context.roundRect(5, 33, 22, 4, 2);
   context.fill();
 
   // 头盔
   context.fillStyle = "#0b202b";
   context.beginPath();
-  context.roundRect(6, 0, 20, 18, 8);
+  context.roundRect(5, 0, 22, 20, 9);
+  context.fill();
+  // 头盔帽檐高光
+  context.fillStyle = "rgba(216, 247, 251, 0.55)";
+  context.beginPath();
+  context.roundRect(7, 2, 18, 3, 1.5);
+  context.fill();
+  // 头盔顶饰线
+  context.fillStyle = "#173c4b";
+  context.beginPath();
+  context.roundRect(14, 4, 5, 4, 1.5);
   context.fill();
 
   // 面罩视窗
   context.fillStyle = "#58d9ec";
   context.beginPath();
-  context.roundRect(3, 8, 26, 8, 4);
+  context.roundRect(2, 8, 28, 9, 4.5);
+  context.fill();
+  context.fillStyle = "rgba(216, 247, 251, 0.35)";
+  context.beginPath();
+  context.roundRect(4, 9, 12, 3, 1.5);
   context.fill();
 
   // 双眼（发光瞳孔）
   context.fillStyle = "#d8f7fb";
   context.beginPath();
-  context.arc(10, 12, 2.5, 0, Math.PI * 2);
+  context.arc(9, 12.5, 2.6, 0, Math.PI * 2);
   context.fill();
   context.beginPath();
-  context.arc(22, 12, 2.5, 0, Math.PI * 2);
+  context.arc(23, 12.5, 2.6, 0, Math.PI * 2);
   context.fill();
+  context.fillStyle = "#173c4b";
+  context.beginPath();
+  context.arc(10, 12.5, 1, 0, Math.PI * 2);
+  context.fill();
+  context.beginPath();
+  context.arc(24, 12.5, 1, 0, Math.PI * 2);
+  context.fill();
+
+  // 跳跃推进器尾迹（滞空时）
+  if (!player.onGround) {
+    const jet = 0.5 + Math.sin(timeMs / 60) * 0.2;
+    context.globalAlpha = (blink ? 0.4 : 1) * jet;
+    context.fillStyle = "#58d9ec";
+    context.beginPath();
+    context.ellipse(8, 47, 3, 5, 0, 0, Math.PI * 2);
+    context.fill();
+    context.beginPath();
+    context.ellipse(24, 47, 3, 5, 0, 0, Math.PI * 2);
+    context.fill();
+    context.globalAlpha = blink ? 0.4 : 1;
+  }
 
   context.restore();
 }

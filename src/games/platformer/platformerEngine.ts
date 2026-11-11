@@ -172,7 +172,9 @@ export function createPlatformerWorld(
     sentinels: level.sentinels.map((definition) => ({
       definition,
       x: definition.x,
+      y: 0,
       direction: 1,
+      phaseMs: 0,
       defeated: context.defeatedSentinelIds.includes(definition.id),
     })),
     score: context.score,
@@ -434,6 +436,9 @@ export function stepPlatformer(
 
   resolveHorizontalMotion(next.player, level, next.platformOffsets);
   resolveVerticalMotion(next.player, level, next.platformOffsets, events, wasGrounded, next.assisted);
+  if (!wasGrounded && next.player.onGround) {
+    next.landedFlashMs = 300;
+  }
   checkFall(next, level, events);
 
   next.player.jumpHeldLast = input.jumpHeld;
@@ -662,6 +667,20 @@ function updateRuntimeSentinels(world: PlatformerWorld, level: PlatformerLevel):
     if (!definition) {
       return sentinel;
     }
+    const phaseMs = sentinel.phaseMs + PLATFORMER_STEP_MS;
+    const kind = definition.kind ?? "sentinel";
+
+    if (kind === "drifter") {
+      // 浮游体：水平正弦漂移 + 垂直小幅摆动，缓慢悬浮于裂隙间。
+      const driftRange = definition.patrolMaxX - definition.patrolMinX - definition.width;
+      const driftPeriod = definition.bobPeriodMs ?? 4200;
+      const progress = (phaseMs % driftPeriod) / driftPeriod;
+      const x = definition.patrolMinX + driftRange * (0.5 + 0.5 * Math.sin(progress * Math.PI * 2));
+      const y = -(definition.bobAmplitude ?? 5) * Math.sin(progress * Math.PI * 2);
+      return { ...sentinel, x, y, phaseMs };
+    }
+
+    // 爬虫/哨兵/弹跳兽：水平匀速巡逻，并在巡逻边界折返。
     let x = sentinel.x + sentinel.direction * definition.speed * PLATFORMER_STEP_SECONDS;
     let direction = sentinel.direction;
     if (x <= definition.patrolMinX) {
@@ -671,10 +690,19 @@ function updateRuntimeSentinels(world: PlatformerWorld, level: PlatformerLevel):
       x = definition.patrolMaxX - definition.width;
       direction = -1;
     }
-    return { ...sentinel, x, direction };
+
+    let y = 0;
+    if (kind === "hopper") {
+      // 弹跳兽：周期性的抛物线跳跃，从地面起跳后回落。
+      const hopPeriod = definition.hopPeriodMs ?? 1400;
+      const hopHeight = definition.hopHeight ?? 44;
+      const t = (phaseMs % hopPeriod) / hopPeriod;
+      y = -hopHeight * 4 * t * (1 - t);
+    }
+
+    return { ...sentinel, x, y, direction, phaseMs };
   });
 }
-
 function moveTowards(value: number, target: number, maximumDelta: number): number {
   if (Math.abs(target - value) <= maximumDelta) {
     return target;
@@ -758,7 +786,7 @@ function resolveSentinelContacts(
         player.width,
         player.height,
         sentinel.x,
-        sentinel.definition.y,
+        sentinel.definition.y + sentinel.y,
         sentinel.definition.width,
         sentinel.definition.height,
         2,
@@ -769,7 +797,7 @@ function resolveSentinelContacts(
 
     const stomped =
       player.vy > 0 &&
-      player.previousY + player.height <= sentinel.definition.y + STOMP_TOLERANCE;
+      player.previousY + player.height <= sentinel.definition.y + sentinel.y + STOMP_TOLERANCE;
     if (stomped) {
       sentinel.defeated = true;
       if (!world.defeatedSentinelIds.includes(sentinel.definition.id)) {
@@ -781,7 +809,7 @@ function resolveSentinelContacts(
           score: PLATFORMER_SCORE_SENTINEL,
         });
       }
-      player.y = sentinel.definition.y - player.height - 2;
+      player.y = sentinel.definition.y + sentinel.y - player.height - 2;
       player.vy = -STOMP_BOUNCE_SPEED;
       player.onGround = false;
       player.groundPlatformId = null;
@@ -1033,7 +1061,7 @@ export function parsePlatformerSaveDetails(
   }
   const assisted = requireBoolean(details.assisted, "辅助模式标记");
   const collectedItemIds = requireUniqueStringArray(details.collectedItemIds, "冰晶记录");
-  const defeatedSentinelIds = requireUniqueStringArray(details.defeatedSentinelIds, "哨兵记录");
+  const defeatedSentinelIds = requireUniqueStringArray(details.defeatedSentinelIds, "敌人记录");
   const activatedCheckpointIds = requireUniqueStringArray(
     details.activatedCheckpointIds,
     "检查点记录",
@@ -1225,7 +1253,7 @@ function validateEntityIds(
     throw new Error("存档包含未知冰晶。");
   }
   if (defeatedSentinelIds.some((id) => !sentinels.has(id))) {
-    throw new Error("存档包含未知哨兵。");
+    throw new Error("存档包含未知敌人。");
   }
   if (activatedCheckpointIds.some((id) => !checkpoints.has(id))) {
     throw new Error("存档包含未知检查点。");
@@ -1354,7 +1382,7 @@ function validateProgressEntityOwnership(
     throw new Error("存档包含未来关卡冰晶。");
   }
   if (defeatedSentinelIds.some((id) => !allowedLevelIds.has(sentinels.get(id) ?? -1))) {
-    throw new Error("存档包含未来关卡哨兵。");
+    throw new Error("存档包含未来关卡敌人。");
   }
   if (activatedCheckpointIds.some((id) => !allowedLevelIds.has(checkpoints.get(id) ?? -1))) {
     throw new Error("存档包含未来关卡检查点。");
