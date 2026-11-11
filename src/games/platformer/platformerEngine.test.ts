@@ -434,6 +434,171 @@ describe("level 3 real-input route", () => {
   });
 });
 
+function walkAcross(world: PlatformerWorld, target: number, allowedGrounds: string[], maxFrames = 900): PlatformerWorld {
+  let current = world;
+  for (let frame = 0; frame < maxFrames && current.status === "playing"; frame += 1) {
+    if (!current.player.onGround) {
+      throw new Error(`left ground mid-walk: ${groundOf(current)}`);
+    }
+    const g = current.player.groundPlatformId ?? "air";
+    if (!allowedGrounds.includes(g)) {
+      throw new Error(`unexpected ground: ${groundOf(current)}`);
+    }
+    const delta = target - centerX(current);
+    const movingToward = current.player.vx * Math.sign(delta);
+    const stoppingDistance = Math.abs(current.player.vx) ** 2 / (2 * PLATFORMER_DECELERATION);
+    const brake = movingToward > 0 && stoppingDistance >= Math.abs(delta) - 2;
+    const controls: Controls = Math.abs(delta) <= 0.75 && Math.abs(current.player.vx) <= 2
+      ? {}
+      : brake
+        ? {}
+        : delta < 0
+          ? { left: true }
+          : { right: true };
+    current = tick(current, controls);
+    if (Math.abs(target - centerX(current)) <= 1.25 && Math.abs(current.player.vx) <= 2) {
+      return idle(current);
+    }
+  }
+  if (current.status !== "playing") throw new Error(`walkAcross ended ${current.status}`);
+  return idle(current);
+}
+
+function jumpRightFromEdge(world: PlatformerWorld, runway = 0, maxFrames = 240): PlatformerWorld {
+  let current = world;
+  let leftGround = false;
+  for (let frame = 0; frame < maxFrames && current.status === "playing"; frame += 1) {
+    current = tick(current, {
+      right: true,
+      jumpPressed: frame === runway,
+      jumpHeld: frame >= runway && frame < runway + 30,
+    });
+    if (!current.player.onGround) {
+      leftGround = true;
+    }
+    if (leftGround && frame > runway + 3 && current.player.onGround) {
+      break;
+    }
+  }
+  if (current.status !== "playing") throw new Error(`jump ended ${current.status}`);
+  if (!current.player.onGround) throw new Error(`jump did not land: ${groundOf(current)}`);
+  return idle(current);
+}
+
+function waitForLiftX(world: PlatformerWorld, platformId: string, minOffsetX: number, maxFrames = 700): PlatformerWorld {
+  const level = getPlatformerLevel(world.levelIndex);
+  const platform = level.platforms.find((item) => item.id === platformId);
+  if (!platform?.motion) throw new Error(`unknown moving platform ${platformId}`);
+  let current = world;
+  for (let frame = 0; frame < maxFrames && current.status === "playing"; frame += 1) {
+    const offset = getPlatformOffset(platform, current.levelTimeMs);
+    if (offset.x >= minOffsetX) return current;
+    current = tick(current);
+  }
+  throw new Error(`lift ${platformId} did not reach x offset ${minOffsetX}`);
+}
+
+function stepOffRight(world: PlatformerWorld, expectedGround: string): PlatformerWorld {
+  let current = world;
+  let leftGround = false;
+  for (let frame = 0; frame < 240 && current.status === "playing"; frame += 1) {
+    current = tick(current, { right: true });
+    if (!current.player.onGround) {
+      leftGround = true;
+    }
+    if (leftGround && frame > 3 && current.player.onGround) {
+      break;
+    }
+  }
+  if (current.status !== "playing") throw new Error(`stepOff ended ${current.status}`);
+  if (current.player.groundPlatformId !== expectedGround) {
+    throw new Error(`stepOff expected ${expectedGround}, found ${groundOf(current)}`);
+  }
+  return idle(current);
+}
+
+function crossGapEF(world: PlatformerWorld): PlatformerWorld {
+  let current = waitForLiftX(world, "l4-lift-b", 39);
+  current = jumpRightFromEdge(current, 10);
+  if (current.player.groundPlatformId === "l4-ground-f") return current;
+  if (current.player.groundPlatformId === "l4-lift-b") {
+    current = stepOffRight(current, "l4-ground-f");
+    return current;
+  }
+  throw new Error(`cross e->f failed on ${groundOf(current)}`);
+}
+
+function stompSentinelL4(world: PlatformerWorld, id: string): PlatformerWorld {
+  const level = getPlatformerLevel(world.levelIndex);
+  const definition = level.sentinels.find((item) => item.id === id);
+  if (!definition) throw new Error(`unknown sentinel ${id}`);
+  let current = world;
+  let runtime = current.sentinels.find((item) => item.definition.id === id);
+  if (!runtime) throw new Error(`missing runtime sentinel ${id}`);
+  // Wait until the sentinel is past the l4-upper-e overhang so the drop is unobstructed.
+  for (let frame = 0; frame < 900 && current.status === "playing"; frame += 1) {
+    runtime = current.sentinels.find((item) => item.definition.id === id);
+    if (!runtime) throw new Error(`missing runtime sentinel ${id}`);
+    if (runtime.x >= 4180) break;
+    current = tick(current);
+  }
+  runtime = current.sentinels.find((item) => item.definition.id === id);
+  if (!runtime || runtime.x < 4180) throw new Error(`sentinel ${id} never reached clear zone`);
+  current.player.x = runtime.x + 6;
+  current.player.previousX = current.player.x;
+  current.player.y = definition.y - current.player.height - 4;
+  current.player.previousY = current.player.y;
+  current.player.vx = 0;
+  current.player.vy = 260;
+  current.player.onGround = false;
+  current.player.groundPlatformId = null;
+  current.player.invincibleMs = 0;
+  for (let frame = 0; frame < 12 && !current.defeatedSentinelIds.includes(id); frame += 1) {
+    const result = stepPlatformer(current, createPlatformerInput());
+    current = result.world;
+  }
+  if (!current.defeatedSentinelIds.includes(id)) throw new Error(`sentinel ${id} not stomped`);
+  for (let frame = 0; frame < 80 && current.status === "playing" && !current.player.onGround; frame += 1) {
+    current = tick(current);
+  }
+  if (!current.player.onGround) throw new Error(`sentinel ${id} player not settled: ${groundOf(current)}`);
+  return idle(current);
+}
+
+describe("level 4 real-input route", () => {
+  it("walks across the former dead-end junction and reaches the beacon", () => {
+    let world = createPlatformerWorld(
+      createInitialPlatformerContext("route-level-4"),
+      3,
+      "l4-checkpoint-01",
+      { levelTimeMs: 0, levelDurationMs: 0 },
+    );
+    const livesBefore = world.lives;
+    world = idle(world, 40);
+    expect(world.player.groundPlatformId).toBe("l4-ground-d");
+    world = walk(world, 2362, "l4-ground-d");
+    // Regression: the former 140px gap between l4-ground-d and l4-ground-e is
+    // now continuous ground, so the old "platform too high" dead end is gone.
+    world = walkAcross(world, 2545, ["l4-ground-d", "l4-ground-e"]);
+    expect(world.player.groundPlatformId).toBe("l4-ground-e");
+    expect(world.lives).toBe(livesBefore);
+    world = walk(world, 3002, "l4-ground-e");
+    world = crossGapEF(world);
+    expect(world.player.groundPlatformId).toBe("l4-ground-f");
+    world = walk(world, 3655, "l4-ground-f");
+    world = jumpRightFromEdge(world, 10);
+    expect(world.player.groundPlatformId).toBe("l4-ground-g");
+    world = stompSentinelL4(world, "l4-sentinel-01");
+    expect(world.defeatedSentinelIds).toContain("l4-sentinel-01");
+    world = walk(world, 4400, "l4-ground-g");
+    for (let frame = 0; frame < 120 && world.status === "playing"; frame += 1) {
+      world = tick(world, { right: true });
+    }
+    expect(world.status).toBe("level_complete");
+    expect(world.activatedCheckpointIds).toEqual(["l4-checkpoint-01", "l4-checkpoint-02"]);
+  });
+});
+
 describe("movement assists", () => {
   it("allows a coyote-time jump after leaving a ledge", () => {
     let world = createPlatformerWorld(createInitialPlatformerContext("coyote-test"), 0);
