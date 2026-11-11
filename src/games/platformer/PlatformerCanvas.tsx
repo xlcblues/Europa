@@ -4,6 +4,7 @@ import {
   PLATFORMER_LOGICAL_HEIGHT,
   PLATFORMER_LOGICAL_WIDTH,
   type LevelPalette,
+  type PlatformMotion,
   type PlatformerLevel,
   type PlatformerWorld,
   type RuntimeSentinel,
@@ -195,28 +196,232 @@ function drawParallax({ context, level, cameraX, world, reducedMotion }: DrawSta
   });
 }
 
-function drawPlatforms({ context, level, world }: DrawState): void {
+/** 以稳定种子生成确定性伪随机，保证冰面纹理在重绘时不会闪烁。 */
+function createSeededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
+
+function hashSeed(value: string): number {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
+/** 冰凌：沿平台下缘垂悬的小冰锥。 */
+function drawIcicles(
+  context: CanvasRenderingContext2D,
+  x: number,
+  bottomY: number,
+  width: number,
+  random: () => number,
+): void {
+  const count = Math.max(3, Math.floor(width / 34));
+  for (let i = 0; i < count; i += 1) {
+    const ix = x + ((i + random() * 0.7) / count) * width;
+    const length = 4 + random() * 11;
+    const thickness = 2.5 + random() * 3.5;
+    const tip = ix + (random() - 0.5) * 3;
+    context.fillStyle = i % 3 === 0
+      ? "rgba(216, 247, 251, 0.55)"
+      : "rgba(111, 194, 210, 0.42)";
+    context.beginPath();
+    context.moveTo(ix - thickness, bottomY);
+    context.lineTo(ix + thickness, bottomY);
+    context.lineTo(tip, bottomY + length);
+    context.closePath();
+    context.fill();
+  }
+}
+
+/** 冰缝：从顶缘向下延伸的暗色分层线与亮色细裂纹。 */
+function drawIceSeams(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  random: () => number,
+): void {
+  const seamCount = Math.max(1, Math.floor(width / 110));
+  context.lineWidth = 1.4;
+  for (let i = 0; i < seamCount; i += 1) {
+    const sx = x + ((i + 0.35 + random() * 0.3) * width) / seamCount;
+    const depth = 8 + random() * Math.min(38, Math.max(10, height * 0.5));
+    context.strokeStyle = "rgba(7, 22, 31, 0.2)";
+    context.beginPath();
+    context.moveTo(sx, y + 2);
+    context.lineTo(sx, y + depth);
+    context.stroke();
+    context.strokeStyle = "rgba(216, 247, 251, 0.2)";
+    context.beginPath();
+    context.moveTo(sx, y + depth * 0.45);
+    context.lineTo(sx + (random() - 0.5) * 16, y + depth * 0.85);
+    context.stroke();
+  }
+}
+
+/** 薄冰架（单向平台）：半透明浮冰板。 */
+function drawOneWayPlatform(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  palette: LevelPalette,
+  levelHeight: number,
+): void {
+  const random = createSeededRandom(hashSeed(`${x}-${y}-${width}-shelf`));
+
+  const pane = context.createLinearGradient(0, y, 0, y + height);
+  pane.addColorStop(0, "rgba(228, 249, 252, 0.92)");
+  pane.addColorStop(0.55, "rgba(111, 194, 210, 0.4)");
+  pane.addColorStop(1, "rgba(111, 194, 210, 0.16)");
+  context.globalAlpha = 0.88;
+  context.fillStyle = pane;
+  context.fillRect(x, y, width, height);
+  context.globalAlpha = 1;
+
+  context.fillStyle = "rgba(240, 252, 254, 0.85)";
+  context.fillRect(x, y, width, 2);
+  context.fillStyle = "rgba(111, 194, 210, 0.3)";
+  context.fillRect(x, y + height - 2, width, 2);
+
+  const speckles = Math.floor(width / 30);
+  context.globalAlpha = 0.16;
+  context.fillStyle = palette.iceLight;
+  for (let i = 0; i < speckles; i += 1) {
+    const sx = x + random() * (width - 3);
+    const sy = y + 2 + random() * Math.max(1, height - 3);
+    context.fillRect(sx, sy, 2, 2);
+  }
+  context.globalAlpha = 1;
+
+  if (y + height <= levelHeight - 60) {
+    drawIcicles(context, x, y + height, width, random);
+  }
+}
+
+/** 实体冰台/地面：分层冰盖 + 冰缝 + 冰凌，移动平台带推进器光晕。 */
+function drawSolidPlatform(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  palette: LevelPalette,
+  motion: PlatformMotion | undefined,
+  levelHeight: number,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const random = createSeededRandom(hashSeed(`${x}-${y}-${width}-${height}`));
+
+  const body = context.createLinearGradient(0, y, 0, y + height);
+  body.addColorStop(0, palette.iceMid);
+  body.addColorStop(0.42, palette.iceDeep);
+  body.addColorStop(1, "rgba(7, 22, 31, 0.92)");
+  context.fillStyle = body;
+  context.fillRect(x, y, width, height);
+
+  // 冰层横向分层切片
+  context.globalAlpha = 0.18;
+  context.fillStyle = palette.iceLight;
+  for (let layer = 1; layer <= 2; layer += 1) {
+    const ly = y + height * (0.52 + layer * 0.17);
+    context.fillRect(x + 2, ly, width - 4, 1);
+  }
+  context.globalAlpha = 1;
+
+  // 顶部亮冰盖（站立面）
+  const cap = Math.min(14, height);
+  const capGradient = context.createLinearGradient(0, y, 0, y + cap);
+  capGradient.addColorStop(0, "rgba(228, 249, 252, 0.95)");
+  capGradient.addColorStop(1, "rgba(111, 194, 210, 0.55)");
+  context.fillStyle = capGradient;
+  context.fillRect(x, y, width, cap);
+
+  context.fillStyle = "rgba(240, 252, 254, 0.92)";
+  context.fillRect(x, y, width, 2);
+  context.fillStyle = "rgba(216, 247, 251, 0.35)";
+  context.fillRect(x, y + 2, width, 2);
+
+  // 冰面霜点
+  const speckles = Math.floor(width / 26);
+  context.globalAlpha = 0.14;
+  context.fillStyle = palette.iceLight;
+  for (let i = 0; i < speckles; i += 1) {
+    const sx = x + random() * (width - 3);
+    const sy = y + 3 + random() * Math.max(1, cap - 4);
+    context.fillRect(sx, sy, 2, 2);
+  }
+  context.globalAlpha = 1;
+
+  drawIceSeams(context, x, y, width, height, random);
+
+  // 悬浮平台下缘冰凌
+  if (y + height <= levelHeight - 60) {
+    drawIcicles(context, x, y + height, width, random);
+  }
+
+  // 移动平台：推进器光晕与边沿警示灯
+  if (motion) {
+    const phase = motion.phase ?? 0;
+    const glow = reducedMotion ? 0.3 : 0.26 + Math.sin(timeMs * 0.008 + phase * 2) * 0.1;
+    context.globalAlpha = glow;
+    context.fillStyle = palette.accent;
+    if (motion.axis === "x") {
+      context.beginPath();
+      context.ellipse(x + 5, y + height * 0.5, 4, height * 0.38, 0, 0, Math.PI * 2);
+      context.fill();
+      context.beginPath();
+      context.ellipse(x + width - 5, y + height * 0.5, 4, height * 0.38, 0, 0, Math.PI * 2);
+      context.fill();
+    } else {
+      const beam = context.createLinearGradient(0, y + height, 0, y + height + 16);
+      beam.addColorStop(0, "rgba(88, 217, 236, 0.5)");
+      beam.addColorStop(1, "rgba(88, 217, 236, 0)");
+      context.fillStyle = beam;
+      context.fillRect(x + width * 0.18, y + height, width * 0.64, 16);
+    }
+    context.globalAlpha = 1;
+    context.fillStyle = palette.beacon;
+    context.fillRect(x, y, 2, Math.min(6, height));
+    context.fillRect(x + width - 2, y, 2, Math.min(6, height));
+  }
+}
+
+function drawPlatforms({ context, level, world, reducedMotion }: DrawState): void {
   for (const platform of level.platforms) {
     const offset = world.platformOffsets[platform.id];
     const x = platform.x + (offset?.x ?? 0);
     const y = platform.y + (offset?.y ?? 0);
     const width = platform.width;
     const height = platform.height;
+    const { palette } = level;
 
     if (platform.kind === "oneWay") {
-      context.fillStyle = level.palette.iceLight;
-      context.globalAlpha = 0.72;
-      context.fillRect(x, y, width, Math.min(8, height));
-      context.globalAlpha = 1;
+      drawOneWayPlatform(context, x, y, width, height, palette, level.height);
       continue;
     }
 
-    context.fillStyle = level.palette.iceDeep;
-    context.fillRect(x, y, width, height);
-    context.fillStyle = level.palette.iceMid;
-    context.fillRect(x, y, width, Math.min(10, height));
-    context.fillStyle = "rgba(216, 247, 251, 0.24)";
-    context.fillRect(x, y, width, 3);
+    drawSolidPlatform(
+      context,
+      x,
+      y,
+      width,
+      height,
+      palette,
+      platform.motion,
+      level.height,
+      world.levelTimeMs,
+      reducedMotion,
+    );
   }
 }
 
