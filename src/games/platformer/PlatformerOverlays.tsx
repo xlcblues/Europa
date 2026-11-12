@@ -177,6 +177,7 @@ function ReadyOverlay({
       <div className="platformer-ready-hints">
         <span><b>A / D</b> 或 <b>← →</b> 移动</span>
         <span><b>Space / W</b> 跳跃</span>
+        <span><b>J / X</b> 射击（等离子炮）</span>
         <span><b>Esc</b> 暂停</span>
       </div>
       <button
@@ -211,6 +212,20 @@ function IntroOverlay({
         <span>本关目标</span>
         <strong>{level.objective}</strong>
       </div>
+      <div className="platformer-intro-roster">
+        <span>本关威胁</span>
+        <ul>
+          {level.sentinels
+            .map((sentinel) => SENTINEL_KIND_NAMES[sentinel.kind ?? "sentinel"])
+            .filter((name, index, list) => list.indexOf(name) === index)
+            .map((name) => (
+              <li key={name}>{name}</li>
+            ))}
+        </ul>
+      </div>
+      <p className="platformer-intro-weapon">
+        等离子炮已就绪：{level.weaponPickups.length} 处弹药补给，射击可击退枪手等远程威胁。
+      </p>
       <div className="platformer-intro-progress">
         第 {levelIndex + 1} 关 / 共 {PLATFORMER_TOTAL_LEVELS} 关
       </div>
@@ -422,6 +437,16 @@ function ResultOverlay({
     </>
   );
 }
+
+const SENTINEL_KIND_NAMES: Record<string, string> = {
+  sentinel: "经典哨兵",
+  crawler: "冰甲爬虫",
+  drifter: "裂隙浮游体",
+  hopper: "弹跳兽",
+  gunner: "冰晶枪手",
+  charger: "冲锋兽",
+  spiker: "尖刺傀儡",
+};
 
 function formatClock(milliseconds: number): string {
   const totalSeconds = Math.floor(Math.max(0, milliseconds) / 1000);

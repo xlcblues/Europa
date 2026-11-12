@@ -6,715 +6,4467 @@ import {
   PLATFORMER_TOTAL_LEVELS,
 } from "./platformerTypes";
 
-const CRYO_PALETTE = {
-  skyTop: "#06131d",
-  skyBottom: "#102b39",
-  iceLight: "#d8f7fb",
-  iceMid: "#6fc2d2",
-  iceDeep: "#173c4b",
-  accent: "#58d9ec",
-  accentSoft: "rgba(88, 217, 236, 0.16)",
-  beacon: "#e8b84f",
-} as const;
-
 export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
   {
-    id: 1,
-    code: "EUROPA / E-17 / 01",
-    name: "初醒冰原",
-    subtitle: "校准探测器，收集第一批轨道冰晶。",
-    objective: "移动、跳跃，并抵达冰脊尽头的轨道信标。",
-    width: 2860,
-    height: 720,
-    spawnX: 96,
-    spawnY: 574,
-    palette: { ...CRYO_PALETTE },
-    platforms: [
-      { id: "l1-ground-a", x: 0, y: 620, width: 1180, height: 100, kind: "solid" },
-      { id: "l1-step-a", x: 280, y: 590, width: 250, height: 30, kind: "solid" },
-      { id: "l1-ground-b", x: 1230, y: 620, width: 680, height: 100, kind: "solid" },
-      { id: "l1-ground-c", x: 1980, y: 620, width: 880, height: 100, kind: "solid" },
-      { id: "l1-ice-shelf-a", x: 760, y: 530, width: 190, height: 18, kind: "oneWay" },
-      { id: "l1-ice-shelf-b", x: 1060, y: 450, width: 210, height: 18, kind: "oneWay" },
-      { id: "l1-ledge-a", x: 2030, y: 530, width: 270, height: 22, kind: "solid" },
-    ],
-    crystals: [
-      { id: "l1-crystal-01", groupId: "l1-group-a", x: 790, y: 458 },
-      { id: "l1-crystal-02", groupId: "l1-group-a", x: 855, y: 458 },
-      { id: "l1-crystal-03", groupId: "l1-group-a", x: 920, y: 458 },
-      { id: "l1-crystal-04", groupId: "l1-group-b", x: 1090, y: 388 },
-      { id: "l1-crystal-05", groupId: "l1-group-b", x: 1165, y: 388 },
-      { id: "l1-crystal-06", groupId: "l1-group-b", x: 1240, y: 388 },
-      { id: "l1-crystal-07", groupId: "l1-group-c", x: 2090, y: 486 },
-      { id: "l1-crystal-08", groupId: "l1-group-c", x: 2165, y: 486 },
-      { id: "l1-crystal-09", groupId: "l1-group-c", x: 2240, y: 486 },
-    ],
-    sentinels: [
+    "id": 1,
+    "code": "EUROPA / E-17 / 01",
+    "name": "初醒冰原",
+    "subtitle": "黎明极光下的冰原，校准探测器并收集第一批轨道冰晶。",
+    "objective": "移动、跳跃、射击，抵达冰脊尽头的轨道信标。",
+    "width": 9000,
+    "height": 720,
+    "spawnX": 96,
+    "spawnY": 574,
+    "theme": "icefield",
+    "palette": {
+      "skyTop": "#06131d",
+      "skyBottom": "#102b39",
+      "iceLight": "#d8f7fb",
+      "iceMid": "#6fc2d2",
+      "iceDeep": "#173c4b",
+      "accent": "#58d9ec",
+      "accentSoft": "rgba(88, 217, 236, 0.16)",
+      "beacon": "#e8b84f"
+    },
+    "platforms": [
       {
-        id: "l1-crawler-01",
-        x: 980,
-        y: 590,
-        width: 54,
-        height: 30,
-        patrolMinX: 930,
-        patrolMaxX: 1130,
-        speed: 62,
-        kind: "crawler",
+        "id": "l1-ground-a",
+        "x": 0,
+        "y": 620,
+        "width": 1180,
+        "height": 100,
+        "kind": "solid"
       },
-    ],
-    checkpoints: [
       {
-        id: "l1-checkpoint-01",
-        x: 1635,
-        y: 486,
-        width: 42,
-        height: 134,
-        spawnX: 1665,
-        spawnY: 574,
-        label: "冰脊中继",
+        "id": "l1-ground-b",
+        "x": 1330,
+        "y": 620,
+        "width": 1200,
+        "height": 100,
+        "kind": "solid"
       },
+      {
+        "id": "l1-ground-c",
+        "x": 2680,
+        "y": 620,
+        "width": 1200,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l1-ground-d",
+        "x": 4030,
+        "y": 620,
+        "width": 1200,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l1-ground-e",
+        "x": 5380,
+        "y": 620,
+        "width": 1200,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l1-ground-f",
+        "x": 6730,
+        "y": 620,
+        "width": 1200,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l1-ground-g",
+        "x": 8080,
+        "y": 620,
+        "width": 920,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l1-shelf-a",
+        "x": 520,
+        "y": 545,
+        "width": 240,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l1-shelf-b",
+        "x": 780,
+        "y": 505,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l1-shelf-c",
+        "x": 2960,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l1-shelf-d",
+        "x": 5620,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l1-step-a",
+        "x": 1180,
+        "y": 560,
+        "width": 160,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l1-step-b",
+        "x": 4030,
+        "y": 560,
+        "width": 170,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l1-step-c",
+        "x": 6730,
+        "y": 530,
+        "width": 180,
+        "height": 20,
+        "kind": "solid"
+      }
     ],
-    beacon: { id: "l1-beacon", x: 2700, y: 488, width: 64, height: 132 },
+    "crystals": [
+      {
+        "id": "l1-group-a-01",
+        "x": 240,
+        "y": 540,
+        "groupId": "l1-group-a"
+      },
+      {
+        "id": "l1-group-a-02",
+        "x": 460,
+        "y": 540,
+        "groupId": "l1-group-a"
+      },
+      {
+        "id": "l1-group-b-01",
+        "x": 560,
+        "y": 465,
+        "groupId": "l1-group-b"
+      },
+      {
+        "id": "l1-group-b-02",
+        "x": 650,
+        "y": 465,
+        "groupId": "l1-group-b"
+      },
+      {
+        "id": "l1-group-b-03",
+        "x": 740,
+        "y": 465,
+        "groupId": "l1-group-b"
+      },
+      {
+        "id": "l1-group-c-01",
+        "x": 820,
+        "y": 425,
+        "groupId": "l1-group-c"
+      },
+      {
+        "id": "l1-group-c-02",
+        "x": 910,
+        "y": 425,
+        "groupId": "l1-group-c"
+      },
+      {
+        "id": "l1-group-c-03",
+        "x": 1000,
+        "y": 425,
+        "groupId": "l1-group-c"
+      },
+      {
+        "id": "l1-group-d-01",
+        "x": 2850,
+        "y": 540,
+        "groupId": "l1-group-d"
+      },
+      {
+        "id": "l1-group-d-02",
+        "x": 3070,
+        "y": 540,
+        "groupId": "l1-group-d"
+      },
+      {
+        "id": "l1-group-e-01",
+        "x": 3000,
+        "y": 465,
+        "groupId": "l1-group-e"
+      },
+      {
+        "id": "l1-group-e-02",
+        "x": 3090,
+        "y": 465,
+        "groupId": "l1-group-e"
+      },
+      {
+        "id": "l1-group-e-03",
+        "x": 3180,
+        "y": 465,
+        "groupId": "l1-group-e"
+      },
+      {
+        "id": "l1-group-f-01",
+        "x": 5560,
+        "y": 540,
+        "groupId": "l1-group-f"
+      },
+      {
+        "id": "l1-group-f-02",
+        "x": 5780,
+        "y": 540,
+        "groupId": "l1-group-f"
+      }
+    ],
+    "sentinels": [
+      {
+        "id": "l1-crawler-01",
+        "kind": "crawler",
+        "x": 1750,
+        "y": 590,
+        "width": 54,
+        "height": 30,
+        "patrolMinX": 1750,
+        "patrolMaxX": 2200,
+        "speed": 58
+      },
+      {
+        "id": "l1-sentinel-01",
+        "kind": "sentinel",
+        "x": 4450,
+        "y": 576,
+        "width": 44,
+        "height": 44,
+        "patrolMinX": 4450,
+        "patrolMaxX": 4900,
+        "speed": 52
+      },
+      {
+        "id": "l1-hopper-01",
+        "kind": "hopper",
+        "x": 7150,
+        "y": 584,
+        "width": 42,
+        "height": 36,
+        "patrolMinX": 7150,
+        "patrolMaxX": 7600,
+        "speed": 46,
+        "hopHeight": 50,
+        "hopPeriodMs": 1500
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "l1-checkpoint-01",
+        "x": 3200,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 3230,
+        "spawnY": 574,
+        "label": "冰脊中继 A"
+      },
+      {
+        "id": "l1-checkpoint-02",
+        "x": 5900,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 5930,
+        "spawnY": 574,
+        "label": "冰脊中继 B"
+      }
+    ],
+    "weaponPickups": [
+      {
+        "id": "l1-pickup-01",
+        "x": 2150,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l1-pickup-02",
+        "x": 6050,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      }
+    ],
+    "decorations": [
+      {
+        "id": "l1-deco-aurora-01",
+        "kind": "aurora",
+        "x": 540,
+        "y": 28,
+        "width": 460,
+        "height": 86,
+        "variant": 0
+      },
+      {
+        "id": "l1-deco-aurora-02",
+        "kind": "aurora",
+        "x": 2430,
+        "y": 80,
+        "width": 690,
+        "height": 138,
+        "variant": 1
+      },
+      {
+        "id": "l1-deco-aurora-03",
+        "kind": "aurora",
+        "x": 4320,
+        "y": 132,
+        "width": 920,
+        "height": 190,
+        "variant": 2
+      },
+      {
+        "id": "l1-deco-aurora-04",
+        "kind": "aurora",
+        "x": 6210,
+        "y": 184,
+        "width": 460,
+        "height": 86,
+        "variant": 3
+      },
+      {
+        "id": "l1-deco-iceSpire-05",
+        "kind": "iceSpire",
+        "x": 70,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l1-deco-iceSpire-06",
+        "kind": "iceSpire",
+        "x": 590,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l1-deco-iceSpire-07",
+        "kind": "iceSpire",
+        "x": 1110,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l1-deco-iceSpire-08",
+        "kind": "iceSpire",
+        "x": 1400,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l1-deco-iceSpire-09",
+        "kind": "iceSpire",
+        "x": 1930,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l1-deco-iceSpire-10",
+        "kind": "iceSpire",
+        "x": 2460,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l1-deco-iceSpire-11",
+        "kind": "iceSpire",
+        "x": 2750,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l1-deco-iceSpire-12",
+        "kind": "iceSpire",
+        "x": 3280,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l1-deco-iceSpire-13",
+        "kind": "iceSpire",
+        "x": 3810,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l1-deco-iceSpire-14",
+        "kind": "iceSpire",
+        "x": 4100,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l1-deco-iceSpire-15",
+        "kind": "iceSpire",
+        "x": 4630,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l1-deco-iceSpire-16",
+        "kind": "iceSpire",
+        "x": 5160,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l1-deco-iceSpire-17",
+        "kind": "iceSpire",
+        "x": 5450,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l1-deco-iceSpire-18",
+        "kind": "iceSpire",
+        "x": 5980,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l1-deco-iceSpire-19",
+        "kind": "iceSpire",
+        "x": 6510,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l1-deco-iceSpire-20",
+        "kind": "iceSpire",
+        "x": 6800,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l1-deco-iceSpire-21",
+        "kind": "iceSpire",
+        "x": 7330,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l1-deco-iceSpire-22",
+        "kind": "iceSpire",
+        "x": 7860,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l1-deco-iceSpire-23",
+        "kind": "iceSpire",
+        "x": 8150,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l1-deco-iceSpire-24",
+        "kind": "iceSpire",
+        "x": 8540,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l1-deco-iceSpire-25",
+        "kind": "iceSpire",
+        "x": 8930,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      }
+    ],
+    "beacon": {
+      "id": "l1-beacon",
+      "x": 8830,
+      "y": 488,
+      "width": 64,
+      "height": 132
+    }
   },
   {
-    id: 2,
-    code: "EUROPA / E-17 / 02",
-    name: "裂隙回廊",
-    subtitle: "在断裂冰壳上校准移动平台与长距跳跃。",
-    objective: "跨过裂隙，找到穿过回廊的中继信标。",
-    width: 3480,
-    height: 720,
-    spawnX: 92,
-    spawnY: 574,
-    palette: {
-      ...CRYO_PALETTE,
-      skyTop: "#04111a",
-      skyBottom: "#123441",
-      iceMid: "#63b7c8",
-      accent: "#63e4f4",
-      beacon: "#f0bf55",
+    "id": 2,
+    "code": "EUROPA / E-17 / 02",
+    "name": "裂隙回廊",
+    "subtitle": "断裂冰壳与深蓝裂隙之间的长廊，移动平台横跨深渊。",
+    "objective": "跨过裂隙与移动平台，点亮回廊尽头的中继信标。",
+    "width": 11000,
+    "height": 720,
+    "spawnX": 92,
+    "spawnY": 574,
+    "theme": "gorge",
+    "palette": {
+      "skyTop": "#04111a",
+      "skyBottom": "#123441",
+      "iceLight": "#d9f6fb",
+      "iceMid": "#63b7c8",
+      "iceDeep": "#0f3342",
+      "accent": "#63e4f4",
+      "accentSoft": "rgba(99, 228, 244, 0.18)",
+      "beacon": "#f0bf55"
     },
-    platforms: [
-      { id: "l2-ground-a", x: 0, y: 620, width: 760, height: 100, kind: "solid" },
-      { id: "l2-step-a", x: 690, y: 530, width: 160, height: 22, kind: "solid" },
-      { id: "l2-ground-b", x: 880, y: 620, width: 340, height: 100, kind: "solid" },
-      { id: "l2-upper-a", x: 900, y: 440, width: 280, height: 20, kind: "solid" },
-      { id: "l2-upper-b", x: 1180, y: 390, width: 240, height: 20, kind: "solid" },
-      { id: "l2-ground-c", x: 1370, y: 620, width: 490, height: 100, kind: "solid" },
-      { id: "l2-lower-lift", x: 1230, y: 535, width: 150, height: 20, kind: "solid", motion: { axis: "x", amplitude: 58, speed: 1.15, phase: 0 } },
-      { id: "l2-upper-c", x: 1500, y: 430, width: 180, height: 18, kind: "oneWay" },
-      { id: "l2-ground-d", x: 2010, y: 620, width: 440, height: 100, kind: "solid" },
-      { id: "l2-vertical-lift", x: 1880, y: 510, width: 130, height: 20, kind: "solid", motion: { axis: "y", amplitude: 42, speed: 1.05, phase: 1.4 } },
-      { id: "l2-ground-e", x: 2600, y: 620, width: 880, height: 100, kind: "solid" },
-      { id: "l2-upper-d", x: 2280, y: 485, width: 210, height: 20, kind: "solid" },
-      { id: "l2-upper-approach", x: 2160, y: 540, width: 110, height: 18, kind: "solid" },
-    ],
-    crystals: [
-      { id: "l2-crystal-01", groupId: "l2-group-a", x: 718, y: 486 },
-      { id: "l2-crystal-02", groupId: "l2-group-a", x: 775, y: 486 },
-      { id: "l2-crystal-03", groupId: "l2-group-a", x: 832, y: 486 },
-      { id: "l2-crystal-04", groupId: "l2-group-b", x: 980, y: 396 },
-      { id: "l2-crystal-05", groupId: "l2-group-b", x: 1055, y: 396 },
-      { id: "l2-crystal-06", groupId: "l2-group-b", x: 1130, y: 396 },
-      { id: "l2-crystal-07", groupId: "l2-group-c", x: 1490, y: 396 },
-      { id: "l2-crystal-08", groupId: "l2-group-c", x: 1560, y: 396 },
-      { id: "l2-crystal-09", groupId: "l2-group-c", x: 1630, y: 396 },
-      { id: "l2-crystal-10", groupId: "l2-group-d", x: 2280, y: 451 },
-      { id: "l2-crystal-11", groupId: "l2-group-d", x: 2350, y: 451 },
-      { id: "l2-crystal-12", groupId: "l2-group-d", x: 2420, y: 451 },
-    ],
-    sentinels: [
+    "platforms": [
       {
-        id: "l2-crawler-01",
-        x: 970,
-        y: 590,
-        width: 54,
-        height: 30,
-        patrolMinX: 915,
-        patrolMaxX: 1170,
-        speed: 74,
-        kind: "crawler",
+        "id": "l2-ground-a",
+        "x": 0,
+        "y": 620,
+        "width": 1200,
+        "height": 100,
+        "kind": "solid"
       },
       {
-        id: "l2-drifter-01",
-        x: 3005,
-        y: 500,
-        width: 40,
-        height: 34,
-        patrolMinX: 2900,
-        patrolMaxX: 3150,
-        speed: 40,
-        kind: "drifter",
-        bobAmplitude: 6,
-        bobPeriodMs: 4200,
+        "id": "l2-ground-b",
+        "x": 1350,
+        "y": 620,
+        "width": 1300,
+        "height": 100,
+        "kind": "solid"
       },
-    ],
-    checkpoints: [
       {
-        id: "l2-checkpoint-01",
-        x: 1710,
-        y: 486,
-        width: 42,
-        height: 134,
-        spawnX: 1740,
-        spawnY: 574,
-        label: "裂隙中继",
+        "id": "l2-ground-c",
+        "x": 2800,
+        "y": 620,
+        "width": 1200,
+        "height": 100,
+        "kind": "solid"
       },
+      {
+        "id": "l2-ground-d",
+        "x": 4150,
+        "y": 620,
+        "width": 1300,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l2-ground-e",
+        "x": 5600,
+        "y": 620,
+        "width": 1300,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l2-ground-f",
+        "x": 7130,
+        "y": 620,
+        "width": 1220,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l2-ground-g",
+        "x": 8500,
+        "y": 620,
+        "width": 1300,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l2-ground-h",
+        "x": 9950,
+        "y": 620,
+        "width": 1050,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l2-shelf-a",
+        "x": 420,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l2-shelf-b",
+        "x": 690,
+        "y": 505,
+        "width": 260,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l2-shelf-c",
+        "x": 2960,
+        "y": 545,
+        "width": 270,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l2-shelf-d",
+        "x": 5770,
+        "y": 545,
+        "width": 270,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l2-step-a",
+        "x": 1350,
+        "y": 560,
+        "width": 170,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l2-step-b",
+        "x": 5600,
+        "y": 560,
+        "width": 180,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l2-mover-a",
+        "x": 6900,
+        "y": 598,
+        "width": 150,
+        "height": 20,
+        "kind": "solid",
+        "motion": {
+          "axis": "x",
+          "amplitude": 55,
+          "speed": 1.1,
+          "phase": 0
+        }
+      }
     ],
-    beacon: { id: "l2-beacon", x: 3320, y: 488, width: 64, height: 132 },
+    "crystals": [
+      {
+        "id": "l2-group-a-01",
+        "x": 220,
+        "y": 540,
+        "groupId": "l2-group-a"
+      },
+      {
+        "id": "l2-group-a-02",
+        "x": 440,
+        "y": 540,
+        "groupId": "l2-group-a"
+      },
+      {
+        "id": "l2-group-a-03",
+        "x": 660,
+        "y": 540,
+        "groupId": "l2-group-a"
+      },
+      {
+        "id": "l2-group-b-01",
+        "x": 460,
+        "y": 465,
+        "groupId": "l2-group-b"
+      },
+      {
+        "id": "l2-group-b-02",
+        "x": 550,
+        "y": 465,
+        "groupId": "l2-group-b"
+      },
+      {
+        "id": "l2-group-b-03",
+        "x": 640,
+        "y": 465,
+        "groupId": "l2-group-b"
+      },
+      {
+        "id": "l2-group-c-01",
+        "x": 730,
+        "y": 425,
+        "groupId": "l2-group-c"
+      },
+      {
+        "id": "l2-group-c-02",
+        "x": 820,
+        "y": 425,
+        "groupId": "l2-group-c"
+      },
+      {
+        "id": "l2-group-c-03",
+        "x": 910,
+        "y": 425,
+        "groupId": "l2-group-c"
+      },
+      {
+        "id": "l2-group-d-01",
+        "x": 4380,
+        "y": 540,
+        "groupId": "l2-group-d"
+      },
+      {
+        "id": "l2-group-d-02",
+        "x": 4600,
+        "y": 540,
+        "groupId": "l2-group-d"
+      },
+      {
+        "id": "l2-group-d-03",
+        "x": 4820,
+        "y": 540,
+        "groupId": "l2-group-d"
+      },
+      {
+        "id": "l2-group-e-01",
+        "x": 3000,
+        "y": 465,
+        "groupId": "l2-group-e"
+      },
+      {
+        "id": "l2-group-e-02",
+        "x": 3090,
+        "y": 465,
+        "groupId": "l2-group-e"
+      },
+      {
+        "id": "l2-group-e-03",
+        "x": 3180,
+        "y": 465,
+        "groupId": "l2-group-e"
+      },
+      {
+        "id": "l2-group-f-01",
+        "x": 7460,
+        "y": 540,
+        "groupId": "l2-group-f"
+      },
+      {
+        "id": "l2-group-f-02",
+        "x": 7680,
+        "y": 540,
+        "groupId": "l2-group-f"
+      },
+      {
+        "id": "l2-group-f-03",
+        "x": 7900,
+        "y": 540,
+        "groupId": "l2-group-f"
+      }
+    ],
+    "sentinels": [
+      {
+        "id": "l2-crawler-01",
+        "kind": "crawler",
+        "x": 1750,
+        "y": 590,
+        "width": 54,
+        "height": 30,
+        "patrolMinX": 1750,
+        "patrolMaxX": 2200,
+        "speed": 62
+      },
+      {
+        "id": "l2-drifter-01",
+        "kind": "drifter",
+        "x": 3350,
+        "y": 500,
+        "width": 40,
+        "height": 34,
+        "patrolMinX": 3200,
+        "patrolMaxX": 3650,
+        "speed": 40,
+        "bobAmplitude": 6,
+        "bobPeriodMs": 4200
+      },
+      {
+        "id": "l2-gunner-01",
+        "kind": "gunner",
+        "x": 4550,
+        "y": 574,
+        "width": 46,
+        "height": 46,
+        "patrolMinX": 4550,
+        "patrolMaxX": 5100,
+        "speed": 45,
+        "aggroRange": 340,
+        "fireIntervalMs": 1700,
+        "projectileSpeed": 300
+      },
+      {
+        "id": "l2-crawler-02",
+        "kind": "crawler",
+        "x": 9250,
+        "y": 590,
+        "width": 54,
+        "height": 30,
+        "patrolMinX": 9250,
+        "patrolMaxX": 9700,
+        "speed": 66
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "l2-checkpoint-01",
+        "x": 3300,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 3330,
+        "spawnY": 574,
+        "label": "裂隙中继 A"
+      },
+      {
+        "id": "l2-checkpoint-02",
+        "x": 7600,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 7630,
+        "spawnY": 574,
+        "label": "裂隙中继 B"
+      }
+    ],
+    "weaponPickups": [
+      {
+        "id": "l2-pickup-01",
+        "x": 2450,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l2-pickup-02",
+        "x": 9600,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      }
+    ],
+    "decorations": [
+      {
+        "id": "l2-deco-nebula-01",
+        "kind": "nebula",
+        "x": 660,
+        "y": 28,
+        "width": 460,
+        "height": 86,
+        "variant": 0
+      },
+      {
+        "id": "l2-deco-nebula-02",
+        "kind": "nebula",
+        "x": 2970,
+        "y": 80,
+        "width": 690,
+        "height": 138,
+        "variant": 1
+      },
+      {
+        "id": "l2-deco-nebula-03",
+        "kind": "nebula",
+        "x": 5280,
+        "y": 132,
+        "width": 920,
+        "height": 190,
+        "variant": 2
+      },
+      {
+        "id": "l2-deco-nebula-04",
+        "kind": "nebula",
+        "x": 7590,
+        "y": 184,
+        "width": 460,
+        "height": 86,
+        "variant": 3
+      },
+      {
+        "id": "l2-deco-iceSpire-05",
+        "kind": "iceSpire",
+        "x": 70,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l2-deco-rockColumn-06",
+        "kind": "rockColumn",
+        "x": 600,
+        "y": 516,
+        "width": 58,
+        "height": 148,
+        "variant": 1
+      },
+      {
+        "id": "l2-deco-iceSpire-07",
+        "kind": "iceSpire",
+        "x": 1130,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l2-deco-iceSpire-08",
+        "kind": "iceSpire",
+        "x": 1420,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l2-deco-rockColumn-09",
+        "kind": "rockColumn",
+        "x": 2000,
+        "y": 516,
+        "width": 58,
+        "height": 148,
+        "variant": 1
+      },
+      {
+        "id": "l2-deco-iceSpire-10",
+        "kind": "iceSpire",
+        "x": 2580,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l2-deco-iceSpire-11",
+        "kind": "iceSpire",
+        "x": 2870,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l2-deco-rockColumn-12",
+        "kind": "rockColumn",
+        "x": 3400,
+        "y": 516,
+        "width": 58,
+        "height": 148,
+        "variant": 1
+      },
+      {
+        "id": "l2-deco-iceSpire-13",
+        "kind": "iceSpire",
+        "x": 3930,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l2-deco-iceSpire-14",
+        "kind": "iceSpire",
+        "x": 4220,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l2-deco-rockColumn-15",
+        "kind": "rockColumn",
+        "x": 4800,
+        "y": 516,
+        "width": 58,
+        "height": 148,
+        "variant": 1
+      },
+      {
+        "id": "l2-deco-iceSpire-16",
+        "kind": "iceSpire",
+        "x": 5380,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l2-deco-iceSpire-17",
+        "kind": "iceSpire",
+        "x": 5670,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l2-deco-rockColumn-18",
+        "kind": "rockColumn",
+        "x": 6250,
+        "y": 516,
+        "width": 58,
+        "height": 148,
+        "variant": 1
+      },
+      {
+        "id": "l2-deco-iceSpire-19",
+        "kind": "iceSpire",
+        "x": 6830,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l2-deco-iceSpire-20",
+        "kind": "iceSpire",
+        "x": 7270,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l2-deco-rockColumn-21",
+        "kind": "rockColumn",
+        "x": 7775,
+        "y": 516,
+        "width": 58,
+        "height": 148,
+        "variant": 1
+      },
+      {
+        "id": "l2-deco-iceSpire-22",
+        "kind": "iceSpire",
+        "x": 8280,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l2-deco-iceSpire-23",
+        "kind": "iceSpire",
+        "x": 8570,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l2-deco-rockColumn-24",
+        "kind": "rockColumn",
+        "x": 9150,
+        "y": 516,
+        "width": 58,
+        "height": 148,
+        "variant": 1
+      },
+      {
+        "id": "l2-deco-iceSpire-25",
+        "kind": "iceSpire",
+        "x": 9730,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l2-deco-iceSpire-26",
+        "kind": "iceSpire",
+        "x": 10020,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l2-deco-rockColumn-27",
+        "kind": "rockColumn",
+        "x": 10475,
+        "y": 516,
+        "width": 58,
+        "height": 148,
+        "variant": 1
+      },
+      {
+        "id": "l2-deco-iceSpire-28",
+        "kind": "iceSpire",
+        "x": 10930,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      }
+    ],
+    "beacon": {
+      "id": "l2-beacon",
+      "x": 10880,
+      "y": 488,
+      "width": 64,
+      "height": 132
+    }
   },
   {
-    id: 3,
-    code: "EUROPA / E-17 / 03",
-    name: "潮汐之眼",
-    subtitle: "上下层冰道在潮汐中交错，隐藏采样点等待回收。",
-    objective: "穿行潮汐之眼，在生命耗尽前点亮最终信标。",
-    width: 4200,
-    height: 720,
-    spawnX: 92,
-    spawnY: 574,
-    palette: {
-      ...CRYO_PALETTE,
-      skyTop: "#030c15",
-      skyBottom: "#0a2633",
-      iceLight: "#e4fbff",
-      iceMid: "#54afc2",
-      iceDeep: "#103747",
-      accent: "#6de7f3",
-      accentSoft: "rgba(109, 231, 243, 0.18)",
-      beacon: "#f2c65e",
+    "id": 3,
+    "code": "EUROPA / E-17 / 03",
+    "name": "潮汐回响",
+    "subtitle": "冰下潮汐涌动，青碧荧光与晶体尖塔在回廊间闪烁。",
+    "objective": "穿越潮汐回廊与悬浮平台，抵达尽头的轨道信标。",
+    "width": 13000,
+    "height": 720,
+    "spawnX": 92,
+    "spawnY": 574,
+    "theme": "tide",
+    "palette": {
+      "skyTop": "#03211f",
+      "skyBottom": "#0b3a38",
+      "iceLight": "#d9fffb",
+      "iceMid": "#47d6c4",
+      "iceDeep": "#0d3a35",
+      "accent": "#5cf0dd",
+      "accentSoft": "rgba(92, 240, 221, 0.18)",
+      "beacon": "#f5c95e"
     },
-    platforms: [
-      { id: "l3-ground-a", x: 0, y: 620, width: 780, height: 100, kind: "solid" },
-      { id: "l3-upper-a", x: 560, y: 530, width: 280, height: 20, kind: "solid" },
-      { id: "l3-ground-b", x: 880, y: 620, width: 260, height: 100, kind: "solid" },
-      { id: "l3-upper-b", x: 930, y: 450, width: 230, height: 18, kind: "solid" },
-      { id: "l3-ground-c", x: 1300, y: 620, width: 480, height: 100, kind: "solid" },
-      { id: "l3-upper-c", x: 1240, y: 360, width: 180, height: 18, kind: "solid" },
-      { id: "l3-narrow-a", x: 1510, y: 410, width: 120, height: 18, kind: "solid" },
-      { id: "l3-ground-d", x: 1870, y: 620, width: 330, height: 100, kind: "solid" },
-      { id: "l3-upper-d", x: 1760, y: 340, width: 220, height: 18, kind: "solid" },
-      { id: "l3-oneway-a", x: 1200, y: 540, width: 170, height: 16, kind: "oneWay" },
-      { id: "l3-oneway-b", x: 1840, y: 540, width: 140, height: 16, kind: "oneWay" },
-      { id: "l3-ground-e", x: 2380, y: 620, width: 470, height: 100, kind: "solid" },
-      { id: "l3-upper-e", x: 2100, y: 420, width: 180, height: 18, kind: "solid" },
-      { id: "l3-hidden-lift", x: 2370, y: 500, width: 130, height: 18, kind: "solid", motion: { axis: "y", amplitude: 46, speed: 1.1, phase: 0.4 } },
-      { id: "l3-hidden-a", x: 2600, y: 390, width: 160, height: 16, kind: "oneWay" },
-      { id: "l3-hidden-b", x: 2800, y: 310, width: 180, height: 16, kind: "oneWay" },
-      { id: "l3-ground-f", x: 2970, y: 620, width: 430, height: 100, kind: "solid" },
-      { id: "l3-upper-f", x: 2420, y: 370, width: 180, height: 18, kind: "oneWay" },
-      { id: "l3-ground-g", x: 3540, y: 620, width: 660, height: 100, kind: "solid" },
-      { id: "l3-upper-g", x: 3400, y: 540, width: 280, height: 18, kind: "solid" },
-      { id: "l3-lower-lift", x: 2900, y: 520, width: 120, height: 18, kind: "solid", motion: { axis: "x", amplitude: 45, speed: 1.2, phase: 1.2 } },
+    "platforms": [
+      {
+        "id": "l3-ground-a",
+        "x": 0,
+        "y": 620,
+        "width": 1250,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l3-ground-b",
+        "x": 1330,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l3-ground-c",
+        "x": 2780,
+        "y": 620,
+        "width": 1300,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l3-ground-d",
+        "x": 4200,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l3-ground-e",
+        "x": 5670,
+        "y": 620,
+        "width": 1300,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l3-ground-f",
+        "x": 7100,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l3-ground-g",
+        "x": 8580,
+        "y": 620,
+        "width": 1300,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l3-ground-h",
+        "x": 10000,
+        "y": 620,
+        "width": 1300,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l3-ground-i",
+        "x": 11500,
+        "y": 620,
+        "width": 1500,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l3-shelf-a",
+        "x": 430,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l3-shelf-b",
+        "x": 700,
+        "y": 505,
+        "width": 260,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l3-shelf-c",
+        "x": 2960,
+        "y": 545,
+        "width": 270,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l3-shelf-d",
+        "x": 5860,
+        "y": 545,
+        "width": 270,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l3-step-a",
+        "x": 1330,
+        "y": 560,
+        "width": 170,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l3-step-b",
+        "x": 5670,
+        "y": 560,
+        "width": 180,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l3-mover-a",
+        "x": 11420,
+        "y": 590,
+        "width": 150,
+        "height": 20,
+        "kind": "solid",
+        "motion": {
+          "axis": "x",
+          "amplitude": 55,
+          "speed": 1.1,
+          "phase": 0
+        }
+      }
     ],
-    crystals: [
-      { id: "l3-crystal-01", groupId: "l3-group-a", x: 630, y: 431 },
-      { id: "l3-crystal-02", groupId: "l3-group-a", x: 700, y: 431 },
-      { id: "l3-crystal-03", groupId: "l3-group-a", x: 770, y: 431 },
-      { id: "l3-crystal-04", groupId: "l3-group-b", x: 1000, y: 386 },
-      { id: "l3-crystal-05", groupId: "l3-group-b", x: 1070, y: 386 },
-      { id: "l3-crystal-06", groupId: "l3-group-b", x: 1140, y: 386 },
-      { id: "l3-crystal-07", groupId: "l3-group-c", x: 2110, y: 386 },
-      { id: "l3-crystal-08", groupId: "l3-group-c", x: 2180, y: 386 },
-      { id: "l3-crystal-09", groupId: "l3-group-c", x: 2250, y: 386 },
-      { id: "l3-crystal-10", groupId: "l3-group-d", x: 2720, y: 214 },
-      { id: "l3-crystal-11", groupId: "l3-group-d", x: 2790, y: 214 },
-      { id: "l3-crystal-12", groupId: "l3-group-d", x: 2860, y: 214 },
-      { id: "l3-crystal-13", groupId: "l3-group-e", x: 3470, y: 476 },
-      { id: "l3-crystal-14", groupId: "l3-group-e", x: 3540, y: 476 },
-      { id: "l3-crystal-15", groupId: "l3-group-e", x: 3610, y: 476 },
+    "crystals": [
+      {
+        "id": "l3-group-a-01",
+        "x": 240,
+        "y": 540,
+        "groupId": "l3-group-a"
+      },
+      {
+        "id": "l3-group-a-02",
+        "x": 440,
+        "y": 540,
+        "groupId": "l3-group-a"
+      },
+      {
+        "id": "l3-group-a-03",
+        "x": 640,
+        "y": 540,
+        "groupId": "l3-group-a"
+      },
+      {
+        "id": "l3-group-b-01",
+        "x": 460,
+        "y": 465,
+        "groupId": "l3-group-b"
+      },
+      {
+        "id": "l3-group-b-02",
+        "x": 550,
+        "y": 465,
+        "groupId": "l3-group-b"
+      },
+      {
+        "id": "l3-group-b-03",
+        "x": 640,
+        "y": 465,
+        "groupId": "l3-group-b"
+      },
+      {
+        "id": "l3-group-c-01",
+        "x": 730,
+        "y": 425,
+        "groupId": "l3-group-c"
+      },
+      {
+        "id": "l3-group-c-02",
+        "x": 820,
+        "y": 425,
+        "groupId": "l3-group-c"
+      },
+      {
+        "id": "l3-group-c-03",
+        "x": 910,
+        "y": 425,
+        "groupId": "l3-group-c"
+      },
+      {
+        "id": "l3-group-d-01",
+        "x": 2900,
+        "y": 540,
+        "groupId": "l3-group-d"
+      },
+      {
+        "id": "l3-group-d-02",
+        "x": 3120,
+        "y": 540,
+        "groupId": "l3-group-d"
+      },
+      {
+        "id": "l3-group-d-03",
+        "x": 3340,
+        "y": 540,
+        "groupId": "l3-group-d"
+      },
+      {
+        "id": "l3-group-e-01",
+        "x": 3000,
+        "y": 465,
+        "groupId": "l3-group-e"
+      },
+      {
+        "id": "l3-group-e-02",
+        "x": 3090,
+        "y": 465,
+        "groupId": "l3-group-e"
+      },
+      {
+        "id": "l3-group-e-03",
+        "x": 3180,
+        "y": 465,
+        "groupId": "l3-group-e"
+      },
+      {
+        "id": "l3-group-f-01",
+        "x": 5900,
+        "y": 540,
+        "groupId": "l3-group-f"
+      },
+      {
+        "id": "l3-group-f-02",
+        "x": 6120,
+        "y": 540,
+        "groupId": "l3-group-f"
+      },
+      {
+        "id": "l3-group-f-03",
+        "x": 6340,
+        "y": 540,
+        "groupId": "l3-group-f"
+      },
+      {
+        "id": "l3-group-g-01",
+        "x": 10350,
+        "y": 540,
+        "groupId": "l3-group-g"
+      },
+      {
+        "id": "l3-group-g-02",
+        "x": 10570,
+        "y": 540,
+        "groupId": "l3-group-g"
+      },
+      {
+        "id": "l3-group-g-03",
+        "x": 10790,
+        "y": 540,
+        "groupId": "l3-group-g"
+      }
     ],
-    sentinels: [
+    "sentinels": [
       {
-        id: "l3-hopper-01",
-        x: 1990,
-        y: 574,
-        width: 54,
-        height: 46,
-        patrolMinX: 1990,
-        patrolMaxX: 2160,
-        speed: 78,
-        kind: "hopper",
-        hopHeight: 48,
-        hopPeriodMs: 1400,
+        "id": "l3-hopper-01",
+        "kind": "hopper",
+        "x": 1750,
+        "y": 584,
+        "width": 42,
+        "height": 36,
+        "patrolMinX": 1750,
+        "patrolMaxX": 2200,
+        "speed": 46,
+        "hopHeight": 50,
+        "hopPeriodMs": 1500
       },
       {
-        id: "l3-drifter-01",
-        x: 3880,
-        y: 500,
-        width: 40,
-        height: 34,
-        patrolMinX: 3750,
-        patrolMaxX: 4050,
-        speed: 40,
-        kind: "drifter",
-        bobAmplitude: 6,
-        bobPeriodMs: 3600,
+        "id": "l3-drifter-01",
+        "kind": "drifter",
+        "x": 3350,
+        "y": 500,
+        "width": 40,
+        "height": 34,
+        "patrolMinX": 3200,
+        "patrolMaxX": 3650,
+        "speed": 40,
+        "bobAmplitude": 6,
+        "bobPeriodMs": 4200
       },
       {
-        id: "l3-sentinel-01",
-        x: 2670,
-        y: 574,
-        width: 54,
-        height: 46,
-        patrolMinX: 2410,
-        patrolMaxX: 2820,
-        speed: 90,
-        kind: "sentinel",
+        "id": "l3-sentinel-01",
+        "kind": "sentinel",
+        "x": 4450,
+        "y": 576,
+        "width": 44,
+        "height": 44,
+        "patrolMinX": 4450,
+        "patrolMaxX": 4900,
+        "speed": 52
       },
+      {
+        "id": "l3-gunner-01",
+        "kind": "gunner",
+        "x": 6300,
+        "y": 574,
+        "width": 46,
+        "height": 46,
+        "patrolMinX": 6300,
+        "patrolMaxX": 6600,
+        "speed": 45,
+        "aggroRange": 340,
+        "fireIntervalMs": 1700,
+        "projectileSpeed": 300
+      },
+      {
+        "id": "l3-hopper-02",
+        "kind": "hopper",
+        "x": 10250,
+        "y": 584,
+        "width": 42,
+        "height": 36,
+        "patrolMinX": 10250,
+        "patrolMaxX": 10800,
+        "speed": 46,
+        "hopHeight": 46,
+        "hopPeriodMs": 1400
+      }
     ],
-    checkpoints: [
+    "checkpoints": [
       {
-        id: "l3-checkpoint-01",
-        x: 1580,
-        y: 486,
-        width: 42,
-        height: 134,
-        spawnX: 1610,
-        spawnY: 574,
-        label: "潮眼中继 A",
+        "id": "l3-checkpoint-01",
+        "x": 3250,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 3280,
+        "spawnY": 574,
+        "label": "潮汐中继 A"
       },
       {
-        id: "l3-checkpoint-02",
-        x: 3140,
-        y: 486,
-        width: 42,
-        height: 134,
-        spawnX: 3165,
-        spawnY: 574,
-        label: "潮眼中继 B",
+        "id": "l3-checkpoint-02",
+        "x": 6200,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 6230,
+        "spawnY": 574,
+        "label": "潮汐中继 B"
       },
+      {
+        "id": "l3-checkpoint-03",
+        "x": 8950,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 8980,
+        "spawnY": 574,
+        "label": "潮汐中继 C"
+      }
     ],
-    beacon: { id: "l3-beacon", x: 4010, y: 488, width: 64, height: 132 },
+    "weaponPickups": [
+      {
+        "id": "l3-pickup-01",
+        "x": 2300,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l3-pickup-02",
+        "x": 7800,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l3-pickup-03",
+        "x": 11600,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      }
+    ],
+    "decorations": [
+      {
+        "id": "l3-deco-nebula-01",
+        "kind": "nebula",
+        "x": 780,
+        "y": 28,
+        "width": 460,
+        "height": 86,
+        "variant": 0
+      },
+      {
+        "id": "l3-deco-nebula-02",
+        "kind": "nebula",
+        "x": 3510,
+        "y": 80,
+        "width": 690,
+        "height": 138,
+        "variant": 1
+      },
+      {
+        "id": "l3-deco-nebula-03",
+        "kind": "nebula",
+        "x": 6240,
+        "y": 132,
+        "width": 920,
+        "height": 190,
+        "variant": 2
+      },
+      {
+        "id": "l3-deco-nebula-04",
+        "kind": "nebula",
+        "x": 8970,
+        "y": 184,
+        "width": 460,
+        "height": 86,
+        "variant": 3
+      },
+      {
+        "id": "l3-deco-crystalSpire-05",
+        "kind": "crystalSpire",
+        "x": 70,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l3-deco-tideWisp-06",
+        "kind": "tideWisp",
+        "x": 625,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l3-deco-crystalSpire-07",
+        "kind": "crystalSpire",
+        "x": 1180,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l3-deco-crystalSpire-08",
+        "kind": "crystalSpire",
+        "x": 1400,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l3-deco-tideWisp-09",
+        "kind": "tideWisp",
+        "x": 2005,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l3-deco-crystalSpire-10",
+        "kind": "crystalSpire",
+        "x": 2610,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l3-deco-crystalSpire-11",
+        "kind": "crystalSpire",
+        "x": 2850,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l3-deco-tideWisp-12",
+        "kind": "tideWisp",
+        "x": 3430,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l3-deco-crystalSpire-13",
+        "kind": "crystalSpire",
+        "x": 4010,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l3-deco-crystalSpire-14",
+        "kind": "crystalSpire",
+        "x": 4270,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l3-deco-tideWisp-15",
+        "kind": "tideWisp",
+        "x": 4875,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l3-deco-crystalSpire-16",
+        "kind": "crystalSpire",
+        "x": 5480,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l3-deco-crystalSpire-17",
+        "kind": "crystalSpire",
+        "x": 5740,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l3-deco-tideWisp-18",
+        "kind": "tideWisp",
+        "x": 6320,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l3-deco-crystalSpire-19",
+        "kind": "crystalSpire",
+        "x": 6900,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l3-deco-crystalSpire-20",
+        "kind": "crystalSpire",
+        "x": 7170,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l3-deco-tideWisp-21",
+        "kind": "tideWisp",
+        "x": 7775,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l3-deco-crystalSpire-22",
+        "kind": "crystalSpire",
+        "x": 8380,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l3-deco-crystalSpire-23",
+        "kind": "crystalSpire",
+        "x": 8650,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l3-deco-tideWisp-24",
+        "kind": "tideWisp",
+        "x": 9230,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l3-deco-crystalSpire-25",
+        "kind": "crystalSpire",
+        "x": 9810,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l3-deco-crystalSpire-26",
+        "kind": "crystalSpire",
+        "x": 10070,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l3-deco-tideWisp-27",
+        "kind": "tideWisp",
+        "x": 10650,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l3-deco-crystalSpire-28",
+        "kind": "crystalSpire",
+        "x": 11230,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l3-deco-crystalSpire-29",
+        "kind": "crystalSpire",
+        "x": 11570,
+        "y": 582,
+        "width": 34,
+        "height": 56,
+        "variant": 0
+      },
+      {
+        "id": "l3-deco-tideWisp-30",
+        "kind": "tideWisp",
+        "x": 12023,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l3-deco-crystalSpire-31",
+        "kind": "crystalSpire",
+        "x": 12477,
+        "y": 582,
+        "width": 58,
+        "height": 96,
+        "variant": 2
+      },
+      {
+        "id": "l3-deco-tideWisp-32",
+        "kind": "tideWisp",
+        "x": 12930,
+        "y": 441,
+        "width": 22,
+        "height": 22,
+        "variant": 0
+      }
+    ],
+    "beacon": {
+      "id": "l3-beacon",
+      "x": 12900,
+      "y": 488,
+      "width": 64,
+      "height": 132
+    }
   },
   {
-    id: 4,
-    code: "EUROPA / E-17 / 04",
-    name: "永夜冰脊",
-    subtitle: "移动冰台与高悬冰脊交错，夜航探测进入冰原纵深。",
-    objective: "越过永夜冰脊，在冰雾尽头校准轨道信标。",
-    width: 4800,
-    height: 720,
-    spawnX: 92,
-    spawnY: 574,
-    palette: {
-      ...CRYO_PALETTE,
-      skyTop: "#030a13",
-      skyBottom: "#0c1f2c",
-      iceLight: "#e0faff",
-      iceMid: "#4fabbd",
-      iceDeep: "#0e3240",
-      accent: "#72e8f4",
-      accentSoft: "rgba(114, 232, 244, 0.18)",
-      beacon: "#f3c75f",
+    "id": 4,
+    "code": "EUROPA / E-17 / 04",
+    "name": "永夜星云",
+    "subtitle": "永不落下的星云悬在冰壳之上，浮空碎片在黑暗中缓缓旋转。",
+    "objective": "穿过星云笼罩的夜廊，规避冲锋与射击，抵达信标。",
+    "width": 15000,
+    "height": 720,
+    "spawnX": 92,
+    "spawnY": 574,
+    "theme": "night",
+    "palette": {
+      "skyTop": "#07091e",
+      "skyBottom": "#1a1f45",
+      "iceLight": "#e4e9ff",
+      "iceMid": "#8f9bf0",
+      "iceDeep": "#20244d",
+      "accent": "#a78bfa",
+      "accentSoft": "rgba(167, 139, 250, 0.18)",
+      "beacon": "#ffd76b"
     },
-    platforms: [
-      { id: "l4-ground-a", x: 0, y: 620, width: 840, height: 100, kind: "solid" },
-      { id: "l4-step-a", x: 600, y: 545, width: 190, height: 20, kind: "solid" },
-      { id: "l4-ground-b", x: 980, y: 620, width: 320, height: 100, kind: "solid" },
-      { id: "l4-upper-low-a", x: 1030, y: 545, width: 220, height: 18, kind: "solid" },
-      { id: "l4-upper-a", x: 1030, y: 465, width: 220, height: 18, kind: "oneWay" },
-      { id: "l4-ground-c", x: 1430, y: 620, width: 430, height: 100, kind: "solid" },
-      { id: "l4-upper-low-b", x: 1380, y: 530, width: 200, height: 18, kind: "solid" },
-      { id: "l4-upper-mid-b", x: 1380, y: 450, width: 200, height: 18, kind: "oneWay" },
-      { id: "l4-upper-b", x: 1380, y: 370, width: 200, height: 18, kind: "oneWay" },
-      { id: "l4-lift-a", x: 1720, y: 545, width: 140, height: 18, kind: "solid", motion: { axis: "x", amplitude: 55, speed: 1.15, phase: 0 } },
-      { id: "l4-ground-d", x: 1990, y: 620, width: 530, height: 100, kind: "solid" },
-      { id: "l4-upper-low-c", x: 2030, y: 545, width: 220, height: 18, kind: "solid" },
-      { id: "l4-upper-c", x: 2030, y: 455, width: 220, height: 18, kind: "oneWay" },
-      { id: "l4-ground-e", x: 2520, y: 620, width: 500, height: 100, kind: "solid" },
-      { id: "l4-lift-b", x: 3060, y: 545, width: 130, height: 18, kind: "solid", motion: { axis: "x", amplitude: 40, speed: 1.15, phase: 1.2 } },
-      { id: "l4-upper-low-d", x: 2580, y: 545, width: 200, height: 18, kind: "solid" },
-      { id: "l4-upper-d", x: 2580, y: 455, width: 200, height: 18, kind: "oneWay" },
-      { id: "l4-ground-f", x: 3160, y: 620, width: 520, height: 100, kind: "solid" },
-      { id: "l4-oneway-a", x: 3340, y: 545, width: 160, height: 16, kind: "oneWay" },
-      { id: "l4-ground-g", x: 3820, y: 620, width: 980, height: 100, kind: "solid" },
-      { id: "l4-upper-e", x: 3920, y: 550, width: 230, height: 18, kind: "oneWay" },
-      { id: "l4-upper-f", x: 4240, y: 475, width: 190, height: 18, kind: "oneWay" },
+    "platforms": [
+      {
+        "id": "l4-ground-a",
+        "x": 0,
+        "y": 620,
+        "width": 1250,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l4-ground-b",
+        "x": 1330,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l4-ground-c",
+        "x": 2780,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l4-ground-d",
+        "x": 4230,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l4-ground-e",
+        "x": 5700,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l4-ground-f",
+        "x": 7180,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l4-ground-g",
+        "x": 8660,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l4-ground-h",
+        "x": 10140,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l4-ground-i",
+        "x": 11620,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l4-ground-j",
+        "x": 13150,
+        "y": 620,
+        "width": 1850,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l4-shelf-a",
+        "x": 430,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l4-shelf-b",
+        "x": 700,
+        "y": 505,
+        "width": 260,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l4-shelf-c",
+        "x": 2960,
+        "y": 545,
+        "width": 280,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l4-shelf-d",
+        "x": 6000,
+        "y": 545,
+        "width": 280,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l4-step-a",
+        "x": 1330,
+        "y": 560,
+        "width": 180,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l4-step-b",
+        "x": 8660,
+        "y": 560,
+        "width": 180,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l4-step-c",
+        "x": 11620,
+        "y": 540,
+        "width": 190,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l4-mover-a",
+        "x": 13050,
+        "y": 590,
+        "width": 150,
+        "height": 20,
+        "kind": "solid",
+        "motion": {
+          "axis": "x",
+          "amplitude": 55,
+          "speed": 1.1,
+          "phase": 0
+        }
+      }
     ],
-    crystals: [
-      { id: "l4-crystal-01", groupId: "l4-group-a", x: 630, y: 481 },
-      { id: "l4-crystal-02", groupId: "l4-group-a", x: 700, y: 481 },
-      { id: "l4-crystal-03", groupId: "l4-group-a", x: 770, y: 481 },
-      { id: "l4-crystal-04", groupId: "l4-group-b", x: 1080, y: 401 },
-      { id: "l4-crystal-05", groupId: "l4-group-b", x: 1150, y: 401 },
-      { id: "l4-crystal-06", groupId: "l4-group-b", x: 1220, y: 401 },
-      { id: "l4-crystal-07", groupId: "l4-group-c", x: 1430, y: 306 },
-      { id: "l4-crystal-08", groupId: "l4-group-c", x: 1500, y: 306 },
-      { id: "l4-crystal-09", groupId: "l4-group-c", x: 1570, y: 306 },
-      { id: "l4-crystal-10", groupId: "l4-group-d", x: 2080, y: 391 },
-      { id: "l4-crystal-11", groupId: "l4-group-d", x: 2150, y: 391 },
-      { id: "l4-crystal-12", groupId: "l4-group-d", x: 2220, y: 391 },
-      { id: "l4-crystal-13", groupId: "l4-group-e", x: 2630, y: 391 },
-      { id: "l4-crystal-14", groupId: "l4-group-e", x: 2700, y: 391 },
-      { id: "l4-crystal-15", groupId: "l4-group-e", x: 2770, y: 391 },
+    "crystals": [
+      {
+        "id": "l4-group-a-01",
+        "x": 240,
+        "y": 540,
+        "groupId": "l4-group-a"
+      },
+      {
+        "id": "l4-group-a-02",
+        "x": 440,
+        "y": 540,
+        "groupId": "l4-group-a"
+      },
+      {
+        "id": "l4-group-a-03",
+        "x": 640,
+        "y": 540,
+        "groupId": "l4-group-a"
+      },
+      {
+        "id": "l4-group-b-01",
+        "x": 460,
+        "y": 465,
+        "groupId": "l4-group-b"
+      },
+      {
+        "id": "l4-group-b-02",
+        "x": 550,
+        "y": 465,
+        "groupId": "l4-group-b"
+      },
+      {
+        "id": "l4-group-b-03",
+        "x": 640,
+        "y": 465,
+        "groupId": "l4-group-b"
+      },
+      {
+        "id": "l4-group-c-01",
+        "x": 730,
+        "y": 425,
+        "groupId": "l4-group-c"
+      },
+      {
+        "id": "l4-group-c-02",
+        "x": 820,
+        "y": 425,
+        "groupId": "l4-group-c"
+      },
+      {
+        "id": "l4-group-c-03",
+        "x": 910,
+        "y": 425,
+        "groupId": "l4-group-c"
+      },
+      {
+        "id": "l4-group-d-01",
+        "x": 2900,
+        "y": 540,
+        "groupId": "l4-group-d"
+      },
+      {
+        "id": "l4-group-d-02",
+        "x": 3120,
+        "y": 540,
+        "groupId": "l4-group-d"
+      },
+      {
+        "id": "l4-group-d-03",
+        "x": 3340,
+        "y": 540,
+        "groupId": "l4-group-d"
+      },
+      {
+        "id": "l4-group-e-01",
+        "x": 5950,
+        "y": 540,
+        "groupId": "l4-group-e"
+      },
+      {
+        "id": "l4-group-e-02",
+        "x": 6170,
+        "y": 540,
+        "groupId": "l4-group-e"
+      },
+      {
+        "id": "l4-group-e-03",
+        "x": 6390,
+        "y": 540,
+        "groupId": "l4-group-e"
+      },
+      {
+        "id": "l4-group-f-01",
+        "x": 8850,
+        "y": 540,
+        "groupId": "l4-group-f"
+      },
+      {
+        "id": "l4-group-f-02",
+        "x": 9070,
+        "y": 540,
+        "groupId": "l4-group-f"
+      },
+      {
+        "id": "l4-group-f-03",
+        "x": 9290,
+        "y": 540,
+        "groupId": "l4-group-f"
+      },
+      {
+        "id": "l4-group-g-01",
+        "x": 11800,
+        "y": 540,
+        "groupId": "l4-group-g"
+      },
+      {
+        "id": "l4-group-g-02",
+        "x": 12020,
+        "y": 540,
+        "groupId": "l4-group-g"
+      },
+      {
+        "id": "l4-group-g-03",
+        "x": 12240,
+        "y": 540,
+        "groupId": "l4-group-g"
+      },
+      {
+        "id": "l4-group-h-01",
+        "x": 13450,
+        "y": 540,
+        "groupId": "l4-group-h"
+      },
+      {
+        "id": "l4-group-h-02",
+        "x": 13670,
+        "y": 540,
+        "groupId": "l4-group-h"
+      },
+      {
+        "id": "l4-group-h-03",
+        "x": 13890,
+        "y": 540,
+        "groupId": "l4-group-h"
+      }
     ],
-    sentinels: [
+    "sentinels": [
       {
-        id: "l4-crawler-01",
-        x: 1080,
-        y: 590,
-        width: 54,
-        height: 30,
-        patrolMinX: 1030,
-        patrolMaxX: 1220,
-        speed: 72,
-        kind: "crawler",
+        "id": "l4-crawler-01",
+        "kind": "crawler",
+        "x": 1750,
+        "y": 590,
+        "width": 54,
+        "height": 30,
+        "patrolMinX": 1750,
+        "patrolMaxX": 2200,
+        "speed": 62
       },
       {
-        id: "l4-drifter-01",
-        x: 2860,
-        y: 505,
-        width: 40,
-        height: 34,
-        patrolMinX: 2800,
-        patrolMaxX: 3000,
-        speed: 42,
-        kind: "drifter",
-        bobAmplitude: 6,
-        bobPeriodMs: 3800,
+        "id": "l4-drifter-01",
+        "kind": "drifter",
+        "x": 3350,
+        "y": 500,
+        "width": 40,
+        "height": 34,
+        "patrolMinX": 3200,
+        "patrolMaxX": 3650,
+        "speed": 40,
+        "bobAmplitude": 6,
+        "bobPeriodMs": 4200
       },
       {
-        id: "l4-sentinel-01",
-        x: 4000,
-        y: 574,
-        width: 54,
-        height: 46,
-        patrolMinX: 3950,
-        patrolMaxX: 4250,
-        speed: 60,
-        kind: "sentinel",
+        "id": "l4-gunner-01",
+        "kind": "gunner",
+        "x": 4600,
+        "y": 574,
+        "width": 46,
+        "height": 46,
+        "patrolMinX": 4600,
+        "patrolMaxX": 5150,
+        "speed": 45,
+        "aggroRange": 360,
+        "fireIntervalMs": 1700,
+        "projectileSpeed": 320
       },
+      {
+        "id": "l4-charger-01",
+        "kind": "charger",
+        "x": 6150,
+        "y": 580,
+        "width": 52,
+        "height": 40,
+        "patrolMinX": 6150,
+        "patrolMaxX": 6700,
+        "speed": 55,
+        "aggroRange": 420,
+        "chargeSpeed": 540,
+        "chargeDurationMs": 720,
+        "recoverDurationMs": 620
+      },
+      {
+        "id": "l4-crawler-02",
+        "kind": "crawler",
+        "x": 9200,
+        "y": 590,
+        "width": 54,
+        "height": 30,
+        "patrolMinX": 9200,
+        "patrolMaxX": 9750,
+        "speed": 64
+      },
+      {
+        "id": "l4-sentinel-01",
+        "kind": "sentinel",
+        "x": 12050,
+        "y": 576,
+        "width": 44,
+        "height": 44,
+        "patrolMinX": 12050,
+        "patrolMaxX": 12600,
+        "speed": 52
+      }
     ],
-    checkpoints: [
+    "checkpoints": [
       {
-        id: "l4-checkpoint-01",
-        x: 2210,
-        y: 486,
-        width: 42,
-        height: 134,
-        spawnX: 2240,
-        spawnY: 574,
-        label: "永夜中继 A",
+        "id": "l4-checkpoint-01",
+        "x": 3350,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 3380,
+        "spawnY": 574,
+        "label": "永夜中继 A"
       },
       {
-        id: "l4-checkpoint-02",
-        x: 3830,
-        y: 486,
-        width: 42,
-        height: 134,
-        spawnX: 3860,
-        spawnY: 574,
-        label: "永夜中继 B",
+        "id": "l4-checkpoint-02",
+        "x": 6500,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 6530,
+        "spawnY": 574,
+        "label": "永夜中继 B"
       },
+      {
+        "id": "l4-checkpoint-03",
+        "x": 9500,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 9530,
+        "spawnY": 574,
+        "label": "永夜中继 C"
+      }
     ],
-    beacon: { id: "l4-beacon", x: 4580, y: 488, width: 64, height: 132 },
+    "weaponPickups": [
+      {
+        "id": "l4-pickup-01",
+        "x": 2350,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l4-pickup-02",
+        "x": 8000,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l4-pickup-03",
+        "x": 12400,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      }
+    ],
+    "decorations": [
+      {
+        "id": "l4-deco-nebula-01",
+        "kind": "nebula",
+        "x": 900,
+        "y": 28,
+        "width": 460,
+        "height": 86,
+        "variant": 0
+      },
+      {
+        "id": "l4-deco-nebula-02",
+        "kind": "nebula",
+        "x": 4050,
+        "y": 80,
+        "width": 690,
+        "height": 138,
+        "variant": 1
+      },
+      {
+        "id": "l4-deco-nebula-03",
+        "kind": "nebula",
+        "x": 7200,
+        "y": 132,
+        "width": 920,
+        "height": 190,
+        "variant": 2
+      },
+      {
+        "id": "l4-deco-nebula-04",
+        "kind": "nebula",
+        "x": 10350,
+        "y": 184,
+        "width": 460,
+        "height": 86,
+        "variant": 3
+      },
+      {
+        "id": "l4-deco-nebula-05",
+        "kind": "nebula",
+        "x": 13500,
+        "y": 28,
+        "width": 690,
+        "height": 138,
+        "variant": 0
+      },
+      {
+        "id": "l4-deco-rockColumn-06",
+        "kind": "rockColumn",
+        "x": 70,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l4-deco-floatingShard-07",
+        "kind": "floatingShard",
+        "x": 625,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l4-deco-rockColumn-08",
+        "kind": "rockColumn",
+        "x": 1180,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l4-deco-rockColumn-09",
+        "kind": "rockColumn",
+        "x": 1400,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l4-deco-floatingShard-10",
+        "kind": "floatingShard",
+        "x": 2005,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l4-deco-rockColumn-11",
+        "kind": "rockColumn",
+        "x": 2610,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l4-deco-rockColumn-12",
+        "kind": "rockColumn",
+        "x": 2850,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l4-deco-floatingShard-13",
+        "kind": "floatingShard",
+        "x": 3455,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l4-deco-rockColumn-14",
+        "kind": "rockColumn",
+        "x": 4060,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l4-deco-rockColumn-15",
+        "kind": "rockColumn",
+        "x": 4300,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l4-deco-floatingShard-16",
+        "kind": "floatingShard",
+        "x": 4905,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l4-deco-rockColumn-17",
+        "kind": "rockColumn",
+        "x": 5510,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l4-deco-rockColumn-18",
+        "kind": "rockColumn",
+        "x": 5770,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l4-deco-floatingShard-19",
+        "kind": "floatingShard",
+        "x": 6375,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l4-deco-rockColumn-20",
+        "kind": "rockColumn",
+        "x": 6980,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l4-deco-rockColumn-21",
+        "kind": "rockColumn",
+        "x": 7250,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l4-deco-floatingShard-22",
+        "kind": "floatingShard",
+        "x": 7855,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l4-deco-rockColumn-23",
+        "kind": "rockColumn",
+        "x": 8460,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l4-deco-rockColumn-24",
+        "kind": "rockColumn",
+        "x": 8730,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l4-deco-floatingShard-25",
+        "kind": "floatingShard",
+        "x": 9335,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l4-deco-rockColumn-26",
+        "kind": "rockColumn",
+        "x": 9940,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l4-deco-rockColumn-27",
+        "kind": "rockColumn",
+        "x": 10210,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l4-deco-floatingShard-28",
+        "kind": "floatingShard",
+        "x": 10815,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l4-deco-rockColumn-29",
+        "kind": "rockColumn",
+        "x": 11420,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l4-deco-rockColumn-30",
+        "kind": "rockColumn",
+        "x": 11690,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l4-deco-floatingShard-31",
+        "kind": "floatingShard",
+        "x": 12295,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l4-deco-rockColumn-32",
+        "kind": "rockColumn",
+        "x": 12900,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l4-deco-rockColumn-33",
+        "kind": "rockColumn",
+        "x": 13220,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l4-deco-floatingShard-34",
+        "kind": "floatingShard",
+        "x": 13790,
+        "y": 437,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l4-deco-rockColumn-35",
+        "kind": "rockColumn",
+        "x": 14360,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l4-deco-floatingShard-36",
+        "kind": "floatingShard",
+        "x": 14930,
+        "y": 441,
+        "width": 22,
+        "height": 22,
+        "variant": 0
+      }
+    ],
+    "beacon": {
+      "id": "l4-beacon",
+      "x": 14890,
+      "y": 488,
+      "width": 64,
+      "height": 132
+    }
   },
   {
-    id: 5,
-    code: "EUROPA / E-17 / 05",
-    name: "静默冰层",
-    subtitle: "冰层深处的浮游哨兵增多，垂直冰台考验落点判断。",
-    objective: "穿过静默冰层，在深渊之上点亮最终信标。",
-    width: 5400,
-    height: 720,
-    spawnX: 92,
-    spawnY: 574,
-    palette: {
-      ...CRYO_PALETTE,
-      skyTop: "#02101a",
-      skyBottom: "#0a2533",
-      iceLight: "#e8fbff",
-      iceMid: "#45a6ba",
-      iceDeep: "#0b2d3c",
-      accent: "#7aebf6",
-      accentSoft: "rgba(122, 235, 246, 0.2)",
-      beacon: "#f4c961",
+    "id": 5,
+    "code": "EUROPA / E-17 / 05",
+    "name": "幽暗冰洞",
+    "subtitle": "熔岩喷口在幽暗洞壁间忽明忽暗，冰晶折射出紫色的微光。",
+    "objective": "在熔岩与尖刺之间穿行，点亮洞穴深处的中继信标。",
+    "width": 17000,
+    "height": 720,
+    "spawnX": 92,
+    "spawnY": 574,
+    "theme": "cavern",
+    "palette": {
+      "skyTop": "#0d0a16",
+      "skyBottom": "#241b38",
+      "iceLight": "#ecdfff",
+      "iceMid": "#9d7bd6",
+      "iceDeep": "#241a3a",
+      "accent": "#c58cff",
+      "accentSoft": "rgba(197, 140, 255, 0.16)",
+      "beacon": "#ffb45e"
     },
-    platforms: [
-      { id: "l5-ground-a", x: 0, y: 620, width: 760, height: 100, kind: "solid" },
-      { id: "l5-step-a", x: 520, y: 540, width: 170, height: 20, kind: "solid" },
-      { id: "l5-ground-b", x: 900, y: 620, width: 340, height: 100, kind: "solid" },
-      { id: "l5-upper-a", x: 950, y: 455, width: 230, height: 18, kind: "oneWay" },
-      { id: "l5-upper-low-a", x: 950, y: 545, width: 230, height: 18, kind: "solid" },
-      { id: "l5-ground-c", x: 1380, y: 620, width: 380, height: 100, kind: "solid" },
-      { id: "l5-lift-a", x: 1640, y: 535, width: 140, height: 18, kind: "solid", motion: { axis: "x", amplitude: 60, speed: 1.2, phase: 0 } },
-      { id: "l5-upper-b", x: 1560, y: 450, width: 190, height: 18, kind: "oneWay" },
-      { id: "l5-ground-d", x: 1900, y: 620, width: 420, height: 100, kind: "solid" },
-      { id: "l5-lift-b", x: 2220, y: 515, width: 130, height: 18, kind: "solid", motion: { axis: "y", amplitude: 48, speed: 1.1, phase: 1.3 } },
-      { id: "l5-upper-c", x: 2330, y: 380, width: 210, height: 18, kind: "oneWay" },
-      { id: "l5-ground-e", x: 2460, y: 620, width: 460, height: 100, kind: "solid" },
-      { id: "l5-ground-f", x: 3060, y: 620, width: 520, height: 100, kind: "solid" },
-      { id: "l5-oneway-a", x: 2900, y: 530, width: 150, height: 16, kind: "oneWay" },
-      { id: "l5-ground-g", x: 3580, y: 620, width: 460, height: 100, kind: "solid" },
-      { id: "l5-lift-c", x: 3500, y: 550, width: 130, height: 18, kind: "solid", motion: { axis: "x", amplitude: 55, speed: 1.15, phase: 2.1 } },
-      { id: "l5-upper-d", x: 3660, y: 465, width: 200, height: 18, kind: "oneWay" },
-      { id: "l5-ground-h", x: 4180, y: 620, width: 1220, height: 100, kind: "solid" },
-      { id: "l5-upper-e", x: 4280, y: 530, width: 230, height: 18, kind: "oneWay" },
-      { id: "l5-upper-f", x: 4560, y: 440, width: 200, height: 18, kind: "oneWay" },
-      { id: "l5-upper-g", x: 4840, y: 355, width: 170, height: 18, kind: "oneWay" },
+    "platforms": [
+      {
+        "id": "l5-ground-a",
+        "x": 0,
+        "y": 620,
+        "width": 1250,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l5-ground-b",
+        "x": 1330,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l5-ground-c",
+        "x": 2780,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l5-ground-d",
+        "x": 4230,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l5-ground-e",
+        "x": 5700,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l5-ground-f",
+        "x": 7180,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l5-ground-g",
+        "x": 8660,
+        "y": 620,
+        "width": 1400,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l5-ground-h",
+        "x": 10190,
+        "y": 620,
+        "width": 1400,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l5-ground-i",
+        "x": 11720,
+        "y": 620,
+        "width": 1400,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l5-ground-j",
+        "x": 13250,
+        "y": 620,
+        "width": 1400,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l5-ground-k",
+        "x": 14780,
+        "y": 620,
+        "width": 2220,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l5-shelf-a",
+        "x": 430,
+        "y": 545,
+        "width": 260,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l5-shelf-b",
+        "x": 700,
+        "y": 505,
+        "width": 270,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l5-shelf-c",
+        "x": 2960,
+        "y": 545,
+        "width": 280,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l5-shelf-d",
+        "x": 6000,
+        "y": 545,
+        "width": 280,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l5-step-a",
+        "x": 1330,
+        "y": 560,
+        "width": 180,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l5-step-b",
+        "x": 8660,
+        "y": 540,
+        "width": 190,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l5-step-c",
+        "x": 13250,
+        "y": 560,
+        "width": 180,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l5-mover-a",
+        "x": 14670,
+        "y": 590,
+        "width": 150,
+        "height": 20,
+        "kind": "solid",
+        "motion": {
+          "axis": "x",
+          "amplitude": 55,
+          "speed": 1,
+          "phase": 0
+        }
+      }
     ],
-    crystals: [
-      { id: "l5-crystal-01", groupId: "l5-group-a", x: 560, y: 476 },
-      { id: "l5-crystal-02", groupId: "l5-group-a", x: 630, y: 476 },
-      { id: "l5-crystal-03", groupId: "l5-group-a", x: 700, y: 476 },
-      { id: "l5-crystal-04", groupId: "l5-group-b", x: 1000, y: 391 },
-      { id: "l5-crystal-05", groupId: "l5-group-b", x: 1070, y: 391 },
-      { id: "l5-crystal-06", groupId: "l5-group-b", x: 1140, y: 391 },
-      { id: "l5-crystal-07", groupId: "l5-group-c", x: 1610, y: 386 },
-      { id: "l5-crystal-08", groupId: "l5-group-c", x: 1680, y: 386 },
-      { id: "l5-crystal-09", groupId: "l5-group-c", x: 1750, y: 386 },
-      { id: "l5-crystal-10", groupId: "l5-group-d", x: 2380, y: 316 },
-      { id: "l5-crystal-11", groupId: "l5-group-d", x: 2450, y: 316 },
-      { id: "l5-crystal-12", groupId: "l5-group-d", x: 2520, y: 316 },
-      { id: "l5-crystal-13", groupId: "l5-group-e", x: 3710, y: 366 },
-      { id: "l5-crystal-14", groupId: "l5-group-e", x: 3780, y: 366 },
-      { id: "l5-crystal-15", groupId: "l5-group-e", x: 3850, y: 366 },
-      { id: "l5-crystal-16", groupId: "l5-group-f", x: 4610, y: 376 },
-      { id: "l5-crystal-17", groupId: "l5-group-f", x: 4680, y: 376 },
-      { id: "l5-crystal-18", groupId: "l5-group-f", x: 4750, y: 376 },
+    "crystals": [
+      {
+        "id": "l5-group-a-01",
+        "x": 240,
+        "y": 540,
+        "groupId": "l5-group-a"
+      },
+      {
+        "id": "l5-group-a-02",
+        "x": 440,
+        "y": 540,
+        "groupId": "l5-group-a"
+      },
+      {
+        "id": "l5-group-a-03",
+        "x": 640,
+        "y": 540,
+        "groupId": "l5-group-a"
+      },
+      {
+        "id": "l5-group-b-01",
+        "x": 460,
+        "y": 465,
+        "groupId": "l5-group-b"
+      },
+      {
+        "id": "l5-group-b-02",
+        "x": 550,
+        "y": 465,
+        "groupId": "l5-group-b"
+      },
+      {
+        "id": "l5-group-b-03",
+        "x": 640,
+        "y": 465,
+        "groupId": "l5-group-b"
+      },
+      {
+        "id": "l5-group-c-01",
+        "x": 730,
+        "y": 425,
+        "groupId": "l5-group-c"
+      },
+      {
+        "id": "l5-group-c-02",
+        "x": 820,
+        "y": 425,
+        "groupId": "l5-group-c"
+      },
+      {
+        "id": "l5-group-c-03",
+        "x": 910,
+        "y": 425,
+        "groupId": "l5-group-c"
+      },
+      {
+        "id": "l5-group-d-01",
+        "x": 2900,
+        "y": 540,
+        "groupId": "l5-group-d"
+      },
+      {
+        "id": "l5-group-d-02",
+        "x": 3120,
+        "y": 540,
+        "groupId": "l5-group-d"
+      },
+      {
+        "id": "l5-group-d-03",
+        "x": 3340,
+        "y": 540,
+        "groupId": "l5-group-d"
+      },
+      {
+        "id": "l5-group-e-01",
+        "x": 5950,
+        "y": 540,
+        "groupId": "l5-group-e"
+      },
+      {
+        "id": "l5-group-e-02",
+        "x": 6170,
+        "y": 540,
+        "groupId": "l5-group-e"
+      },
+      {
+        "id": "l5-group-e-03",
+        "x": 6390,
+        "y": 540,
+        "groupId": "l5-group-e"
+      },
+      {
+        "id": "l5-group-f-01",
+        "x": 8800,
+        "y": 540,
+        "groupId": "l5-group-f"
+      },
+      {
+        "id": "l5-group-f-02",
+        "x": 9020,
+        "y": 540,
+        "groupId": "l5-group-f"
+      },
+      {
+        "id": "l5-group-f-03",
+        "x": 9240,
+        "y": 540,
+        "groupId": "l5-group-f"
+      },
+      {
+        "id": "l5-group-g-01",
+        "x": 10400,
+        "y": 540,
+        "groupId": "l5-group-g"
+      },
+      {
+        "id": "l5-group-g-02",
+        "x": 10620,
+        "y": 540,
+        "groupId": "l5-group-g"
+      },
+      {
+        "id": "l5-group-g-03",
+        "x": 10840,
+        "y": 540,
+        "groupId": "l5-group-g"
+      },
+      {
+        "id": "l5-group-h-01",
+        "x": 11900,
+        "y": 540,
+        "groupId": "l5-group-h"
+      },
+      {
+        "id": "l5-group-h-02",
+        "x": 12120,
+        "y": 540,
+        "groupId": "l5-group-h"
+      },
+      {
+        "id": "l5-group-h-03",
+        "x": 12340,
+        "y": 540,
+        "groupId": "l5-group-h"
+      },
+      {
+        "id": "l5-group-i-01",
+        "x": 13450,
+        "y": 540,
+        "groupId": "l5-group-i"
+      },
+      {
+        "id": "l5-group-i-02",
+        "x": 13670,
+        "y": 540,
+        "groupId": "l5-group-i"
+      },
+      {
+        "id": "l5-group-i-03",
+        "x": 13890,
+        "y": 540,
+        "groupId": "l5-group-i"
+      }
     ],
-    sentinels: [
+    "sentinels": [
       {
-        id: "l5-crawler-01",
-        x: 1060,
-        y: 590,
-        width: 54,
-        height: 30,
-        patrolMinX: 1010,
-        patrolMaxX: 1180,
-        speed: 74,
-        kind: "crawler",
+        "id": "l5-hopper-01",
+        "kind": "hopper",
+        "x": 1750,
+        "y": 584,
+        "width": 42,
+        "height": 36,
+        "patrolMinX": 1750,
+        "patrolMaxX": 2200,
+        "speed": 46,
+        "hopHeight": 50,
+        "hopPeriodMs": 1500
       },
       {
-        id: "l5-drifter-01",
-        x: 2050,
-        y: 500,
-        width: 40,
-        height: 34,
-        patrolMinX: 1980,
-        patrolMaxX: 2240,
-        speed: 44,
-        kind: "drifter",
-        bobAmplitude: 6,
-        bobPeriodMs: 3600,
+        "id": "l5-gunner-01",
+        "kind": "gunner",
+        "x": 3350,
+        "y": 574,
+        "width": 46,
+        "height": 46,
+        "patrolMinX": 3350,
+        "patrolMaxX": 3900,
+        "speed": 45,
+        "aggroRange": 340,
+        "fireIntervalMs": 1650,
+        "projectileSpeed": 310
       },
       {
-        id: "l5-hopper-01",
-        x: 3150,
-        y: 574,
-        width: 54,
-        height: 46,
-        patrolMinX: 3150,
-        patrolMaxX: 3320,
-        speed: 80,
-        kind: "hopper",
-        hopHeight: 52,
-        hopPeriodMs: 1500,
+        "id": "l5-charger-01",
+        "kind": "charger",
+        "x": 4750,
+        "y": 580,
+        "width": 52,
+        "height": 40,
+        "patrolMinX": 4750,
+        "patrolMaxX": 5300,
+        "speed": 55,
+        "aggroRange": 400,
+        "chargeSpeed": 540,
+        "chargeDurationMs": 700,
+        "recoverDurationMs": 600
       },
       {
-        id: "l5-sentinel-01",
-        x: 4350,
-        y: 574,
-        width: 54,
-        height: 46,
-        patrolMinX: 4300,
-        patrolMaxX: 4580,
-        speed: 92,
-        kind: "sentinel",
+        "id": "l5-drifter-01",
+        "kind": "drifter",
+        "x": 6200,
+        "y": 500,
+        "width": 40,
+        "height": 34,
+        "patrolMinX": 6000,
+        "patrolMaxX": 6500,
+        "speed": 40,
+        "bobAmplitude": 6,
+        "bobPeriodMs": 4200
       },
+      {
+        "id": "l5-sentinel-01",
+        "kind": "sentinel",
+        "x": 7800,
+        "y": 576,
+        "width": 44,
+        "height": 44,
+        "patrolMinX": 7800,
+        "patrolMaxX": 8350,
+        "speed": 52
+      },
+      {
+        "id": "l5-hopper-02",
+        "kind": "hopper",
+        "x": 9400,
+        "y": 584,
+        "width": 42,
+        "height": 36,
+        "patrolMinX": 9400,
+        "patrolMaxX": 9950,
+        "speed": 46,
+        "hopHeight": 46,
+        "hopPeriodMs": 1400
+      },
+      {
+        "id": "l5-crawler-01",
+        "kind": "crawler",
+        "x": 12050,
+        "y": 590,
+        "width": 54,
+        "height": 30,
+        "patrolMinX": 12050,
+        "patrolMaxX": 12600,
+        "speed": 62
+      }
     ],
-    checkpoints: [
+    "checkpoints": [
       {
-        id: "l5-checkpoint-01",
-        x: 2700,
-        y: 486,
-        width: 42,
-        height: 134,
-        spawnX: 2730,
-        spawnY: 574,
-        label: "静默中继 A",
+        "id": "l5-checkpoint-01",
+        "x": 3350,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 3380,
+        "spawnY": 574,
+        "label": "洞窟中继 A"
       },
       {
-        id: "l5-checkpoint-02",
-        x: 3900,
-        y: 486,
-        width: 42,
-        height: 134,
-        spawnX: 3930,
-        spawnY: 574,
-        label: "静默中继 B",
+        "id": "l5-checkpoint-02",
+        "x": 6400,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 6430,
+        "spawnY": 574,
+        "label": "洞窟中继 B"
       },
+      {
+        "id": "l5-checkpoint-03",
+        "x": 10800,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 10830,
+        "spawnY": 574,
+        "label": "洞窟中继 C"
+      }
     ],
-    beacon: { id: "l5-beacon", x: 5140, y: 488, width: 64, height: 132 },
+    "weaponPickups": [
+      {
+        "id": "l5-pickup-01",
+        "x": 2300,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l5-pickup-02",
+        "x": 7000,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l5-pickup-03",
+        "x": 10000,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l5-pickup-04",
+        "x": 13900,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      }
+    ],
+    "decorations": [
+      {
+        "id": "l5-deco-nebula-01",
+        "kind": "nebula",
+        "x": 1020,
+        "y": 28,
+        "width": 460,
+        "height": 86,
+        "variant": 0
+      },
+      {
+        "id": "l5-deco-nebula-02",
+        "kind": "nebula",
+        "x": 4590,
+        "y": 80,
+        "width": 690,
+        "height": 138,
+        "variant": 1
+      },
+      {
+        "id": "l5-deco-nebula-03",
+        "kind": "nebula",
+        "x": 8160,
+        "y": 132,
+        "width": 920,
+        "height": 190,
+        "variant": 2
+      },
+      {
+        "id": "l5-deco-nebula-04",
+        "kind": "nebula",
+        "x": 11730,
+        "y": 184,
+        "width": 460,
+        "height": 86,
+        "variant": 3
+      },
+      {
+        "id": "l5-deco-rockColumn-05",
+        "kind": "rockColumn",
+        "x": 70,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l5-deco-emberVent-06",
+        "kind": "emberVent",
+        "x": 625,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 1
+      },
+      {
+        "id": "l5-deco-rockColumn-07",
+        "kind": "rockColumn",
+        "x": 1180,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l5-deco-rockColumn-08",
+        "kind": "rockColumn",
+        "x": 1400,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l5-deco-emberVent-09",
+        "kind": "emberVent",
+        "x": 2005,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 1
+      },
+      {
+        "id": "l5-deco-rockColumn-10",
+        "kind": "rockColumn",
+        "x": 2610,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l5-deco-rockColumn-11",
+        "kind": "rockColumn",
+        "x": 2850,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l5-deco-emberVent-12",
+        "kind": "emberVent",
+        "x": 3455,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 1
+      },
+      {
+        "id": "l5-deco-rockColumn-13",
+        "kind": "rockColumn",
+        "x": 4060,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l5-deco-rockColumn-14",
+        "kind": "rockColumn",
+        "x": 4300,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l5-deco-emberVent-15",
+        "kind": "emberVent",
+        "x": 4905,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 1
+      },
+      {
+        "id": "l5-deco-rockColumn-16",
+        "kind": "rockColumn",
+        "x": 5510,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l5-deco-rockColumn-17",
+        "kind": "rockColumn",
+        "x": 5770,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l5-deco-emberVent-18",
+        "kind": "emberVent",
+        "x": 6375,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 1
+      },
+      {
+        "id": "l5-deco-rockColumn-19",
+        "kind": "rockColumn",
+        "x": 6980,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l5-deco-rockColumn-20",
+        "kind": "rockColumn",
+        "x": 7250,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l5-deco-emberVent-21",
+        "kind": "emberVent",
+        "x": 7855,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 1
+      },
+      {
+        "id": "l5-deco-rockColumn-22",
+        "kind": "rockColumn",
+        "x": 8460,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l5-deco-rockColumn-23",
+        "kind": "rockColumn",
+        "x": 8730,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l5-deco-emberVent-24",
+        "kind": "emberVent",
+        "x": 9360,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 1
+      },
+      {
+        "id": "l5-deco-rockColumn-25",
+        "kind": "rockColumn",
+        "x": 9990,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l5-deco-rockColumn-26",
+        "kind": "rockColumn",
+        "x": 10260,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l5-deco-emberVent-27",
+        "kind": "emberVent",
+        "x": 10890,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 1
+      },
+      {
+        "id": "l5-deco-rockColumn-28",
+        "kind": "rockColumn",
+        "x": 11520,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l5-deco-rockColumn-29",
+        "kind": "rockColumn",
+        "x": 11790,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l5-deco-emberVent-30",
+        "kind": "emberVent",
+        "x": 12420,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 1
+      },
+      {
+        "id": "l5-deco-rockColumn-31",
+        "kind": "rockColumn",
+        "x": 13050,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l5-deco-rockColumn-32",
+        "kind": "rockColumn",
+        "x": 13320,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l5-deco-emberVent-33",
+        "kind": "emberVent",
+        "x": 13950,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 1
+      },
+      {
+        "id": "l5-deco-rockColumn-34",
+        "kind": "rockColumn",
+        "x": 14580,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l5-deco-rockColumn-35",
+        "kind": "rockColumn",
+        "x": 14850,
+        "y": 516,
+        "width": 44,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l5-deco-emberVent-36",
+        "kind": "emberVent",
+        "x": 15370,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 1
+      },
+      {
+        "id": "l5-deco-rockColumn-37",
+        "kind": "rockColumn",
+        "x": 15890,
+        "y": 516,
+        "width": 72,
+        "height": 180,
+        "variant": 2
+      },
+      {
+        "id": "l5-deco-emberVent-38",
+        "kind": "emberVent",
+        "x": 16410,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 1
+      },
+      {
+        "id": "l5-deco-rockColumn-39",
+        "kind": "rockColumn",
+        "x": 16930,
+        "y": 516,
+        "width": 58,
+        "height": 148,
+        "variant": 1
+      }
+    ],
+    "beacon": {
+      "id": "l5-beacon",
+      "x": 16880,
+      "y": 488,
+      "width": 64,
+      "height": 132
+    }
   },
   {
-    id: 6,
-    code: "EUROPA / E-17 / 06",
-    name: "欧罗巴之心",
-    subtitle: "冰壳之下的终极航道，多层冰台与浮游哨兵密布。",
-    objective: "抵达欧罗巴之心，点燃冰海深处的最终信标。",
-    width: 6000,
-    height: 720,
-    spawnX: 92,
-    spawnY: 574,
-    palette: {
-      ...CRYO_PALETTE,
-      skyTop: "#010a13",
-      skyBottom: "#071c2a",
-      iceLight: "#ecfdff",
-      iceMid: "#3e9cb1",
-      iceDeep: "#092836",
-      accent: "#84eef8",
-      accentSoft: "rgba(132, 238, 248, 0.22)",
-      beacon: "#f5cc64",
+    "id": 6,
+    "code": "EUROPA / E-17 / 06",
+    "name": "冰核核心",
+    "subtitle": "欧罗巴最深处，熔岩暖光与冰晶尖塔交织，所有怪物在此汇聚。",
+    "objective": "突破核心防线，击败所有威胁，点亮冰核尽头的最终信标。",
+    "width": 19000,
+    "height": 720,
+    "spawnX": 92,
+    "spawnY": 574,
+    "theme": "core",
+    "palette": {
+      "skyTop": "#1a0a10",
+      "skyBottom": "#3a1620",
+      "iceLight": "#ffe9f0",
+      "iceMid": "#f27fa4",
+      "iceDeep": "#451a2c",
+      "accent": "#ff9ec6",
+      "accentSoft": "rgba(255, 158, 198, 0.16)",
+      "beacon": "#ffd35e"
     },
-    platforms: [
-      { id: "l6-ground-a", x: 0, y: 620, width: 720, height: 100, kind: "solid" },
-      { id: "l6-step-a", x: 460, y: 545, width: 160, height: 20, kind: "solid" },
-      { id: "l6-ground-b", x: 860, y: 620, width: 380, height: 100, kind: "solid" },
-      { id: "l6-upper-a", x: 910, y: 530, width: 220, height: 18, kind: "solid" },
-      { id: "l6-upper-b", x: 980, y: 440, width: 200, height: 18, kind: "oneWay" },
-      { id: "l6-ground-c", x: 1380, y: 620, width: 360, height: 100, kind: "solid" },
-      { id: "l6-lift-a", x: 1600, y: 545, width: 140, height: 18, kind: "solid", motion: { axis: "x", amplitude: 60, speed: 1.25, phase: 0 } },
-      { id: "l6-upper-c", x: 1560, y: 455, width: 180, height: 18, kind: "oneWay" },
-      { id: "l6-ground-d", x: 1860, y: 620, width: 400, height: 100, kind: "solid" },
-      { id: "l6-lift-b", x: 2180, y: 520, width: 130, height: 18, kind: "solid", motion: { axis: "y", amplitude: 48, speed: 1.15, phase: 1.1 } },
-      { id: "l6-upper-d", x: 2280, y: 400, width: 210, height: 18, kind: "oneWay" },
-      { id: "l6-ground-e", x: 2400, y: 620, width: 460, height: 100, kind: "solid" },
-      { id: "l6-ground-f", x: 3000, y: 620, width: 500, height: 100, kind: "solid" },
-      { id: "l6-oneway-a", x: 2840, y: 535, width: 130, height: 16, kind: "oneWay" },
-      { id: "l6-ground-g", x: 3500, y: 620, width: 440, height: 100, kind: "solid" },
-      { id: "l6-lift-c", x: 3420, y: 555, width: 130, height: 18, kind: "solid", motion: { axis: "x", amplitude: 58, speed: 1.2, phase: 2.3 } },
-      { id: "l6-upper-e", x: 3560, y: 485, width: 200, height: 18, kind: "oneWay" },
-      { id: "l6-ground-h", x: 4080, y: 620, width: 420, height: 100, kind: "solid" },
-      { id: "l6-lift-d", x: 4400, y: 505, width: 130, height: 18, kind: "solid", motion: { axis: "y", amplitude: 52, speed: 1.1, phase: 0.8 } },
-      { id: "l6-upper-f", x: 4500, y: 385, width: 200, height: 18, kind: "oneWay" },
-      { id: "l6-ground-i", x: 4640, y: 620, width: 1360, height: 100, kind: "solid" },
-      { id: "l6-upper-g", x: 4740, y: 535, width: 220, height: 18, kind: "solid" },
-      { id: "l6-upper-h", x: 5020, y: 445, width: 190, height: 18, kind: "oneWay" },
-      { id: "l6-upper-i", x: 5300, y: 360, width: 170, height: 18, kind: "oneWay" },
+    "platforms": [
+      {
+        "id": "l6-ground-a",
+        "x": 0,
+        "y": 620,
+        "width": 1250,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l6-ground-b",
+        "x": 1330,
+        "y": 620,
+        "width": 1350,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l6-ground-c",
+        "x": 2780,
+        "y": 620,
+        "width": 1400,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l6-ground-d",
+        "x": 4300,
+        "y": 620,
+        "width": 1400,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l6-ground-e",
+        "x": 5830,
+        "y": 620,
+        "width": 1400,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l6-ground-f",
+        "x": 7360,
+        "y": 620,
+        "width": 1400,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l6-ground-g",
+        "x": 8890,
+        "y": 620,
+        "width": 1400,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l6-ground-h",
+        "x": 10420,
+        "y": 620,
+        "width": 1400,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l6-ground-i",
+        "x": 11950,
+        "y": 620,
+        "width": 1400,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l6-ground-j",
+        "x": 13480,
+        "y": 620,
+        "width": 1400,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l6-ground-k",
+        "x": 15010,
+        "y": 620,
+        "width": 1400,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l6-ground-l",
+        "x": 16540,
+        "y": 620,
+        "width": 2460,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l6-shelf-a",
+        "x": 430,
+        "y": 545,
+        "width": 260,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l6-shelf-b",
+        "x": 700,
+        "y": 505,
+        "width": 270,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l6-shelf-c",
+        "x": 2960,
+        "y": 545,
+        "width": 280,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l6-shelf-d",
+        "x": 6100,
+        "y": 545,
+        "width": 280,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l6-shelf-e",
+        "x": 12100,
+        "y": 545,
+        "width": 280,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l6-step-a",
+        "x": 1330,
+        "y": 560,
+        "width": 180,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l6-step-b",
+        "x": 8890,
+        "y": 540,
+        "width": 190,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l6-step-c",
+        "x": 15010,
+        "y": 560,
+        "width": 180,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l6-mover-a",
+        "x": 16490,
+        "y": 590,
+        "width": 150,
+        "height": 20,
+        "kind": "solid",
+        "motion": {
+          "axis": "x",
+          "amplitude": 55,
+          "speed": 1,
+          "phase": 0
+        }
+      }
     ],
-    crystals: [
-      { id: "l6-crystal-01", groupId: "l6-group-a", x: 500, y: 481 },
-      { id: "l6-crystal-02", groupId: "l6-group-a", x: 570, y: 481 },
-      { id: "l6-crystal-03", groupId: "l6-group-a", x: 640, y: 481 },
-      { id: "l6-crystal-04", groupId: "l6-group-b", x: 1030, y: 376 },
-      { id: "l6-crystal-05", groupId: "l6-group-b", x: 1100, y: 376 },
-      { id: "l6-crystal-06", groupId: "l6-group-b", x: 1170, y: 376 },
-      { id: "l6-crystal-07", groupId: "l6-group-c", x: 1610, y: 391 },
-      { id: "l6-crystal-08", groupId: "l6-group-c", x: 1680, y: 391 },
-      { id: "l6-crystal-09", groupId: "l6-group-c", x: 1750, y: 391 },
-      { id: "l6-crystal-10", groupId: "l6-group-d", x: 2330, y: 336 },
-      { id: "l6-crystal-11", groupId: "l6-group-d", x: 2400, y: 336 },
-      { id: "l6-crystal-12", groupId: "l6-group-d", x: 2470, y: 336 },
-      { id: "l6-crystal-13", groupId: "l6-group-e", x: 3610, y: 371 },
-      { id: "l6-crystal-14", groupId: "l6-group-e", x: 3680, y: 371 },
-      { id: "l6-crystal-15", groupId: "l6-group-e", x: 3750, y: 371 },
-      { id: "l6-crystal-16", groupId: "l6-group-f", x: 4550, y: 321 },
-      { id: "l6-crystal-17", groupId: "l6-group-f", x: 4620, y: 321 },
-      { id: "l6-crystal-18", groupId: "l6-group-f", x: 4690, y: 321 },
-      { id: "l6-crystal-19", groupId: "l6-group-g", x: 5070, y: 381 },
-      { id: "l6-crystal-20", groupId: "l6-group-g", x: 5140, y: 381 },
-      { id: "l6-crystal-21", groupId: "l6-group-g", x: 5210, y: 381 },
+    "crystals": [
+      {
+        "id": "l6-group-a-01",
+        "x": 240,
+        "y": 540,
+        "groupId": "l6-group-a"
+      },
+      {
+        "id": "l6-group-a-02",
+        "x": 440,
+        "y": 540,
+        "groupId": "l6-group-a"
+      },
+      {
+        "id": "l6-group-a-03",
+        "x": 640,
+        "y": 540,
+        "groupId": "l6-group-a"
+      },
+      {
+        "id": "l6-group-b-01",
+        "x": 460,
+        "y": 465,
+        "groupId": "l6-group-b"
+      },
+      {
+        "id": "l6-group-b-02",
+        "x": 550,
+        "y": 465,
+        "groupId": "l6-group-b"
+      },
+      {
+        "id": "l6-group-b-03",
+        "x": 640,
+        "y": 465,
+        "groupId": "l6-group-b"
+      },
+      {
+        "id": "l6-group-c-01",
+        "x": 730,
+        "y": 425,
+        "groupId": "l6-group-c"
+      },
+      {
+        "id": "l6-group-c-02",
+        "x": 820,
+        "y": 425,
+        "groupId": "l6-group-c"
+      },
+      {
+        "id": "l6-group-c-03",
+        "x": 910,
+        "y": 425,
+        "groupId": "l6-group-c"
+      },
+      {
+        "id": "l6-group-d-01",
+        "x": 2900,
+        "y": 540,
+        "groupId": "l6-group-d"
+      },
+      {
+        "id": "l6-group-d-02",
+        "x": 3120,
+        "y": 540,
+        "groupId": "l6-group-d"
+      },
+      {
+        "id": "l6-group-d-03",
+        "x": 3340,
+        "y": 540,
+        "groupId": "l6-group-d"
+      },
+      {
+        "id": "l6-group-e-01",
+        "x": 6000,
+        "y": 540,
+        "groupId": "l6-group-e"
+      },
+      {
+        "id": "l6-group-e-02",
+        "x": 6220,
+        "y": 540,
+        "groupId": "l6-group-e"
+      },
+      {
+        "id": "l6-group-e-03",
+        "x": 6440,
+        "y": 540,
+        "groupId": "l6-group-e"
+      },
+      {
+        "id": "l6-group-f-01",
+        "x": 9000,
+        "y": 540,
+        "groupId": "l6-group-f"
+      },
+      {
+        "id": "l6-group-f-02",
+        "x": 9220,
+        "y": 540,
+        "groupId": "l6-group-f"
+      },
+      {
+        "id": "l6-group-f-03",
+        "x": 9440,
+        "y": 540,
+        "groupId": "l6-group-f"
+      },
+      {
+        "id": "l6-group-g-01",
+        "x": 10600,
+        "y": 540,
+        "groupId": "l6-group-g"
+      },
+      {
+        "id": "l6-group-g-02",
+        "x": 10820,
+        "y": 540,
+        "groupId": "l6-group-g"
+      },
+      {
+        "id": "l6-group-g-03",
+        "x": 11040,
+        "y": 540,
+        "groupId": "l6-group-g"
+      },
+      {
+        "id": "l6-group-h-01",
+        "x": 12100,
+        "y": 540,
+        "groupId": "l6-group-h"
+      },
+      {
+        "id": "l6-group-h-02",
+        "x": 12320,
+        "y": 540,
+        "groupId": "l6-group-h"
+      },
+      {
+        "id": "l6-group-h-03",
+        "x": 12540,
+        "y": 540,
+        "groupId": "l6-group-h"
+      },
+      {
+        "id": "l6-group-i-01",
+        "x": 13650,
+        "y": 540,
+        "groupId": "l6-group-i"
+      },
+      {
+        "id": "l6-group-i-02",
+        "x": 13870,
+        "y": 540,
+        "groupId": "l6-group-i"
+      },
+      {
+        "id": "l6-group-i-03",
+        "x": 14090,
+        "y": 540,
+        "groupId": "l6-group-i"
+      },
+      {
+        "id": "l6-group-j-01",
+        "x": 15200,
+        "y": 540,
+        "groupId": "l6-group-j"
+      },
+      {
+        "id": "l6-group-j-02",
+        "x": 15420,
+        "y": 540,
+        "groupId": "l6-group-j"
+      },
+      {
+        "id": "l6-group-j-03",
+        "x": 15640,
+        "y": 540,
+        "groupId": "l6-group-j"
+      }
     ],
-    sentinels: [
+    "sentinels": [
       {
-        id: "l6-crawler-01",
-        x: 1040,
-        y: 590,
-        width: 54,
-        height: 30,
-        patrolMinX: 990,
-        patrolMaxX: 1170,
-        speed: 76,
-        kind: "crawler",
+        "id": "l6-crawler-01",
+        "kind": "crawler",
+        "x": 1750,
+        "y": 590,
+        "width": 54,
+        "height": 30,
+        "patrolMinX": 1750,
+        "patrolMaxX": 2200,
+        "speed": 62
       },
       {
-        id: "l6-drifter-01",
-        x: 1950,
-        y: 500,
-        width: 40,
-        height: 34,
-        patrolMinX: 1880,
-        patrolMaxX: 2140,
-        speed: 46,
-        kind: "drifter",
-        bobAmplitude: 6,
-        bobPeriodMs: 3400,
+        "id": "l6-drifter-01",
+        "kind": "drifter",
+        "x": 3400,
+        "y": 500,
+        "width": 40,
+        "height": 34,
+        "patrolMinX": 3250,
+        "patrolMaxX": 3700,
+        "speed": 40,
+        "bobAmplitude": 6,
+        "bobPeriodMs": 4200
       },
       {
-        id: "l6-hopper-01",
-        x: 3100,
-        y: 574,
-        width: 54,
-        height: 46,
-        patrolMinX: 3100,
-        patrolMaxX: 3280,
-        speed: 82,
-        kind: "hopper",
-        hopHeight: 54,
-        hopPeriodMs: 1450,
+        "id": "l6-sentinel-01",
+        "kind": "sentinel",
+        "x": 4600,
+        "y": 576,
+        "width": 44,
+        "height": 44,
+        "patrolMinX": 4600,
+        "patrolMaxX": 5150,
+        "speed": 52
       },
       {
-        id: "l6-sentinel-01",
-        x: 3700,
-        y: 574,
-        width: 54,
-        height: 46,
-        patrolMinX: 3660,
-        patrolMaxX: 3860,
-        speed: 94,
-        kind: "sentinel",
+        "id": "l6-hopper-01",
+        "kind": "hopper",
+        "x": 6300,
+        "y": 584,
+        "width": 42,
+        "height": 36,
+        "patrolMinX": 6300,
+        "patrolMaxX": 6850,
+        "speed": 46,
+        "hopHeight": 50,
+        "hopPeriodMs": 1500
       },
       {
-        id: "l6-drifter-02",
-        x: 4840,
-        y: 470,
-        width: 40,
-        height: 34,
-        patrolMinX: 4770,
-        patrolMaxX: 5040,
-        speed: 48,
-        kind: "drifter",
-        bobAmplitude: 7,
-        bobPeriodMs: 3200,
+        "id": "l6-gunner-01",
+        "kind": "gunner",
+        "x": 8000,
+        "y": 574,
+        "width": 46,
+        "height": 46,
+        "patrolMinX": 8000,
+        "patrolMaxX": 8550,
+        "speed": 45,
+        "aggroRange": 360,
+        "fireIntervalMs": 1700,
+        "projectileSpeed": 330
       },
+      {
+        "id": "l6-charger-01",
+        "kind": "charger",
+        "x": 9600,
+        "y": 580,
+        "width": 52,
+        "height": 40,
+        "patrolMinX": 9600,
+        "patrolMaxX": 10150,
+        "speed": 55,
+        "aggroRange": 420,
+        "chargeSpeed": 560,
+        "chargeDurationMs": 740,
+        "recoverDurationMs": 640
+      },
+      {
+        "id": "l6-spiker-01",
+        "kind": "spiker",
+        "x": 11100,
+        "y": 600,
+        "width": 56,
+        "height": 20,
+        "patrolMinX": 11100,
+        "patrolMaxX": 11650,
+        "speed": 0,
+        "spikeHeight": 26,
+        "spikeCycleMs": 1900,
+        "spikeUpMs": 620
+      },
+      {
+        "id": "l6-gunner-02",
+        "kind": "gunner",
+        "x": 12550,
+        "y": 574,
+        "width": 46,
+        "height": 46,
+        "patrolMinX": 12550,
+        "patrolMaxX": 13100,
+        "speed": 45,
+        "aggroRange": 340,
+        "fireIntervalMs": 1700,
+        "projectileSpeed": 310
+      }
     ],
-    checkpoints: [
+    "checkpoints": [
       {
-        id: "l6-checkpoint-01",
-        x: 2080,
-        y: 486,
-        width: 42,
-        height: 134,
-        spawnX: 2110,
-        spawnY: 574,
-        label: "欧罗巴中继 A",
+        "id": "l6-checkpoint-01",
+        "x": 3400,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 3430,
+        "spawnY": 574,
+        "label": "核心中继 A"
       },
       {
-        id: "l6-checkpoint-02",
-        x: 3540,
-        y: 486,
-        width: 42,
-        height: 134,
-        spawnX: 3570,
-        spawnY: 574,
-        label: "欧罗巴中继 B",
+        "id": "l6-checkpoint-02",
+        "x": 6500,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 6530,
+        "spawnY": 574,
+        "label": "核心中继 B"
       },
       {
-        id: "l6-checkpoint-03",
-        x: 5400,
-        y: 486,
-        width: 42,
-        height: 134,
-        spawnX: 5430,
-        spawnY: 574,
-        label: "欧罗巴中继 C",
+        "id": "l6-checkpoint-03",
+        "x": 9700,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 9730,
+        "spawnY": 574,
+        "label": "核心中继 C"
       },
+      {
+        "id": "l6-checkpoint-04",
+        "x": 12700,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 12730,
+        "spawnY": 574,
+        "label": "核心中继 D"
+      }
     ],
-    beacon: { id: "l6-beacon", x: 5740, y: 488, width: 64, height: 132 },
-  },
+    "weaponPickups": [
+      {
+        "id": "l6-pickup-01",
+        "x": 2300,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l6-pickup-02",
+        "x": 7100,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l6-pickup-03",
+        "x": 10500,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l6-pickup-04",
+        "x": 15600,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      }
+    ],
+    "decorations": [
+      {
+        "id": "l6-deco-aurora-01",
+        "kind": "aurora",
+        "x": 1140,
+        "y": 28,
+        "width": 460,
+        "height": 86,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-aurora-02",
+        "kind": "aurora",
+        "x": 5130,
+        "y": 80,
+        "width": 690,
+        "height": 138,
+        "variant": 1
+      },
+      {
+        "id": "l6-deco-aurora-03",
+        "kind": "aurora",
+        "x": 9120,
+        "y": 132,
+        "width": 920,
+        "height": 190,
+        "variant": 2
+      },
+      {
+        "id": "l6-deco-aurora-04",
+        "kind": "aurora",
+        "x": 13110,
+        "y": 184,
+        "width": 460,
+        "height": 86,
+        "variant": 3
+      },
+      {
+        "id": "l6-deco-aurora-05",
+        "kind": "aurora",
+        "x": 17100,
+        "y": 28,
+        "width": 690,
+        "height": 138,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-emberVent-06",
+        "kind": "emberVent",
+        "x": 70,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-crystalSpire-07",
+        "kind": "crystalSpire",
+        "x": 625,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l6-deco-emberVent-08",
+        "kind": "emberVent",
+        "x": 1180,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-emberVent-09",
+        "kind": "emberVent",
+        "x": 1400,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-crystalSpire-10",
+        "kind": "crystalSpire",
+        "x": 2005,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l6-deco-emberVent-11",
+        "kind": "emberVent",
+        "x": 2610,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-emberVent-12",
+        "kind": "emberVent",
+        "x": 2850,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-crystalSpire-13",
+        "kind": "crystalSpire",
+        "x": 3480,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l6-deco-emberVent-14",
+        "kind": "emberVent",
+        "x": 4110,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-emberVent-15",
+        "kind": "emberVent",
+        "x": 4370,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-crystalSpire-16",
+        "kind": "crystalSpire",
+        "x": 5000,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l6-deco-emberVent-17",
+        "kind": "emberVent",
+        "x": 5630,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-emberVent-18",
+        "kind": "emberVent",
+        "x": 5900,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-crystalSpire-19",
+        "kind": "crystalSpire",
+        "x": 6530,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l6-deco-emberVent-20",
+        "kind": "emberVent",
+        "x": 7160,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-emberVent-21",
+        "kind": "emberVent",
+        "x": 7430,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-crystalSpire-22",
+        "kind": "crystalSpire",
+        "x": 8060,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l6-deco-emberVent-23",
+        "kind": "emberVent",
+        "x": 8690,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-emberVent-24",
+        "kind": "emberVent",
+        "x": 8960,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-crystalSpire-25",
+        "kind": "crystalSpire",
+        "x": 9590,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l6-deco-emberVent-26",
+        "kind": "emberVent",
+        "x": 10220,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-emberVent-27",
+        "kind": "emberVent",
+        "x": 10490,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-crystalSpire-28",
+        "kind": "crystalSpire",
+        "x": 11120,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l6-deco-emberVent-29",
+        "kind": "emberVent",
+        "x": 11750,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-emberVent-30",
+        "kind": "emberVent",
+        "x": 12020,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-crystalSpire-31",
+        "kind": "crystalSpire",
+        "x": 12650,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l6-deco-emberVent-32",
+        "kind": "emberVent",
+        "x": 13280,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-emberVent-33",
+        "kind": "emberVent",
+        "x": 13550,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-crystalSpire-34",
+        "kind": "crystalSpire",
+        "x": 14180,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l6-deco-emberVent-35",
+        "kind": "emberVent",
+        "x": 14810,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-emberVent-36",
+        "kind": "emberVent",
+        "x": 15080,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-crystalSpire-37",
+        "kind": "crystalSpire",
+        "x": 15710,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l6-deco-emberVent-38",
+        "kind": "emberVent",
+        "x": 16340,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-emberVent-39",
+        "kind": "emberVent",
+        "x": 16610,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-crystalSpire-40",
+        "kind": "crystalSpire",
+        "x": 17074,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l6-deco-emberVent-41",
+        "kind": "emberVent",
+        "x": 17538,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-crystalSpire-42",
+        "kind": "crystalSpire",
+        "x": 18002,
+        "y": 582,
+        "width": 34,
+        "height": 116,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-emberVent-43",
+        "kind": "emberVent",
+        "x": 18466,
+        "y": 596,
+        "width": 30,
+        "height": 46,
+        "variant": 0
+      },
+      {
+        "id": "l6-deco-crystalSpire-44",
+        "kind": "crystalSpire",
+        "x": 18930,
+        "y": 582,
+        "width": 58,
+        "height": 76,
+        "variant": 2
+      }
+    ],
+    "beacon": {
+      "id": "l6-beacon",
+      "x": 18880,
+      "y": 488,
+      "width": 64,
+      "height": 132
+    }
+  }
 ];
 
 export const PLATFORMER_LEVELS_BY_ID = new Map(
@@ -822,6 +4574,4 @@ export function validatePlatformerLevels(
 
   return errors;
 }
-
-
 

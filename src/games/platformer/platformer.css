@@ -639,6 +639,48 @@
   line-height: 17px;
 }
 
+.platformer-intro-roster {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-soft) 18%, var(--bg-raised));
+}
+
+.platformer-intro-roster span {
+  display: block;
+  color: var(--text-3);
+  font-size: 7px;
+  line-height: 13px;
+  letter-spacing: 0.08em;
+}
+
+.platformer-intro-roster ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.platformer-intro-roster li {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg-raised);
+  color: var(--text-2);
+  font-size: 8px;
+  line-height: 14px;
+}
+
+.platformer-intro-weapon {
+  margin: 8px 0 0;
+  color: var(--text-3);
+  font-size: 8px;
+  line-height: 15px;
+}
+
 .platformer-intro-progress {
   margin-top: 10px;
   color: var(--accent-ink);

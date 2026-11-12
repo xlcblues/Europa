@@ -27,9 +27,19 @@ export const PLATFORMER_SCORE_ZERO_DEATH = 1000;
 export const PLATFORMER_SCORE_BEACON = 1000;
 export const PLATFORMER_SCORE_VICTORY = 2000;
 
-export const PLATFORMER_LEVEL_CRYSTALS = [9, 12, 15, 15, 18, 21] as const;
-export const PLATFORMER_LEVEL_SENTINELS = [1, 2, 3, 3, 4, 5] as const;
-export const PLATFORMER_LEVEL_CHECKPOINTS = [1, 1, 2, 2, 2, 3] as const;
+export const PLATFORMER_LEVEL_CRYSTALS = [15, 18, 21, 24, 27, 30] as const;
+export const PLATFORMER_LEVEL_SENTINELS = [3, 4, 5, 6, 7, 8] as const;
+export const PLATFORMER_LEVEL_CHECKPOINTS = [2, 2, 3, 3, 3, 4] as const;
+
+// 武器系统常量
+export const PLATFORMER_WEAPON_START_AMMO = 6;
+export const PLATFORMER_WEAPON_MAX_AMMO = 30;
+export const PLATFORMER_WEAPON_PICKUP_AMMO = 4;
+export const PLATFORMER_SHOOT_COOLDOWN_MS = 240;
+export const PLATFORMER_PROJECTILE_SPEED = 560;
+export const PLATFORMER_PROJECTILE_LIFE_MS = 850;
+export const PLATFORMER_PROJECTILE_WIDTH = 10;
+export const PLATFORMER_PROJECTILE_HEIGHT = 8;
 
 export type PlatformKind = "solid" | "oneWay";
 
@@ -57,7 +67,14 @@ export interface CrystalDefinition {
   y: number;
 }
 
-export type SentinelKind = "sentinel" | "crawler" | "drifter" | "hopper";
+export type SentinelKind =
+  | "sentinel"
+  | "crawler"
+  | "drifter"
+  | "hopper"
+  | "gunner"
+  | "charger"
+  | "spiker";
 
 export interface SentinelDefinition {
   id: string;
@@ -78,6 +95,24 @@ export interface SentinelDefinition {
   hopHeight?: number;
   /** 弹跳兽一次跳跃的周期（毫秒）。 */
   hopPeriodMs?: number;
+  /** 枪手/冲锋兽开始攻击的距离（像素），默认 460。 */
+  aggroRange?: number;
+  /** 枪手射击间隔（毫秒），默认 1900。 */
+  fireIntervalMs?: number;
+  /** 枪手弹体速度（像素/秒），默认 300。 */
+  projectileSpeed?: number;
+  /** 冲锋兽冲锋速度（像素/秒），默认 520。 */
+  chargeSpeed?: number;
+  /** 冲锋兽冲锋持续时间（毫秒），默认 720。 */
+  chargeDurationMs?: number;
+  /** 冲锋兽恢复/眩晕时间（毫秒），默认 620。 */
+  recoverDurationMs?: number;
+  /** 尖刺傀儡伸出尖刺的高度（像素），默认 22。 */
+  spikeHeight?: number;
+  /** 尖刺傀儡尖刺周期（毫秒），默认 2000。 */
+  spikeCycleMs?: number;
+  /** 尖刺傀儡尖刺保持时间（毫秒），默认 650。 */
+  spikeUpMs?: number;
 }
 
 export interface CheckpointDefinition {
@@ -97,6 +132,37 @@ export interface BeaconDefinition {
   y: number;
   width: number;
   height: number;
+}
+
+export interface WeaponPickupDefinition {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export type PlatformerTheme = "icefield" | "gorge" | "tide" | "night" | "cavern" | "core";
+
+export type LevelDecorationKind =
+  | "aurora"
+  | "nebula"
+  | "iceSpire"
+  | "crystalSpire"
+  | "rockColumn"
+  | "tideWisp"
+  | "emberVent"
+  | "floatingShard";
+
+/** 场景装饰物：仅影响背景渲染，不参与碰撞。 */
+export interface LevelDecoration {
+  id: string;
+  kind: LevelDecorationKind;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  variant: number;
 }
 
 export interface LevelPalette {
@@ -120,11 +186,14 @@ export interface PlatformerLevel {
   height: number;
   spawnX: number;
   spawnY: number;
+  theme: PlatformerTheme;
   palette: LevelPalette;
   platforms: PlatformDefinition[];
   crystals: CrystalDefinition[];
   sentinels: SentinelDefinition[];
   checkpoints: CheckpointDefinition[];
+  weaponPickups: WeaponPickupDefinition[];
+  decorations: LevelDecoration[];
   beacon: BeaconDefinition;
 }
 
@@ -134,6 +203,7 @@ export interface PlatformerInput {
   jumpHeld: boolean;
   jumpPressed: boolean;
   downPressed: boolean;
+  firePressed: boolean;
   assisted: boolean;
 }
 
@@ -161,6 +231,28 @@ export interface CameraState {
   previousX: number;
 }
 
+export type ProjectileKind = "plasma" | "crystalShot";
+
+export interface ProjectileState {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  vx: number;
+  vy: number;
+  kind: ProjectileKind;
+  owner: "player" | "enemy";
+  lifeMs: number;
+  fromSentinelId?: string;
+}
+
+export interface PlayerWeaponState {
+  ammo: number;
+  maxAmmo: number;
+  cooldownMs: number;
+}
+
 export interface RuntimeSentinel {
   definition: SentinelDefinition;
   x: number;
@@ -170,6 +262,10 @@ export interface RuntimeSentinel {
   /** 动画相位（毫秒），与 levelTimeMs 同步，暂停时冻结。 */
   phaseMs: number;
   defeated: boolean;
+  /** 攻击冷却计时（毫秒）：枪手射击间隔、冲锋兽恢复、尖刺傀儡周期。 */
+  attackTimerMs?: number;
+  /** 冲锋兽行为状态。 */
+  mode?: "patrol" | "charge" | "recover";
 }
 
 export interface PlatformOffset {
@@ -187,6 +283,9 @@ export interface PlatformerWorld {
   camera: CameraState;
   platformOffsets: Record<string, PlatformOffset>;
   sentinels: RuntimeSentinel[];
+  projectiles: ProjectileState[];
+  weapon: PlayerWeaponState;
+  collectedPickupIds: string[];
   score: number;
   lives: number;
   sessionId: string;
@@ -232,6 +331,10 @@ export type PlatformerEvent =
   | { type: "land" }
   | { type: "crystal"; crystalId: string; score: number }
   | { type: "sentinel_stomped"; sentinelId: string; score: number }
+  | { type: "sentinel_shot"; sentinelId: string; score: number }
+  | { type: "shot_fired" }
+  | { type: "projectile_hit"; source: "player" | "enemy" }
+  | { type: "weapon_pickup"; pickupId: string; ammo: number }
   | { type: "checkpoint"; checkpointId: string; score: number }
   | { type: "damage"; reason: "fall" | "sentinel"; lives: number }
   | { type: "level_complete"; levelId: number; scoreEarned: number }

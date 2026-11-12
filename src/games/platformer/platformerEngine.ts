@@ -20,6 +20,14 @@ import {
   PLATFORMER_SCORE_SENTINEL,
   PLATFORMER_SCORE_VICTORY,
   PLATFORMER_SCORE_ZERO_DEATH,
+  PLATFORMER_PROJECTILE_HEIGHT,
+  PLATFORMER_PROJECTILE_LIFE_MS,
+  PLATFORMER_PROJECTILE_SPEED,
+  PLATFORMER_PROJECTILE_WIDTH,
+  PLATFORMER_SHOOT_COOLDOWN_MS,
+  PLATFORMER_WEAPON_MAX_AMMO,
+  PLATFORMER_WEAPON_PICKUP_AMMO,
+  PLATFORMER_WEAPON_START_AMMO,
   PLATFORMER_STEP_MS,
   PLATFORMER_STEP_SECONDS,
   PLATFORMER_TOTAL_LEVELS,
@@ -39,7 +47,9 @@ import {
   type PlatformerSaveRecord,
   type PlatformerStepResult,
   type PlatformerWorld,
+  type ProjectileState,
   type PlayerState,
+  type RuntimeSentinel,
 } from "./platformerTypes";
 import {
   getLevelStartCheckpointId,
@@ -73,6 +83,7 @@ export function createPlatformerInput(assisted = false): PlatformerInput {
     jumpHeld: false,
     jumpPressed: false,
     downPressed: false,
+    firePressed: false,
     assisted,
   };
 }
@@ -177,8 +188,17 @@ export function createPlatformerWorld(
       y: 0,
       direction: 1,
       phaseMs: 0,
+      attackTimerMs: 0,
+      mode: "patrol",
       defeated: context.defeatedSentinelIds.includes(definition.id),
     })),
+    projectiles: [],
+    weapon: {
+      ammo: PLATFORMER_WEAPON_START_AMMO,
+      maxAmmo: PLATFORMER_WEAPON_MAX_AMMO,
+      cooldownMs: 0,
+    },
+    collectedPickupIds: [],
     score: context.score,
     lives: context.lives,
     sessionId: context.sessionId,
@@ -222,6 +242,8 @@ export function restartAtCheckpoint(world: PlatformerWorld): PlatformerWorld {
       defeated:
         sentinel.defeated || world.defeatedSentinelIds.includes(sentinel.definition.id),
     })),
+    projectiles: [],
+    weapon: { ...world.weapon, cooldownMs: 0 },
     lastDeathReason: null,
     deathFlashMs: 0,
     checkpointFlashMs: 450,
@@ -365,6 +387,9 @@ function cloneWorld(world: PlatformerWorld): PlatformerWorld {
       Object.entries(world.platformOffsets).map(([id, offset]) => [id, { ...offset }]),
     ),
     sentinels: world.sentinels.map((sentinel) => ({ ...sentinel })),
+    projectiles: world.projectiles.map((projectile) => ({ ...projectile })),
+    weapon: { ...world.weapon },
+    collectedPickupIds: [...world.collectedPickupIds],
     collectedItemIds: [...world.collectedItemIds],
     defeatedSentinelIds: [...world.defeatedSentinelIds],
     activatedCheckpointIds: [...world.activatedCheckpointIds],
@@ -448,6 +473,11 @@ export function stepPlatformer(
 
   collectCrystals(next, level, events);
   activateCheckpoint(next, level, events);
+  collectWeaponPickups(next, level, events);
+  updatePlayerWeapon(next, input, level, events);
+  updateProjectiles(next, level);
+  resolvePlayerProjectiles(next, level, events);
+  resolveEnemyProjectiles(next, level, events);
   resolveSentinelContacts(next, level, events);
   resolveBeacon(next, level, events);
 
@@ -682,6 +712,93 @@ function updateRuntimeSentinels(world: PlatformerWorld, level: PlatformerLevel):
       return { ...sentinel, x, y, phaseMs };
     }
 
+    if (kind === "spiker") {
+      // 尖刺傀儡：原地驻守，周期性伸出/收回尖刺（伸出状态由 phaseMs 驱动）。
+      return { ...sentinel, phaseMs };
+    }
+
+    if (kind === "gunner") {
+      // 枪手：水平巡逻；玩家进入射程后转身连续发射冰晶弹。
+      let x = sentinel.x + sentinel.direction * definition.speed * PLATFORMER_STEP_SECONDS;
+      let direction = sentinel.direction;
+      if (x <= definition.patrolMinX) {
+        x = definition.patrolMinX;
+        direction = 1;
+      } else if (x + definition.width >= definition.patrolMaxX) {
+        x = definition.patrolMaxX - definition.width;
+        direction = -1;
+      }
+      const player = world.player;
+      const dx = player.x - x;
+      const dy = player.y + player.height * 0.4 - (definition.y + sentinel.y + definition.height * 0.5);
+      const attackTimerMs = Math.max(0, (sentinel.attackTimerMs ?? 0) - PLATFORMER_STEP_MS);
+      const inRange =
+        Math.abs(dx) <= (definition.aggroRange ?? 460) && Math.abs(dy) < 150 && world.status === "playing";
+      if (inRange) {
+        direction = dx >= 0 ? 1 : -1;
+        if (attackTimerMs <= 0) {
+          const speed = definition.projectileSpeed ?? 300;
+          const angle = Math.atan2(dy, dx);
+          world.projectiles.push({
+            id: `crystal-${definition.id}-${phaseMs}`,
+            x: x + (direction > 0 ? definition.width : 0) - PLATFORMER_PROJECTILE_WIDTH * 0.5,
+            y: definition.y + sentinel.y + definition.height * 0.5 - PLATFORMER_PROJECTILE_HEIGHT * 0.5,
+            width: PLATFORMER_PROJECTILE_WIDTH,
+            height: PLATFORMER_PROJECTILE_HEIGHT,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            kind: "crystalShot",
+            owner: "enemy",
+            lifeMs: PLATFORMER_PROJECTILE_LIFE_MS,
+            fromSentinelId: definition.id,
+          });
+          return { ...sentinel, x, direction, phaseMs, attackTimerMs: definition.fireIntervalMs ?? 1900 };
+        }
+      }
+      return { ...sentinel, x, direction, phaseMs, attackTimerMs };
+    }
+
+    if (kind === "charger") {
+      // 冲锋兽：巡逻时发现同向玩家立即冲锋，冲锋结束后短暂眩晕恢复。
+      const mode = sentinel.mode ?? "patrol";
+      const player = world.player;
+      if (mode === "charge") {
+        const remaining = Math.max(0, (sentinel.attackTimerMs ?? 0) - PLATFORMER_STEP_MS);
+        const nextX = sentinel.x + sentinel.direction * (definition.chargeSpeed ?? 520) * PLATFORMER_STEP_SECONDS;
+        if (remaining <= 0) {
+          return { ...sentinel, x: nextX, phaseMs, mode: "recover", attackTimerMs: definition.recoverDurationMs ?? 620 };
+        }
+        return { ...sentinel, x: nextX, phaseMs, attackTimerMs: remaining };
+      }
+      if (mode === "recover") {
+        const remaining = Math.max(0, (sentinel.attackTimerMs ?? 0) - PLATFORMER_STEP_MS);
+        if (remaining <= 0) {
+          return { ...sentinel, phaseMs, mode: "patrol", attackTimerMs: 0 };
+        }
+        return { ...sentinel, phaseMs, attackTimerMs: remaining };
+      }
+      let x = sentinel.x + sentinel.direction * definition.speed * PLATFORMER_STEP_SECONDS;
+      let direction = sentinel.direction;
+      if (x <= definition.patrolMinX) {
+        x = definition.patrolMinX;
+        direction = 1;
+      } else if (x + definition.width >= definition.patrolMaxX) {
+        x = definition.patrolMaxX - definition.width;
+        direction = -1;
+      }
+      const dx = player.x - x;
+      const dy = player.y - (definition.y + sentinel.y);
+      const inRange =
+        Math.abs(dx) <= (definition.aggroRange ?? 420) &&
+        Math.abs(dy) < 150 &&
+        Math.sign(dx) === direction &&
+        world.status === "playing";
+      if (inRange) {
+        return { ...sentinel, x, direction, phaseMs, mode: "charge", attackTimerMs: definition.chargeDurationMs ?? 720 };
+      }
+      return { ...sentinel, x, direction, phaseMs };
+    }
+
     // 爬虫/哨兵/弹跳兽：水平匀速巡逻，并在巡逻边界折返。
     let x = sentinel.x + sentinel.direction * definition.speed * PLATFORMER_STEP_SECONDS;
     let direction = sentinel.direction;
@@ -789,16 +906,18 @@ function resolveSentinelContacts(
       continue;
     }
     const player = world.player;
+    const hitbox = getSentinelHitbox(sentinel);
+    const spikesExtended = isSpikesExtended(sentinel);
     if (
       !rectsOverlap(
         player.x,
         player.y,
         player.width,
         player.height,
-        sentinel.x,
-        sentinel.definition.y + sentinel.y,
-        sentinel.definition.width,
-        sentinel.definition.height,
+        hitbox.x,
+        hitbox.y,
+        hitbox.width,
+        hitbox.height,
         2,
       )
     ) {
@@ -806,8 +925,9 @@ function resolveSentinelContacts(
     }
 
     const stomped =
+      !spikesExtended &&
       player.vy > 0 &&
-      player.previousY + player.height <= sentinel.definition.y + sentinel.y + STOMP_TOLERANCE;
+      player.previousY + player.height <= hitbox.y + STOMP_TOLERANCE;
     if (stomped) {
       sentinel.defeated = true;
       if (!world.defeatedSentinelIds.includes(sentinel.definition.id)) {
@@ -819,7 +939,7 @@ function resolveSentinelContacts(
           score: PLATFORMER_SCORE_SENTINEL,
         });
       }
-      player.y = sentinel.definition.y + sentinel.y - player.height - 2;
+      player.y = hitbox.y - player.height - 2;
       player.vy = -STOMP_BOUNCE_SPEED;
       player.onGround = false;
       player.groundPlatformId = null;
@@ -962,6 +1082,221 @@ function overlapsCheckpoint(player: PlayerState, checkpoint: CheckpointDefinitio
     checkpoint.height,
     2,
   );
+}
+
+function isSpikesExtended(sentinel: RuntimeSentinel): boolean {
+  if ((sentinel.definition.kind ?? "sentinel") !== "spiker") {
+    return false;
+  }
+  const cycle = sentinel.definition.spikeCycleMs ?? 2000;
+  const up = sentinel.definition.spikeUpMs ?? 650;
+  return (sentinel.phaseMs % cycle) < up;
+}
+
+function getSentinelHitbox(sentinel: RuntimeSentinel): {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+} {
+  const definition = sentinel.definition;
+  const spikeExtend = isSpikesExtended(sentinel) ? definition.spikeHeight ?? 22 : 0;
+  return { x: sentinel.x, y: definition.y + sentinel.y - spikeExtend, width: definition.width, height: definition.height + spikeExtend };
+}
+
+function collectWeaponPickups(
+  world: PlatformerWorld,
+  level: PlatformerLevel,
+  events: PlatformerEvent[],
+): void {
+  for (const pickup of level.weaponPickups) {
+    if (world.collectedPickupIds.includes(pickup.id)) {
+      continue;
+    }
+    if (
+      !rectsOverlap(
+        world.player.x,
+        world.player.y,
+        world.player.width,
+        world.player.height,
+        pickup.x,
+        pickup.y,
+        pickup.width,
+        pickup.height,
+        2,
+      )
+    ) {
+      continue;
+    }
+    world.collectedPickupIds.push(pickup.id);
+    const gained = Math.min(
+      world.weapon.maxAmmo - world.weapon.ammo,
+      PLATFORMER_WEAPON_PICKUP_AMMO,
+    );
+    if (gained > 0) {
+      world.weapon.ammo += gained;
+    }
+    events.push({ type: "weapon_pickup", pickupId: pickup.id, ammo: gained });
+  }
+}
+
+function updatePlayerWeapon(
+  world: PlatformerWorld,
+  input: PlatformerInput,
+  _level: PlatformerLevel,
+  events: PlatformerEvent[],
+): void {
+  world.weapon.cooldownMs = Math.max(0, world.weapon.cooldownMs - PLATFORMER_STEP_MS);
+  if (!input.firePressed || world.weapon.cooldownMs > 0 || world.weapon.ammo <= 0) {
+    return;
+  }
+  world.weapon.ammo -= 1;
+  world.weapon.cooldownMs = PLATFORMER_SHOOT_COOLDOWN_MS;
+  const player = world.player;
+  world.projectiles.push({
+    id: `plasma-${world.levelTimeMs}`,
+    x: player.x + (player.facing > 0 ? player.width : -PLATFORMER_PROJECTILE_WIDTH),
+    y: player.y + player.height * 0.32,
+    width: PLATFORMER_PROJECTILE_WIDTH,
+    height: PLATFORMER_PROJECTILE_HEIGHT,
+    vx: player.facing * PLATFORMER_PROJECTILE_SPEED,
+    vy: 0,
+    kind: "plasma",
+    owner: "player",
+    lifeMs: PLATFORMER_PROJECTILE_LIFE_MS,
+  });
+  events.push({ type: "shot_fired" });
+}
+
+function updateProjectiles(world: PlatformerWorld, level: PlatformerLevel): void {
+  const remaining: ProjectileState[] = [];
+  for (const projectile of world.projectiles) {
+    const x = projectile.x + projectile.vx * PLATFORMER_STEP_SECONDS;
+    const y = projectile.y + projectile.vy * PLATFORMER_STEP_SECONDS;
+    const lifeMs = projectile.lifeMs - PLATFORMER_STEP_MS;
+    if (lifeMs <= 0) {
+      continue;
+    }
+    if (projectileHitsSolidPlatform(x, y, projectile.width, projectile.height, level, world.platformOffsets)) {
+      continue;
+    }
+    remaining.push({ ...projectile, x, y, lifeMs });
+  }
+  world.projectiles = remaining;
+}
+
+function projectileHitsSolidPlatform(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  level: PlatformerLevel,
+  offsets: Record<string, PlatformOffset>,
+): boolean {
+  for (const platform of level.platforms) {
+    if (!isSolidPlatform(platform)) {
+      continue;
+    }
+    const bounds = getPlatformBounds(platform, offsets);
+    if (rectsOverlap(x, y, width, height, bounds.x, bounds.y, bounds.width, bounds.height, 1)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function resolvePlayerProjectiles(
+  world: PlatformerWorld,
+  level: PlatformerLevel,
+  events: PlatformerEvent[],
+): void {
+  if (world.status !== "playing") {
+    return;
+  }
+  const remaining: ProjectileState[] = [];
+  for (const projectile of world.projectiles) {
+    if (projectile.owner !== "player") {
+      remaining.push(projectile);
+      continue;
+    }
+    let hit = false;
+    for (const sentinel of world.sentinels) {
+      if (sentinel.defeated) {
+        continue;
+      }
+      const hitbox = getSentinelHitbox(sentinel);
+      if (
+        !rectsOverlap(
+          projectile.x,
+          projectile.y,
+          projectile.width,
+          projectile.height,
+          hitbox.x,
+          hitbox.y,
+          hitbox.width,
+          hitbox.height,
+          1,
+        )
+      ) {
+        continue;
+      }
+      hit = true;
+      sentinel.defeated = true;
+      if (!world.defeatedSentinelIds.includes(sentinel.definition.id)) {
+        world.defeatedSentinelIds.push(sentinel.definition.id);
+        addWorldScore(world, PLATFORMER_SCORE_SENTINEL, level.id);
+        events.push({
+          type: "sentinel_shot",
+          sentinelId: sentinel.definition.id,
+          score: PLATFORMER_SCORE_SENTINEL,
+        });
+      }
+      events.push({ type: "projectile_hit", source: "player" });
+      break;
+    }
+    if (!hit) {
+      remaining.push(projectile);
+    }
+  }
+  world.projectiles = remaining;
+}
+
+function resolveEnemyProjectiles(
+  world: PlatformerWorld,
+  _level: PlatformerLevel,
+  events: PlatformerEvent[],
+): void {
+  if (world.status !== "playing") {
+    return;
+  }
+  const remaining: ProjectileState[] = [];
+  for (const projectile of world.projectiles) {
+    if (projectile.owner !== "enemy") {
+      remaining.push(projectile);
+      continue;
+    }
+    if (
+      rectsOverlap(
+        projectile.x,
+        projectile.y,
+        projectile.width,
+        projectile.height,
+        world.player.x,
+        world.player.y,
+        world.player.width,
+        world.player.height,
+        1,
+      ) &&
+      world.player.invincibleMs <= 0
+    ) {
+      events.push({ type: "projectile_hit", source: "enemy" });
+      applyDamage(world, "sentinel", events);
+      world.projectiles = [];
+      return;
+    }
+    remaining.push(projectile);
+  }
+  world.projectiles = remaining;
 }
 
 function updateCamera(world: PlatformerWorld, level: PlatformerLevel): void {

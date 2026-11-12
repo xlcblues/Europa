@@ -170,6 +170,7 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
     }
     inputRef.current.jumpPressed = false;
     inputRef.current.downPressed = false;
+    inputRef.current.firePressed = false;
   }
 
   function handleEvent(event: PlatformerEvent): void {
@@ -212,6 +213,20 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
         clearSave();
         setPhase("game_over");
         stopLoop();
+        break;
+      case "sentinel_shot":
+        getAudio().play("sentinel");
+        break;
+      case "shot_fired":
+        getAudio().play("shoot");
+        break;
+      case "weapon_pickup":
+        getAudio().play("pickup");
+        break;
+      case "projectile_hit":
+        if (event.source === "enemy") {
+          getAudio().play("damage");
+        }
         break;
       default:
         break;
@@ -329,6 +344,7 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
     setPhase("paused");
     inputRef.current.jumpPressed = false;
     inputRef.current.downPressed = false;
+    inputRef.current.firePressed = false;
     getAudio().play("pause");
     saveCheckpoint();
   }
@@ -441,6 +457,13 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
         event.preventDefault();
         if (!event.repeat) {
           input.downPressed = true;
+        }
+        break;
+      case "KeyJ":
+      case "KeyX":
+        event.preventDefault();
+        if (!event.repeat) {
+          input.firePressed = true;
         }
         break;
       default:
@@ -558,6 +581,10 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
         case "ArrowDown":
           input.downPressed = false;
           break;
+        case "KeyJ":
+        case "KeyX":
+          input.firePressed = false;
+          break;
         default:
           break;
       }
@@ -648,6 +675,7 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
             <span className="platformer-controls-inline">
               <kbd>A / D</kbd><kbd>← →</kbd>移动
               <kbd>Space</kbd>跳跃
+              <kbd>J / X</kbd>射击
               <kbd>Esc</kbd>暂停
             </span>
             <span className="platformer-stage-score" aria-live="polite">
@@ -699,6 +727,10 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
                 <span>敌人击退</span>
                 <strong>{world?.defeatedSentinelIds.length ?? 0}</strong>
               </div>
+              <div>
+                <span>等离子弹药</span>
+                <strong>{world ? world.weapon.ammo + "/" + world.weapon.maxAmmo : "—"}</strong>
+              </div>
             </div>
           </section>
 
@@ -720,6 +752,10 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
             <div className="platformer-control-row is-keys">
               <span><kbd>S</kbd><kbd>↓</kbd></span>
               <span>下穿冰台</span>
+            </div>
+            <div className="platformer-control-row is-keys">
+              <span><kbd>J</kbd><kbd>X</kbd></span>
+              <span>射击（等离子炮）</span>
             </div>
             <div className="platformer-control-row is-keys">
               <span><kbd>Esc</kbd><kbd>R</kbd></span>

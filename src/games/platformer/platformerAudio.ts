@@ -4,6 +4,8 @@ export type PlatformerSound =
   | "jump"
   | "crystal"
   | "sentinel"
+  | "shoot"
+  | "pickup"
   | "checkpoint"
   | "damage"
   | "level-complete"
@@ -25,6 +27,11 @@ const SOUND_PATTERNS: Record<PlatformerSound, readonly ToneStep[]> = {
   sentinel: [
     { frequency: 523, durationMs: 70, gain: 0.035 },
     { frequency: 311, durationMs: 90, delayMs: 55, gain: 0.03 },
+  ],
+  shoot: [{ frequency: 720, durationMs: 55, gain: 0.03, type: "square" }],
+  pickup: [
+    { frequency: 660, durationMs: 70, gain: 0.035 },
+    { frequency: 990, durationMs: 90, delayMs: 60, gain: 0.03 },
   ],
   checkpoint: [
     { frequency: 622, durationMs: 90, gain: 0.04 },

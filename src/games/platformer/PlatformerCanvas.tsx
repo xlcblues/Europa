@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import {
   PLATFORMER_LOGICAL_HEIGHT,
   PLATFORMER_LOGICAL_WIDTH,
+  type LevelDecoration,
   type LevelPalette,
   type PlatformMotion,
   type PlatformerLevel,
@@ -98,11 +99,14 @@ export function PlatformerCanvas({ world, reducedMotion, ariaLabel }: Platformer
       // 世界对象统一按相机偏移投影：相机右移时，场景整体左移，角色不会在屏幕右缘消失。
       context.save();
       context.translate(-currentWorld.camera.x, 0);
+      drawDecorations(state);
       drawBeacon(state);
       drawPlatforms(state);
       drawCheckpoints(state);
       drawCrystals(state);
       drawEnemies(state);
+      drawProjectiles(state);
+      drawWeaponPickups(state);
       drawPlayer(state);
       context.restore();
 
@@ -149,11 +153,34 @@ function drawSky({ context, level }: DrawState): void {
   context.fillStyle = gradient;
   context.fillRect(0, 0, PLATFORMER_LOGICAL_WIDTH, PLATFORMER_LOGICAL_HEIGHT);
 
+  const glowColor =
+    level.theme === "core"
+      ? "rgba(255, 158, 198, 0.15)"
+      : level.theme === "night"
+        ? "rgba(167, 139, 250, 0.16)"
+        : level.theme === "tide"
+          ? "rgba(92, 240, 221, 0.14)"
+          : "rgba(232, 248, 252, 0.15)";
   const stars = context.createRadialGradient(900, 120, 8, 900, 120, 420);
-  stars.addColorStop(0, "rgba(232, 248, 252, 0.16)");
+  stars.addColorStop(0, glowColor);
   stars.addColorStop(1, "rgba(232, 248, 252, 0)");
   context.fillStyle = stars;
   context.fillRect(0, 0, PLATFORMER_LOGICAL_WIDTH, 420);
+
+  // 星点（按主题确定性分布，避免闪烁）
+  const random = createSeededRandom(hashSeed("sky-" + level.theme));
+  context.save();
+  context.globalAlpha = 0.5;
+  context.fillStyle = level.palette.iceLight;
+  for (let i = 0; i < 46; i += 1) {
+    const sx = random() * PLATFORMER_LOGICAL_WIDTH;
+    const sy = random() * 300;
+    const size = random() * 1.6 + 0.6;
+    context.beginPath();
+    context.arc(sx, sy, size, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.restore();
 }
 
 function drawParallax({ context, level, cameraX, world, reducedMotion }: DrawState): void {
@@ -165,12 +192,12 @@ function drawParallax({ context, level, cameraX, world, reducedMotion }: DrawSta
     },
     {
       factor: 0.28,
-      color: "rgba(23, 60, 75, 0.82)",
+      color: level.palette.iceDeep + "c8",
       peaks: [180, 520, 980, 1420, 1860, 2260, 2680, 3100],
     },
     {
       factor: 0.48,
-      color: "rgba(23, 60, 75, 0.42)",
+      color: level.palette.iceDeep + "6e",
       peaks: [240, 640, 1100, 1540, 1980, 2400, 2840],
     },
   ];
@@ -264,6 +291,313 @@ function drawIceSeams(
     context.lineTo(sx + (random() - 0.5) * 16, y + depth * 0.85);
     context.stroke();
   }
+}
+
+/** 场景装饰物：按主题在背景层绘制极光、星云与地貌特征（不参与碰撞）。 */
+function drawDecorations({ context, level, world, reducedMotion }: DrawState): void {
+  const { palette } = level;
+  const cameraX = world.camera.x;
+  for (const decoration of level.decorations) {
+    const screenX = decoration.x - cameraX;
+    if (screenX < -160 || screenX > PLATFORMER_LOGICAL_WIDTH + 160) {
+      continue;
+    }
+    switch (decoration.kind) {
+      case "aurora":
+        drawAuroraBand(context, decoration, palette, world.levelTimeMs, reducedMotion);
+        break;
+      case "nebula":
+        drawNebulaBlob(context, decoration, palette);
+        break;
+      case "iceSpire":
+        drawIceSpire(context, decoration, palette);
+        break;
+      case "crystalSpire":
+        drawCrystalSpire(context, decoration, palette, world.levelTimeMs, reducedMotion);
+        break;
+      case "rockColumn":
+        drawRockColumn(context, decoration, palette);
+        break;
+      case "tideWisp":
+        drawTideWisp(context, decoration, palette, world.levelTimeMs, reducedMotion);
+        break;
+      case "emberVent":
+        drawEmberVent(context, decoration, palette, world.levelTimeMs, reducedMotion);
+        break;
+      case "floatingShard":
+        drawFloatingShard(context, decoration, palette, world.levelTimeMs, reducedMotion);
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+/** 极光带：蜿蜒的透明光带，随游戏时间缓慢流动。 */
+function drawAuroraBand(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const sway = reducedMotion ? 0 : Math.sin(timeMs * 0.0011 + decoration.variant * 1.7) * 26;
+  const midY = decoration.y + decoration.height * 0.5;
+  const gradient = context.createLinearGradient(0, decoration.y, 0, decoration.y + decoration.height);
+  gradient.addColorStop(0, "rgba(88, 217, 236, 0)");
+  gradient.addColorStop(0.5, palette.accentSoft);
+  gradient.addColorStop(1, "rgba(88, 217, 236, 0)");
+  context.save();
+  context.globalAlpha = 0.6 + (reducedMotion ? 0 : 0.18 * Math.sin(timeMs * 0.002 + decoration.variant * 2));
+  context.fillStyle = gradient;
+  context.beginPath();
+  context.moveTo(decoration.x, midY);
+  context.quadraticCurveTo(
+    decoration.x + decoration.width * 0.3,
+    midY + sway,
+    decoration.x + decoration.width * 0.58,
+    midY,
+  );
+  context.quadraticCurveTo(
+    decoration.x + decoration.width * 0.82,
+    midY - sway * 0.7,
+    decoration.x + decoration.width,
+    midY,
+  );
+  context.lineTo(decoration.x + decoration.width, decoration.y + decoration.height);
+  context.lineTo(decoration.x, decoration.y + decoration.height);
+  context.closePath();
+  context.fill();
+  context.restore();
+}
+
+/** 星云：柔和的径向光晕，悬浮于夜空中。 */
+function drawNebulaBlob(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+): void {
+  const cx = decoration.x + decoration.width * 0.5;
+  const cy = decoration.y + decoration.height * 0.5;
+  const radius = Math.max(decoration.width, decoration.height) * 0.5;
+  const glow = context.createRadialGradient(cx, cy, 4, cx, cy, radius);
+  glow.addColorStop(0, palette.accentSoft);
+  glow.addColorStop(0.65, "rgba(23, 60, 75, 0.05)");
+  glow.addColorStop(1, "rgba(23, 60, 75, 0)");
+  context.save();
+  context.globalAlpha = 0.5 + 0.14 * ((decoration.variant % 3) - 1) * 0.5;
+  context.fillStyle = glow;
+  context.beginPath();
+  context.arc(cx, cy, radius, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+}
+
+/** 冰峰：从冰面向上生长的尖锐冰刺。 */
+function drawIceSpire(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+): void {
+  const baseY = decoration.y + decoration.height;
+  const half = decoration.width * 0.5;
+  const lean = (decoration.variant % 3) - 1;
+  const body = context.createLinearGradient(decoration.x, 0, decoration.x + decoration.width, 0);
+  body.addColorStop(0, palette.iceDeep);
+  body.addColorStop(0.5, palette.iceMid);
+  body.addColorStop(1, palette.iceLight);
+  context.save();
+  context.fillStyle = body;
+  context.beginPath();
+  context.moveTo(decoration.x, baseY);
+  context.lineTo(decoration.x + decoration.width, baseY);
+  context.lineTo(decoration.x + half + lean * 8, decoration.y);
+  context.closePath();
+  context.fill();
+  context.globalAlpha = 0.5;
+  context.fillStyle = palette.iceLight;
+  context.beginPath();
+  context.moveTo(decoration.x + decoration.width * 0.5, baseY);
+  context.lineTo(decoration.x + half + lean * 8, decoration.y);
+  context.lineTo(decoration.x + decoration.width * 0.62, baseY);
+  context.closePath();
+  context.fill();
+  context.globalAlpha = 1;
+  context.restore();
+}
+
+/** 晶体尖塔：发光的青色晶簇。 */
+function drawCrystalSpire(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const baseY = decoration.y + decoration.height;
+  const cx = decoration.x + decoration.width * 0.5;
+  const pulse = reducedMotion ? 0.7 : 0.62 + 0.2 * Math.sin(timeMs * 0.005 + decoration.variant * 2);
+  context.save();
+  context.globalAlpha = pulse;
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.moveTo(decoration.x, baseY);
+  context.lineTo(decoration.x + decoration.width, baseY);
+  context.lineTo(cx, decoration.y);
+  context.closePath();
+  context.fill();
+  context.globalAlpha = 1;
+  context.fillStyle = palette.iceLight;
+  context.beginPath();
+  context.moveTo(cx - decoration.width * 0.2, baseY);
+  context.lineTo(cx + decoration.width * 0.18, baseY);
+  context.lineTo(cx, decoration.y + 6);
+  context.closePath();
+  context.fill();
+  context.restore();
+}
+
+/** 岩柱：粗壮的暗色石柱，带横向岩层纹路。 */
+function drawRockColumn(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+): void {
+  const baseY = decoration.y + decoration.height;
+  const body = context.createLinearGradient(decoration.x, 0, decoration.x + decoration.width, 0);
+  body.addColorStop(0, "rgba(0, 0, 0, 0.4)");
+  body.addColorStop(0.5, palette.iceDeep);
+  body.addColorStop(1, "rgba(0, 0, 0, 0.4)");
+  context.save();
+  context.fillStyle = body;
+  context.beginPath();
+  context.moveTo(decoration.x + decoration.width * 0.12, baseY);
+  context.lineTo(decoration.x + decoration.width * 0.3, decoration.y);
+  context.lineTo(decoration.x + decoration.width * 0.72, decoration.y);
+  context.lineTo(decoration.x + decoration.width * 0.88, baseY);
+  context.closePath();
+  context.fill();
+  context.globalAlpha = 0.22;
+  context.strokeStyle = palette.iceLight;
+  context.lineWidth = 1.5;
+  for (let i = 0; i < 3; i += 1) {
+    const layerY = decoration.y + decoration.height * (0.24 + i * 0.24);
+    context.beginPath();
+    context.moveTo(decoration.x + decoration.width * 0.22, layerY);
+    context.lineTo(decoration.x + decoration.width * 0.8, layerY);
+    context.stroke();
+  }
+  context.globalAlpha = 1;
+  context.restore();
+}
+
+/** 潮汐萤光：漂浮的青色光球，缓慢上下浮动。 */
+function drawTideWisp(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const cx = decoration.x + decoration.width * 0.5;
+  const cy =
+    decoration.y +
+    decoration.height * 0.5 +
+    (reducedMotion ? 0 : Math.sin(timeMs * 0.004 + decoration.variant * 2) * 8);
+  const pulse = reducedMotion ? 0.8 : 0.6 + 0.3 * Math.sin(timeMs * 0.007 + decoration.variant * 3);
+  context.save();
+  context.globalAlpha = pulse;
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.arc(cx, cy, decoration.width * 0.5, 0, Math.PI * 2);
+  context.fill();
+  context.globalAlpha = 1;
+  context.fillStyle = palette.iceLight;
+  context.beginPath();
+  context.arc(cx - decoration.width * 0.15, cy - decoration.height * 0.15, decoration.width * 0.14, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+}
+
+/** 熔岩喷口：暗色底座 + 脉动熔光 + 升腾火星。 */
+function drawEmberVent(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const random = createSeededRandom(hashSeed(`vent-${decoration.x}`));
+  const pulse = reducedMotion ? 0.6 : 0.5 + 0.3 * Math.sin(timeMs * 0.006 + decoration.variant * 2);
+  context.save();
+  context.fillStyle = palette.iceDeep;
+  context.beginPath();
+  context.roundRect(decoration.x, decoration.y, decoration.width, decoration.height, 5);
+  context.fill();
+  context.globalAlpha = pulse;
+  context.fillStyle = palette.beacon;
+  context.beginPath();
+  context.ellipse(
+    decoration.x + decoration.width * 0.5,
+    decoration.y + 4,
+    decoration.width * 0.36,
+    4,
+    0,
+    0,
+    Math.PI * 2,
+  );
+  context.fill();
+  context.globalAlpha = 1;
+  if (!reducedMotion) {
+    for (let i = 0; i < 3; i += 1) {
+      const t = ((timeMs * 0.5 + i * 210 + decoration.variant * 90) % 900) / 900;
+      const ex = decoration.x + decoration.width * (0.2 + 0.6 * random());
+      const ey = decoration.y + decoration.height * 0.5 - t * 26 - 4;
+      context.globalAlpha = (1 - t) * 0.8;
+      context.fillStyle = palette.accent;
+      context.beginPath();
+      context.arc(ex, ey, 1.6 + t * 1.4, 0, Math.PI * 2);
+      context.fill();
+    }
+  }
+  context.globalAlpha = 1;
+  context.restore();
+}
+
+/** 浮空碎片：缓慢漂浮的菱形冰晶。 */
+function drawFloatingShard(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const cx = decoration.x + decoration.width * 0.5;
+  const cy =
+    decoration.y +
+    decoration.height * 0.5 +
+    (reducedMotion ? 0 : Math.sin(timeMs * 0.003 + decoration.variant * 2) * 7);
+  const pulse = reducedMotion ? 0.75 : 0.65 + 0.2 * Math.sin(timeMs * 0.006 + decoration.variant);
+  context.save();
+  context.globalAlpha = pulse;
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.moveTo(cx, cy - decoration.height * 0.5);
+  context.lineTo(cx + decoration.width * 0.5, cy);
+  context.lineTo(cx, cy + decoration.height * 0.5);
+  context.lineTo(cx - decoration.width * 0.5, cy);
+  context.closePath();
+  context.fill();
+  context.globalAlpha = 1;
+  context.fillStyle = palette.iceLight;
+  context.beginPath();
+  context.moveTo(cx, cy - decoration.height * 0.3);
+  context.lineTo(cx + decoration.width * 0.24, cy);
+  context.lineTo(cx, cy + decoration.height * 0.3);
+  context.lineTo(cx - decoration.width * 0.24, cy);
+  context.closePath();
+  context.fill();
+  context.restore();
 }
 
 /** 薄冰架（单向平台）：半透明浮冰板。 */
@@ -405,6 +739,10 @@ function drawPlatforms({ context, level, world, reducedMotion }: DrawState): voi
     const height = platform.height;
     const { palette } = level;
 
+    if (x + width < world.camera.x - 120 || x > world.camera.x + PLATFORMER_LOGICAL_WIDTH + 120) {
+      continue;
+    }
+
     if (platform.kind === "oneWay") {
       drawOneWayPlatform(context, x, y, width, height, palette, level.height);
       continue;
@@ -504,6 +842,12 @@ function drawEnemies({ context, level, world, reducedMotion }: DrawState): void 
       drawDrifter(state);
     } else if (kind === "hopper") {
       drawHopper(state);
+    } else if (kind === "gunner") {
+      drawGunner(state);
+    } else if (kind === "charger") {
+      drawCharger(state);
+    } else if (kind === "spiker") {
+      drawSpiker(state);
     } else {
       drawClassicSentinel(state);
     }
@@ -789,6 +1133,298 @@ function drawHopper({ context, sentinel, top, timeMs, reducedMotion, palette }: 
 
   context.restore();
 }
+/** 炮台射手：装甲炮塔 + 旋转炮管，进入射程后瞄准玩家开火。 */
+function drawGunner({ context, sentinel, top, timeMs, reducedMotion, palette }: EnemyDrawState): void {
+  const definition = sentinel.definition;
+  const sy = top;
+  const facing = sentinel.direction;
+
+  context.save();
+  context.translate(sentinel.x + definition.width * 0.5, sy);
+  context.scale(facing, 1);
+
+  // 支撑底座
+  context.fillStyle = "#0a1a24";
+  context.beginPath();
+  context.roundRect(-12, definition.height - 9, 24, 9, 3);
+  context.fill();
+
+  // 装甲炮塔（径向渐变躯干）
+  const body = context.createRadialGradient(
+    0,
+    definition.height * 0.42,
+    2,
+    0,
+    definition.height * 0.42,
+    definition.width * 0.5,
+  );
+  body.addColorStop(0, palette.iceMid);
+  body.addColorStop(1, palette.iceDeep);
+  context.fillStyle = body;
+  context.beginPath();
+  context.arc(0, definition.height * 0.42, definition.width * 0.42, 0, Math.PI * 2);
+  context.fill();
+
+  // 装甲环带
+  context.strokeStyle = "rgba(216, 247, 251, 0.25)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.arc(0, definition.height * 0.42, definition.width * 0.28, 0, Math.PI * 2);
+  context.stroke();
+
+  // 炮塔基座与炮管（朝前）
+  context.fillStyle = "#0a1a24";
+  context.beginPath();
+  context.roundRect(-4, -10, 8, definition.height * 0.58, 3);
+  context.fill();
+  context.beginPath();
+  context.roundRect(4, definition.height * 0.26, definition.width * 0.4, 7, 3);
+  context.fill();
+
+  // 炮口蓄能光
+  const glow = reducedMotion ? 0.6 : 0.5 + 0.3 * Math.sin(timeMs * 0.012);
+  context.globalAlpha = glow;
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.arc(4 + definition.width * 0.4, definition.height * 0.29, 3.4, 0, Math.PI * 2);
+  context.fill();
+  context.globalAlpha = 1;
+
+  // 观测眼
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.arc(0, definition.height * 0.38, 4.5, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = palette.iceLight;
+  context.beginPath();
+  context.arc(1.4, definition.height * 0.36, 1.8, 0, Math.PI * 2);
+  context.fill();
+
+  context.restore();
+}
+
+/** 冲锋兽：重装冰甲 + 护目镜头盔，冲锋时拉出加速残影。 */
+function drawCharger({ context, sentinel, top, timeMs, reducedMotion, palette }: EnemyDrawState): void {
+  const definition = sentinel.definition;
+  const sy = top;
+  const facing = sentinel.direction;
+  const charging = sentinel.mode === "charge";
+
+  context.save();
+  context.translate(sentinel.x + definition.width * 0.5, sy);
+  context.scale(facing, 1);
+
+  // 冲锋残影
+  if (charging && !reducedMotion) {
+    context.globalAlpha = 0.22;
+    context.fillStyle = palette.accent;
+    context.beginPath();
+    context.roundRect(-definition.width * 0.5 - 16, 2, definition.width * 0.9, definition.height * 0.55, 8);
+    context.fill();
+    context.globalAlpha = 1;
+  }
+
+  // 冰甲身体
+  const body = context.createLinearGradient(0, 0, 0, definition.height);
+  body.addColorStop(0, palette.iceMid);
+  body.addColorStop(1, palette.iceDeep);
+  context.fillStyle = body;
+  context.beginPath();
+  context.roundRect(-definition.width * 0.5, 0, definition.width, definition.height * 0.78, 9);
+  context.fill();
+
+  // 背甲板
+  context.fillStyle = palette.iceDeep;
+  context.beginPath();
+  context.roundRect(-definition.width * 0.5 + 3, 4, definition.width - 6, definition.height * 0.4, 6);
+  context.fill();
+  context.strokeStyle = "rgba(216, 247, 251, 0.2)";
+  context.lineWidth = 1.5;
+  context.beginPath();
+  context.moveTo(-definition.width * 0.5 + 8, 4);
+  context.lineTo(-definition.width * 0.5 + 8, definition.height * 0.42);
+  context.stroke();
+
+  // 头盔 + 护目镜
+  context.fillStyle = "#0a1a24";
+  context.beginPath();
+  context.roundRect(-definition.width * 0.5, 0, definition.width, 12, 6);
+  context.fill();
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.roundRect(-definition.width * 0.4, 3, definition.width * 0.8, 5, 2.5);
+  context.fill();
+  const visorPulse = reducedMotion ? 1 : 0.75 + 0.25 * Math.sin(timeMs * 0.014);
+  context.globalAlpha = visorPulse;
+  context.fillStyle = palette.iceLight;
+  context.beginPath();
+  context.roundRect(-definition.width * 0.3, 4.4, definition.width * 0.5, 2.4, 1.2);
+  context.fill();
+  context.globalAlpha = 1;
+
+  // 腿部（冲锋时前倾）
+  context.fillStyle = "#0a1a24";
+  context.beginPath();
+  context.roundRect(-definition.width * 0.4, definition.height * 0.66, 8, definition.height * 0.34, 3);
+  context.fill();
+  context.beginPath();
+  context.roundRect(definition.width * 0.14, definition.height * 0.66, 8, definition.height * 0.34, 3);
+  context.fill();
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.roundRect(-definition.width * 0.4, definition.height * 0.9, 8, 3, 1.5);
+  context.fill();
+  context.beginPath();
+  context.roundRect(definition.width * 0.14, definition.height * 0.9, 8, 3, 1.5);
+  context.fill();
+
+  context.restore();
+}
+
+/** 尖刺傀儡：原地驻守，周期性伸出/收回尖刺（伸出时不可踩踏）。 */
+function drawSpiker({ context, sentinel, top, timeMs, reducedMotion, palette }: EnemyDrawState): void {
+  const definition = sentinel.definition;
+  const sy = top;
+  const cycle = definition.spikeCycleMs ?? 2000;
+  const upMs = definition.spikeUpMs ?? 650;
+  const progress = (sentinel.phaseMs % cycle) / cycle;
+  const up = progress < upMs / cycle;
+  const spikeHeight = definition.spikeHeight ?? 22;
+  const extend = up ? spikeHeight : spikeHeight * 0.15;
+  const cx = sentinel.x + definition.width * 0.5;
+
+  context.save();
+  // 基座
+  context.fillStyle = palette.iceDeep;
+  context.beginPath();
+  context.roundRect(sentinel.x + 2, sy, definition.width - 4, definition.height, 6);
+  context.fill();
+  context.fillStyle = "rgba(216, 247, 251, 0.18)";
+  context.beginPath();
+  context.roundRect(sentinel.x + 5, sy + 2, definition.width - 10, 4, 2);
+  context.fill();
+
+  // 尖刺（伸出动画）
+  const spikeColor = up ? palette.accent : palette.iceMid;
+  context.fillStyle = spikeColor;
+  for (let i = 0; i < 5; i += 1) {
+    const sx = sentinel.x + 8 + i * ((definition.width - 16) / 4);
+    const tipX = sx + (i - 2) * 2;
+    context.beginPath();
+    context.moveTo(sx - 4, sy);
+    context.lineTo(sx + 4, sy);
+    context.lineTo(tipX, sy - extend);
+    context.closePath();
+    context.fill();
+  }
+
+  // 顶部警示灯
+  const pulse = reducedMotion ? 0.8 : up ? 1 : 0.4 + 0.2 * Math.sin(timeMs * 0.01);
+  context.globalAlpha = pulse;
+  context.fillStyle = palette.beacon;
+  context.beginPath();
+  context.arc(cx, sy - extend - 3, 2.6, 0, Math.PI * 2);
+  context.fill();
+  context.globalAlpha = 1;
+  context.restore();
+}
+
+/** 投射物：玩家青蓝等离子弹 + 敌方冰晶弹。 */
+function drawProjectiles({ context, level, world, reducedMotion }: DrawState): void {
+  const { palette } = level;
+  for (const projectile of world.projectiles) {
+    const screenX = projectile.x - world.camera.x;
+    if (screenX < -40 || screenX > PLATFORMER_LOGICAL_WIDTH + 40) {
+      continue;
+    }
+    const cx = projectile.x + projectile.width * 0.5;
+    const cy = projectile.y + projectile.height * 0.5;
+    const trail = reducedMotion ? 0.4 : 0.3 + 0.25 * Math.sin(world.levelTimeMs * 0.03 + projectile.x);
+    context.save();
+    if (projectile.kind === "plasma") {
+      // 玩家等离子弹：青蓝流线弹体 + 拖尾
+      context.globalAlpha = trail;
+      context.fillStyle = palette.accentSoft;
+      context.beginPath();
+      context.ellipse(cx - projectile.width * 1.8, cy, projectile.width * 2.1, projectile.height * 0.7, 0, 0, Math.PI * 2);
+      context.fill();
+      context.globalAlpha = 1;
+      const body = context.createLinearGradient(projectile.x, 0, projectile.x + projectile.width, 0);
+      body.addColorStop(0, palette.iceLight);
+      body.addColorStop(1, palette.accent);
+      context.fillStyle = body;
+      context.beginPath();
+      context.roundRect(projectile.x, projectile.y, projectile.width, projectile.height, 4);
+      context.fill();
+    } else {
+      // 敌方冰晶弹：旋转菱形冰晶
+      context.globalAlpha = trail;
+      context.fillStyle = "rgba(216, 247, 251, 0.28)";
+      context.beginPath();
+      context.arc(cx, cy, projectile.width * 1.7, 0, Math.PI * 2);
+      context.fill();
+      context.globalAlpha = 1;
+      context.fillStyle = palette.iceLight;
+      context.beginPath();
+      context.moveTo(cx, cy - projectile.height * 1.4);
+      context.lineTo(cx + projectile.width, cy);
+      context.lineTo(cx, cy + projectile.height * 1.4);
+      context.lineTo(cx - projectile.width, cy);
+      context.closePath();
+      context.fill();
+      context.fillStyle = palette.accent;
+      context.beginPath();
+      context.moveTo(cx, cy - projectile.height * 0.7);
+      context.lineTo(cx + projectile.width * 0.5, cy);
+      context.lineTo(cx, cy + projectile.height * 0.7);
+      context.lineTo(cx - projectile.width * 0.5, cy);
+      context.closePath();
+      context.fill();
+    }
+    context.restore();
+  }
+}
+
+/** 武器补给点：漂浮的弹药箱，带脉冲光环。 */
+function drawWeaponPickups({ context, level, world, reducedMotion }: DrawState): void {
+  const pulse = reducedMotion ? 0.8 : 0.65 + 0.25 * Math.sin(world.levelTimeMs * 0.006);
+  for (const pickup of level.weaponPickups) {
+    if (world.collectedPickupIds.includes(pickup.id)) {
+      continue;
+    }
+    const screenX = pickup.x - world.camera.x;
+    if (screenX < -60 || screenX > PLATFORMER_LOGICAL_WIDTH + 60) {
+      continue;
+    }
+    const cx = pickup.x + pickup.width * 0.5;
+    const cy =
+      pickup.y +
+      pickup.height * 0.5 +
+      (reducedMotion ? 0 : Math.sin(world.levelTimeMs * 0.004 + pickup.x) * 4);
+    context.save();
+    context.globalAlpha = pulse;
+    context.fillStyle = level.palette.accentSoft;
+    context.beginPath();
+    context.arc(cx, cy, pickup.width * 0.9, 0, Math.PI * 2);
+    context.fill();
+    context.globalAlpha = 1;
+    context.fillStyle = level.palette.iceDeep;
+    context.beginPath();
+    context.roundRect(pickup.x, pickup.y, pickup.width, pickup.height, 5);
+    context.fill();
+    context.strokeStyle = level.palette.accent;
+    context.lineWidth = 2;
+    context.strokeRect(pickup.x + 1.5, pickup.y + 1.5, pickup.width - 3, pickup.height - 3);
+    context.fillStyle = level.palette.accent;
+    context.fillRect(cx - 7, cy - 3, 5, 6);
+    context.fillRect(cx + 2, cy - 3, 5, 6);
+    context.fillStyle = level.palette.iceLight;
+    context.fillRect(cx - 7, cy - 1, 5, 2);
+    context.fillRect(cx + 2, cy - 1, 5, 2);
+    context.restore();
+  }
+}
+
 function drawCheckpoints({ context, level, world }: DrawState): void {
   for (const checkpoint of level.checkpoints) {
     const activated = world.activatedCheckpointIds.includes(checkpoint.id);
