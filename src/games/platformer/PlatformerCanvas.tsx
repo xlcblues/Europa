@@ -7,6 +7,7 @@ import {
   type LevelPalette,
   type PlatformMotion,
   type PlatformerLevel,
+  type PlatformerTheme,
   type PlatformerWorld,
   type RuntimeSentinel,
 } from "./platformerTypes";
@@ -146,6 +147,7 @@ export function PlatformerCanvas({ world, reducedMotion, ariaLabel }: Platformer
   );
 }
 
+/** 天空：按主题渐变与星点光晕（最远景层）。 */
 function drawSky({ context, level }: DrawState): void {
   const gradient = context.createLinearGradient(0, 0, 0, PLATFORMER_LOGICAL_HEIGHT);
   gradient.addColorStop(0, level.palette.skyTop);
@@ -160,7 +162,11 @@ function drawSky({ context, level }: DrawState): void {
         ? "rgba(167, 139, 250, 0.16)"
         : level.theme === "tide"
           ? "rgba(92, 240, 221, 0.14)"
-          : "rgba(232, 248, 252, 0.15)";
+          : level.theme === "cavern"
+            ? "rgba(197, 140, 255, 0.13)"
+            : level.theme === "gorge"
+              ? "rgba(99, 228, 244, 0.12)"
+              : "rgba(232, 248, 252, 0.15)";
   const stars = context.createRadialGradient(900, 120, 8, 900, 120, 420);
   stars.addColorStop(0, glowColor);
   stars.addColorStop(1, "rgba(232, 248, 252, 0)");
@@ -183,47 +189,8 @@ function drawSky({ context, level }: DrawState): void {
   context.restore();
 }
 
-function drawParallax({ context, level, cameraX, world, reducedMotion }: DrawState): void {
-  const layers: Array<{ factor: number; color: string; peaks: number[] }> = [
-    {
-      factor: 0.12,
-      color: level.palette.iceDeep,
-      peaks: [0, 420, 820, 1240, 1620, 2020, 2440, 2820],
-    },
-    {
-      factor: 0.28,
-      color: level.palette.iceDeep + "c8",
-      peaks: [180, 520, 980, 1420, 1860, 2260, 2680, 3100],
-    },
-    {
-      factor: 0.48,
-      color: level.palette.iceDeep + "6e",
-      peaks: [240, 640, 1100, 1540, 1980, 2400, 2840],
-    },
-  ];
-
-  layers.forEach((layer, index) => {
-    // 视差漂移与游戏时间同步（暂停冻结、恢复续接）；减少动态时禁用漂移。
-    const drift = !reducedMotion && index === 2 && world.levelTimeMs > 0
-      ? (world.levelTimeMs * 0.0072) % 160
-      : 0;
-    const startX = -(cameraX * layer.factor) % 160;
-    context.fillStyle = layer.color;
-    context.beginPath();
-    context.moveTo(-drift, PLATFORMER_LOGICAL_HEIGHT);
-    for (let column = 0; column < 9; column += 1) {
-      const x = startX - drift + column * 160;
-      const peakY = 460 - ((layer.peaks[column % layer.peaks.length] ?? 360) % 180);
-      context.lineTo(x, peakY);
-      context.lineTo(x + 80, peakY + 26);
-    }
-    context.lineTo(PLATFORMER_LOGICAL_WIDTH + 160, PLATFORMER_LOGICAL_HEIGHT);
-    context.closePath();
-    context.fill();
-  });
-}
-
 /** 以稳定种子生成确定性伪随机，保证冰面纹理在重绘时不会闪烁。 */
+
 function createSeededRandom(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
@@ -240,57 +207,326 @@ function hashSeed(value: string): number {
   return hash;
 }
 
-/** 冰凌：沿平台下缘垂悬的小冰锥。 */
-function drawIcicles(
+/** 远景地貌：按关卡主题分派不同的视差背景，替代统一的三角山剪影。 */
+function drawParallax({ context, level, cameraX, world, reducedMotion }: DrawState): void {
+  const timeMs = world.levelTimeMs;
+  switch (level.theme) {
+    case "gorge":
+      drawGorgeBackdrop(context, level.palette, cameraX);
+      break;
+    case "tide":
+      drawTideBackdrop(context, level.palette, cameraX, timeMs, reducedMotion);
+      break;
+    case "night":
+      drawNightBackdrop(context, level.palette, cameraX);
+      break;
+    case "cavern":
+      drawCavernBackdrop(context, level.palette, cameraX);
+      break;
+    case "core":
+      drawCoreBackdrop(context, level.palette, cameraX, timeMs, reducedMotion);
+      break;
+    case "icefield":
+    default:
+      drawIcefieldBackdrop(context, level.palette, cameraX);
+      break;
+  }
+}
+
+/** 视差起始坐标：按 factor 折算相机位移并对齐网格，避免平铺接缝闪烁。 */
+function parallaxStart(cameraX: number, factor: number, tile: number): number {
+  return -((cameraX * factor) % tile);
+}
+
+/** 圆润冰丘：连续拱形剪影，可复用于冰原/永夜等雪原地貌。 */
+function drawHumpBackdrop(
   context: CanvasRenderingContext2D,
-  x: number,
-  bottomY: number,
-  width: number,
-  random: () => number,
+  color: string,
+  cameraX: number,
+  factor: number,
+  tile: number,
+  humpHeight: number,
+  baseY: number,
+  count: number,
 ): void {
-  const count = Math.max(3, Math.floor(width / 34));
-  for (let i = 0; i < count; i += 1) {
-    const ix = x + ((i + random() * 0.7) / count) * width;
-    const length = 4 + random() * 11;
-    const thickness = 2.5 + random() * 3.5;
-    const tip = ix + (random() - 0.5) * 3;
-    context.fillStyle = i % 3 === 0
-      ? "rgba(216, 247, 251, 0.55)"
-      : "rgba(111, 194, 210, 0.42)";
+  const startX = parallaxStart(cameraX, factor, tile);
+  const random = createSeededRandom(hashSeed(`hump-${factor}-${tile}`));
+  context.fillStyle = color;
+  context.beginPath();
+  context.moveTo(startX - tile, PLATFORMER_LOGICAL_HEIGHT);
+  for (let i = 0; i <= count; i += 1) {
+    const x = startX - tile + i * tile;
+    const topY = baseY - humpHeight * (0.72 + random() * 0.5);
+    context.quadraticCurveTo(x + tile * 0.2, topY + humpHeight * 0.55, x + tile * 0.5, topY);
+    context.quadraticCurveTo(x + tile * 0.8, topY + humpHeight * 0.55, x + tile, baseY);
+  }
+  context.lineTo(startX + count * tile, PLATFORMER_LOGICAL_HEIGHT);
+  context.closePath();
+  context.fill();
+}
+
+/** 锯齿岩脊：陡悍的三角岩峰链，用于峡谷地貌。 */
+function drawSawBackdrop(
+  context: CanvasRenderingContext2D,
+  color: string,
+  cameraX: number,
+  factor: number,
+  tile: number,
+  baseY: number,
+  peakHeight: number,
+  count: number,
+): void {
+  const startX = parallaxStart(cameraX, factor, tile);
+  const random = createSeededRandom(hashSeed(`saw-${factor}-${tile}`));
+  context.fillStyle = color;
+  context.beginPath();
+  context.moveTo(startX - tile, PLATFORMER_LOGICAL_HEIGHT);
+  for (let i = 0; i <= count; i += 1) {
+    const x = startX - tile + i * tile;
+    const topY = baseY - peakHeight * (0.6 + random() * 0.7);
+    context.lineTo(x + tile * 0.5, topY);
+    context.lineTo(x + tile, baseY);
+  }
+  context.lineTo(startX + count * tile, PLATFORMER_LOGICAL_HEIGHT);
+  context.closePath();
+  context.fill();
+}
+
+/** 波浪带：自 baseY 向下填充的水面/能量波层，可随时间流动。 */
+function drawWaveBackdrop(
+  context: CanvasRenderingContext2D,
+  color: string,
+  cameraX: number,
+  factor: number,
+  tile: number,
+  baseY: number,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const startX = parallaxStart(cameraX, factor, tile);
+  const drift = !reducedMotion && timeMs > 0 ? (timeMs * 0.02) % tile : 0;
+  const count = Math.ceil((PLATFORMER_LOGICAL_WIDTH + tile * 2) / tile) + 1;
+  context.fillStyle = color;
+  context.beginPath();
+  context.moveTo(startX - tile - drift, PLATFORMER_LOGICAL_HEIGHT);
+  for (let i = 0; i <= count; i += 1) {
+    const x = startX - tile + i * tile - drift;
+    const amp = 6 + (i % 3) * 4;
+    context.quadraticCurveTo(x + tile * 0.25, baseY - amp, x + tile * 0.5, baseY);
+    context.quadraticCurveTo(x + tile * 0.75, baseY + amp, x + tile, baseY);
+  }
+  context.lineTo(startX + count * tile - drift, PLATFORMER_LOGICAL_HEIGHT);
+  context.closePath();
+  context.fill();
+}
+
+/** 松树剪影：层叠三角树冠，用于永夜雪原。 */
+function drawPineBackdrop(
+  context: CanvasRenderingContext2D,
+  color: string,
+  cameraX: number,
+  factor: number,
+  tile: number,
+  baseY: number,
+  height: number,
+  count: number,
+): void {
+  const startX = parallaxStart(cameraX, factor, tile);
+  const random = createSeededRandom(hashSeed(`pine-${factor}-${tile}`));
+  context.fillStyle = color;
+  for (let i = 0; i <= count; i += 1) {
+    const x = startX + i * tile;
+    const h = height * (0.7 + random() * 0.55);
+    const w = tile * 0.44;
     context.beginPath();
-    context.moveTo(ix - thickness, bottomY);
-    context.lineTo(ix + thickness, bottomY);
-    context.lineTo(tip, bottomY + length);
+    context.moveTo(x, baseY);
+    context.lineTo(x - w * 0.6, baseY - h * 0.34);
+    context.lineTo(x - w * 0.3, baseY - h * 0.34);
+    context.lineTo(x - w * 0.78, baseY - h * 0.68);
+    context.lineTo(x - w * 0.38, baseY - h * 0.68);
+    context.lineTo(x - w * 0.52, baseY - h);
+    context.lineTo(x + w * 0.52, baseY - h);
+    context.lineTo(x + w * 0.38, baseY - h * 0.68);
+    context.lineTo(x + w * 0.78, baseY - h * 0.68);
+    context.lineTo(x + w * 0.3, baseY - h * 0.34);
+    context.lineTo(x + w * 0.6, baseY - h * 0.34);
     context.closePath();
     context.fill();
   }
 }
 
-/** 冰缝：从顶缘向下延伸的暗色分层线与亮色细裂纹。 */
-function drawIceSeams(
+/** 钟乳石：自画面顶部垂下的石锥群，用于洞穴地貌。 */
+function drawStalactiteBackdrop(
   context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  random: () => number,
+  color: string,
+  cameraX: number,
+  factor: number,
+  tile: number,
+  length: number,
+  count: number,
 ): void {
-  const seamCount = Math.max(1, Math.floor(width / 110));
-  context.lineWidth = 1.4;
-  for (let i = 0; i < seamCount; i += 1) {
-    const sx = x + ((i + 0.35 + random() * 0.3) * width) / seamCount;
-    const depth = 8 + random() * Math.min(38, Math.max(10, height * 0.5));
-    context.strokeStyle = "rgba(7, 22, 31, 0.2)";
+  const startX = parallaxStart(cameraX, factor, tile);
+  const random = createSeededRandom(hashSeed(`stal-${factor}-${tile}`));
+  context.fillStyle = color;
+  for (let i = 0; i <= count; i += 1) {
+    const x = startX + i * tile;
+    const len = length * (0.55 + random() * 0.85);
+    const w = tile * 0.3;
     context.beginPath();
-    context.moveTo(sx, y + 2);
-    context.lineTo(sx, y + depth);
-    context.stroke();
-    context.strokeStyle = "rgba(216, 247, 251, 0.2)";
-    context.beginPath();
-    context.moveTo(sx, y + depth * 0.45);
-    context.lineTo(sx + (random() - 0.5) * 16, y + depth * 0.85);
-    context.stroke();
+    context.moveTo(x - w, 0);
+    context.lineTo(x + w, 0);
+    context.lineTo(x + (random() - 0.5) * 8, len);
+    context.closePath();
+    context.fill();
   }
+}
+
+/** 悬浮几何浮岛：星核空间中漂浮的菱形浮岛。 */
+function drawIsletBackdrop(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+  factor: number,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const startX = parallaxStart(cameraX, factor, 240);
+  const random = createSeededRandom(hashSeed(`islet-${factor}`));
+  context.save();
+  for (let i = 0; i < 7; i += 1) {
+    const x = startX + i * 240 + random() * 70;
+    const y = 260 + random() * 200;
+    const w = 60 + random() * 70;
+    const h = 22 + random() * 26;
+    const bob = !reducedMotion && timeMs > 0 ? Math.sin(timeMs * 0.0005 + i * 1.7) * 9 : 0;
+    context.fillStyle = i % 2 === 0 ? palette.iceMid + "88" : palette.iceDeep + "cc";
+    context.beginPath();
+    context.moveTo(x - w * 0.5, y + bob);
+    context.lineTo(x, y + bob - h * 0.7);
+    context.lineTo(x + w * 0.5, y + bob);
+    context.lineTo(x + w * 0.32, y + bob + h);
+    context.lineTo(x - w * 0.32, y + bob + h);
+    context.closePath();
+    context.fill();
+  }
+  context.restore();
+}
+
+/** 冰原（第 1 关）：圆润冰丘 + 漂浮冰尘。 */
+function drawIcefieldBackdrop(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+): void {
+  drawHumpBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 180, 42, 600, 6);
+  drawHumpBackdrop(context, palette.iceDeep + "8c", cameraX, 0.2, 132, 66, 622, 7);
+  drawHumpBackdrop(context, palette.iceMid + "b8", cameraX, 0.32, 96, 52, 652, 8);
+  const startX = parallaxStart(cameraX, 0.44, 130);
+  const random = createSeededRandom(hashSeed("icefield-dust"));
+  context.save();
+  context.fillStyle = palette.iceLight;
+  for (let i = 0; i < 9; i += 1) {
+    const x = startX + i * 130 + random() * 90;
+    const y = 300 + random() * 200;
+    context.globalAlpha = 0.14 + random() * 0.16;
+    context.beginPath();
+    context.arc(x, y, 1.5 + random() * 2.5, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.restore();
+}
+
+/** 裂隙回廊（第 2 关）：锯齿岩脊 + 谷底雾带。 */
+function drawGorgeBackdrop(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+): void {
+  drawSawBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 176, 606, 74, 6);
+  drawSawBackdrop(context, palette.iceDeep + "99", cameraX, 0.18, 132, 622, 104, 7);
+  drawSawBackdrop(context, palette.iceMid + "8c", cameraX, 0.3, 98, 648, 68, 8);
+  const fogStart = parallaxStart(cameraX, 0.42, 220);
+  const fog = context.createLinearGradient(0, 552, 0, 700);
+  fog.addColorStop(0, "rgba(4, 17, 26, 0)");
+  fog.addColorStop(1, "rgba(4, 17, 26, 0.6)");
+  context.fillStyle = fog;
+  context.fillRect(fogStart - 220, 552, PLATFORMER_LOGICAL_WIDTH + 440, 148);
+}
+
+/** 潮汐回响（第 3 关）：流动海浪 + 漂浮冰山。 */
+function drawTideBackdrop(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  drawWaveBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 170, 606, timeMs * 0.4, reducedMotion);
+  drawWaveBackdrop(context, palette.iceDeep + "b3", cameraX, 0.2, 124, 632, timeMs * 0.7, reducedMotion);
+  drawWaveBackdrop(context, palette.iceMid + "c2", cameraX, 0.32, 88, 658, timeMs, reducedMotion);
+  const startX = parallaxStart(cameraX, 0.44, 300);
+  const random = createSeededRandom(hashSeed("tide-berg"));
+  context.save();
+  for (let i = 0; i < 5; i += 1) {
+    const x = startX + i * 300 + random() * 120;
+    const w = 60 + random() * 90;
+    const h = 50 + random() * 80;
+    const waterY = 600;
+    context.fillStyle = palette.iceMid + "aa";
+    context.beginPath();
+    context.moveTo(x - w * 0.5, waterY);
+    context.lineTo(x, waterY - h);
+    context.lineTo(x + w * 0.5, waterY);
+    context.lineTo(x + w * 0.3, waterY + 26);
+    context.lineTo(x - w * 0.3, waterY + 26);
+    context.closePath();
+    context.fill();
+  }
+  context.restore();
+}
+
+/** 永夜星云（第 4 关）：雪丘 + 冰封松树剪影。 */
+function drawNightBackdrop(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+): void {
+  drawHumpBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 184, 40, 604, 6);
+  drawHumpBackdrop(context, palette.iceDeep + "99", cameraX, 0.2, 138, 62, 626, 7);
+  drawPineBackdrop(context, palette.iceMid + "99", cameraX, 0.32, 116, 650, 80, 7);
+  drawPineBackdrop(context, palette.iceDeep + "d9", cameraX, 0.46, 92, 668, 58, 8);
+}
+
+/** 幽暗冰洞（第 5 关）：洞顶钟乳石 + 洞壁岩层 + 洞底雾气。 */
+function drawCavernBackdrop(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+): void {
+  drawStalactiteBackdrop(context, palette.iceDeep + "8c", cameraX, 0.1, 96, 130, 8);
+  drawStalactiteBackdrop(context, palette.iceDeep + "e6", cameraX, 0.24, 74, 196, 8);
+  drawHumpBackdrop(context, palette.iceDeep + "66", cameraX, 0.14, 176, 46, 606, 6);
+  drawHumpBackdrop(context, palette.iceMid + "8c", cameraX, 0.3, 120, 70, 630, 7);
+  const fogStart = parallaxStart(cameraX, 0.44, 200);
+  const fog = context.createLinearGradient(0, 556, 0, 700);
+  fog.addColorStop(0, "rgba(13, 10, 22, 0)");
+  fog.addColorStop(1, "rgba(13, 10, 22, 0.62)");
+  context.fillStyle = fog;
+  context.fillRect(fogStart - 200, 556, PLATFORMER_LOGICAL_WIDTH + 400, 144);
+}
+
+/** 冰核核心（第 6 关）：脉动能量波 + 悬浮几何浮岛。 */
+function drawCoreBackdrop(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  drawWaveBackdrop(context, "rgba(10, 8, 22, 0.92)", cameraX, 0.08, 26, 472, timeMs * 0.3, reducedMotion);
+  drawWaveBackdrop(context, palette.accentSoft, cameraX, 0.2, 34, 520, timeMs * 0.7, reducedMotion);
+  drawIsletBackdrop(context, palette, cameraX, 0.32, timeMs, reducedMotion);
+  drawWaveBackdrop(context, palette.iceDeep + "99", cameraX, 0.42, 44, 582, timeMs * 1.1, reducedMotion);
 }
 
 /** 场景装饰物：按主题在背景层绘制极光、星云与地貌特征（不参与碰撞）。 */
@@ -326,6 +562,30 @@ function drawDecorations({ context, level, world, reducedMotion }: DrawState): v
         break;
       case "floatingShard":
         drawFloatingShard(context, decoration, palette, world.levelTimeMs, reducedMotion);
+        break;
+      case "snowDrift":
+        drawSnowDrift(context, decoration, palette);
+        break;
+      case "rockRubble":
+        drawRockRubble(context, decoration);
+        break;
+      case "crystalCluster":
+        drawCrystalCluster(context, decoration, palette, world.levelTimeMs, reducedMotion);
+        break;
+      case "stalactite":
+        drawStalactite(context, decoration, palette);
+        break;
+      case "iceberg":
+        drawIceberg(context, decoration, palette);
+        break;
+      case "frozenPine":
+        drawFrozenPine(context, decoration, palette);
+        break;
+      case "magmaVein":
+        drawMagmaVein(context, decoration, palette, world.levelTimeMs, reducedMotion);
+        break;
+      case "bubbleRise":
+        drawBubbleRise(context, decoration, palette, world.levelTimeMs, reducedMotion);
         break;
       default:
         break;
@@ -601,6 +861,408 @@ function drawFloatingShard(
 }
 
 /** 薄冰架（单向平台）：半透明浮冰板。 */
+
+/** 雪堆：近景地面圆润积雪弧丘。 */
+function drawSnowDrift(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+): void {
+  const baseY = decoration.y + decoration.height;
+  const cx = decoration.x + decoration.width * 0.5;
+  const body = context.createLinearGradient(0, decoration.y, 0, baseY);
+  body.addColorStop(0, "rgba(240, 250, 255, 0.9)");
+  body.addColorStop(1, "rgba(150, 195, 215, 0.55)");
+  context.save();
+  context.fillStyle = body;
+  context.beginPath();
+  context.moveTo(decoration.x, baseY);
+  context.quadraticCurveTo(
+    decoration.x + decoration.width * 0.22,
+    decoration.y,
+    cx,
+    decoration.y,
+  );
+  context.quadraticCurveTo(
+    decoration.x + decoration.width * 0.78,
+    decoration.y,
+    decoration.x + decoration.width,
+    baseY,
+  );
+  context.closePath();
+  context.fill();
+  context.globalAlpha = 0.6;
+  context.fillStyle = palette.iceLight;
+  context.beginPath();
+  context.moveTo(cx - decoration.width * 0.16, decoration.y + decoration.height * 0.22);
+  context.quadraticCurveTo(cx, decoration.y + decoration.height * 0.06, cx + decoration.width * 0.18, decoration.y + decoration.height * 0.24);
+  context.lineTo(cx + decoration.width * 0.1, decoration.y + decoration.height * 0.42);
+  context.lineTo(cx - decoration.width * 0.12, decoration.y + decoration.height * 0.4);
+  context.closePath();
+  context.fill();
+  context.restore();
+}
+
+/** 碎石堆：近景地面的暗色岩块。 */
+function drawRockRubble(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+): void {
+  const baseY = decoration.y + decoration.height;
+  const random = createSeededRandom(hashSeed(`rubble-${decoration.x}`));
+  context.save();
+  for (let i = 0; i < 5; i += 1) {
+    const rx = decoration.x + random() * decoration.width;
+    const rw = 8 + random() * 14;
+    const rh = 6 + random() * 10;
+    const shade = 0.55 + random() * 0.4;
+    context.fillStyle = `rgba(${Math.round(40 * shade + 20)}, ${Math.round(48 * shade + 22)}, ${Math.round(58 * shade + 26)}, 0.9)`;
+    context.beginPath();
+    context.moveTo(rx - rw * 0.5, baseY);
+    context.lineTo(rx - rw * 0.2, baseY - rh);
+    context.lineTo(rx + rw * 0.25, baseY - rh * 0.7);
+    context.lineTo(rx + rw * 0.5, baseY);
+    context.closePath();
+    context.fill();
+  }
+  context.restore();
+}
+
+/** 晶簇：近景地面发光的小晶体。 */
+function drawCrystalCluster(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const baseY = decoration.y + decoration.height;
+  const cx = decoration.x + decoration.width * 0.5;
+  const pulse = reducedMotion ? 0.7 : 0.62 + 0.18 * Math.sin(timeMs * 0.005 + decoration.variant * 2);
+  context.save();
+  context.globalAlpha = pulse;
+  context.fillStyle = palette.accent;
+  for (let i = -1; i <= 1; i += 1) {
+    const h = decoration.height * (i === 0 ? 1 : 0.6);
+    const w = decoration.width * 0.24;
+    const x = cx + i * decoration.width * 0.3;
+    context.beginPath();
+    context.moveTo(x - w, baseY);
+    context.lineTo(x + w, baseY);
+    context.lineTo(x, baseY - h);
+    context.closePath();
+    context.fill();
+  }
+  context.restore();
+  context.fillStyle = palette.iceLight;
+  context.globalAlpha = 0.8;
+  context.beginPath();
+  context.moveTo(cx - decoration.width * 0.08, baseY);
+  context.lineTo(cx + decoration.width * 0.08, baseY);
+  context.lineTo(cx, baseY - decoration.height * 0.3);
+  context.closePath();
+  context.fill();
+  context.globalAlpha = 1;
+}
+
+/** 钟乳石：洞顶垂下的石锥（近景装饰）。 */
+function drawStalactite(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+): void {
+  const random = createSeededRandom(hashSeed(`deco-stal-${decoration.x}`));
+  context.save();
+  const gradient = context.createLinearGradient(0, decoration.y, 0, decoration.y + decoration.height);
+  gradient.addColorStop(0, palette.iceDeep);
+  gradient.addColorStop(1, "rgba(5, 10, 16, 0.9)");
+  context.fillStyle = gradient;
+  for (let i = 0; i < 3; i += 1) {
+    const x = decoration.x + decoration.width * (0.2 + i * 0.3) + (random() - 0.5) * 8;
+    const len = decoration.height * (0.6 + random() * 0.5);
+    const w = 5 + random() * 7;
+    context.beginPath();
+    context.moveTo(x - w, decoration.y);
+    context.lineTo(x + w, decoration.y);
+    context.lineTo(x + (random() - 0.5) * 3, decoration.y + len);
+    context.closePath();
+    context.fill();
+  }
+  context.restore();
+}
+
+/** 冰山：近景海面上的漂浮冰体。 */
+function drawIceberg(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+): void {
+  const baseY = decoration.y + decoration.height;
+  const waterY = baseY - decoration.height * 0.3;
+  context.save();
+  context.fillStyle = "rgba(10, 45, 58, 0.8)";
+  context.beginPath();
+  context.moveTo(decoration.x, waterY);
+  context.lineTo(decoration.x + decoration.width * 0.14, baseY);
+  context.lineTo(decoration.x + decoration.width * 0.6, baseY + decoration.height * 0.12);
+  context.lineTo(decoration.x + decoration.width * 0.9, waterY);
+  context.closePath();
+  context.fill();
+  const body = context.createLinearGradient(0, decoration.y, 0, waterY);
+  body.addColorStop(0, "rgba(228, 249, 252, 0.85)");
+  body.addColorStop(1, "rgba(111, 194, 210, 0.6)");
+  context.fillStyle = body;
+  context.beginPath();
+  context.moveTo(decoration.x, waterY);
+  context.lineTo(decoration.x + decoration.width * 0.26, decoration.y);
+  context.lineTo(decoration.x + decoration.width * 0.58, decoration.y + decoration.height * 0.3);
+  context.lineTo(decoration.x + decoration.width, waterY);
+  context.closePath();
+  context.fill();
+  context.globalAlpha = 0.5;
+  context.fillStyle = palette.iceLight;
+  context.beginPath();
+  context.moveTo(decoration.x + decoration.width * 0.26, decoration.y);
+  context.lineTo(decoration.x + decoration.width * 0.58, decoration.y + decoration.height * 0.3);
+  context.lineTo(decoration.x + decoration.width * 0.4, decoration.y + decoration.height * 0.18);
+  context.closePath();
+  context.fill();
+  context.restore();
+}
+
+/** 冰封松树：近景的雪盖松树。 */
+function drawFrozenPine(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+): void {
+  const baseY = decoration.y + decoration.height;
+  const cx = decoration.x + decoration.width * 0.5;
+  const h = decoration.height;
+  const w = decoration.width;
+  context.save();
+  context.fillStyle = "rgba(70, 82, 96, 0.9)";
+  context.fillRect(cx - w * 0.06, baseY - h * 0.22, w * 0.12, h * 0.22);
+  for (let layer = 0; layer < 3; layer += 1) {
+    const layerY = baseY - h * 0.18 - layer * h * 0.24;
+    const layerW = w * (0.9 - layer * 0.22);
+    const layerH = h * 0.34;
+    context.fillStyle = layer % 2 === 0 ? "rgba(58, 96, 118, 0.9)" : "rgba(72, 116, 138, 0.9)";
+    context.beginPath();
+    context.moveTo(cx, layerY - layerH);
+    context.lineTo(cx + layerW * 0.5, layerY);
+    context.lineTo(cx - layerW * 0.5, layerY);
+    context.closePath();
+    context.fill();
+  }
+  context.globalAlpha = 0.75;
+  context.fillStyle = palette.iceLight;
+  context.beginPath();
+  context.moveTo(cx - w * 0.3, baseY - h * 0.2);
+  context.lineTo(cx, baseY - h * 0.62);
+  context.lineTo(cx + w * 0.3, baseY - h * 0.2);
+  context.lineTo(cx, baseY - h * 0.3);
+  context.closePath();
+  context.fill();
+  context.restore();
+}
+
+/** 熔岩裂缝：近景地面发光的能量裂缝。 */
+function drawMagmaVein(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const random = createSeededRandom(hashSeed(`magma-${decoration.x}`));
+  const pulse = reducedMotion ? 0.6 : 0.5 + 0.25 * Math.sin(timeMs * 0.006 + decoration.variant * 2);
+  context.save();
+  context.globalAlpha = pulse;
+  context.strokeStyle = palette.accent;
+  context.lineWidth = 2;
+  for (let i = 0; i < 4; i += 1) {
+    const sx = decoration.x + (i / 3) * decoration.width;
+    context.beginPath();
+    context.moveTo(sx, decoration.y);
+    context.quadraticCurveTo(
+      sx + (random() - 0.5) * 10,
+      decoration.y + decoration.height * 0.5,
+      sx + (random() - 0.5) * 14,
+      decoration.y + decoration.height,
+    );
+    context.stroke();
+  }
+  context.globalAlpha = 1;
+  context.restore();
+}
+
+/** 上升气泡：潮汐水下的发光气泡。 */
+function drawBubbleRise(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const random = createSeededRandom(hashSeed(`bubble-${decoration.x}`));
+  context.save();
+  for (let i = 0; i < 6; i += 1) {
+    const base = decoration.x + random() * decoration.width;
+    const periodMs = 2600 + random() * 1200;
+    const progress = reducedMotion ? 0.5 : ((timeMs + random() * periodMs) % periodMs) / periodMs;
+    const cx = base;
+    const cy = decoration.y + decoration.height - progress * decoration.height;
+    const r = 2 + random() * 4;
+    context.globalAlpha = 0.45 + progress * 0.35;
+    context.fillStyle = palette.accent;
+    context.beginPath();
+    context.arc(cx, cy, r, 0, Math.PI * 2);
+    context.fill();
+    context.globalAlpha = 1;
+  }
+  context.restore();
+}
+
+interface ThemeSurface {
+  bodyTop: string;
+  bodyBottom: string;
+  capTop: string;
+  capBottom: string;
+  edge: string;
+  seam: string;
+  seamBright: string;
+  speckle: string;
+  layerAlpha: number;
+  hangA: string;
+  hangB: string;
+  glowSeam?: boolean;
+}
+
+/** 主题材质：地面/平台按关卡主题使用不同的岩石、冻土、洞穴或熔岩观感。 */
+function getThemeSurface(theme: PlatformerTheme, palette: LevelPalette): ThemeSurface {
+  switch (theme) {
+    case "gorge":
+      return {
+        bodyTop: "#3a3e48", bodyBottom: "rgba(8, 11, 16, 0.96)",
+        capTop: "rgba(150, 158, 172, 0.9)", capBottom: "rgba(70, 78, 94, 0.6)",
+        edge: "rgba(208, 216, 230, 0.7)", seam: "rgba(0, 0, 0, 0.35)",
+        seamBright: "rgba(196, 206, 222, 0.2)", speckle: "#8b919f",
+        layerAlpha: 0.16, hangA: "rgba(96, 104, 118, 0.6)", hangB: "rgba(38, 44, 56, 0.5)",
+      };
+    case "tide":
+      return {
+        bodyTop: "#1c5b67", bodyBottom: "rgba(3, 16, 22, 0.96)",
+        capTop: "rgba(196, 243, 239, 0.82)", capBottom: "rgba(72, 170, 182, 0.5)",
+        edge: "rgba(222, 250, 246, 0.75)", seam: "rgba(2, 12, 18, 0.38)",
+        seamBright: "rgba(150, 232, 226, 0.22)", speckle: "#a9e8e2",
+        layerAlpha: 0.16, hangA: "rgba(122, 212, 202, 0.5)", hangB: "rgba(28, 98, 108, 0.45)",
+      };
+    case "night":
+      return {
+        bodyTop: "#2b3c52", bodyBottom: "rgba(5, 9, 18, 0.96)",
+        capTop: "rgba(226, 238, 250, 0.85)", capBottom: "rgba(122, 144, 168, 0.55)",
+        edge: "rgba(240, 248, 255, 0.8)", seam: "rgba(0, 4, 12, 0.38)",
+        seamBright: "rgba(204, 224, 244, 0.2)", speckle: "#cddcee",
+        layerAlpha: 0.14, hangA: "rgba(184, 208, 228, 0.5)", hangB: "rgba(88, 118, 148, 0.4)",
+      };
+    case "cavern":
+      return {
+        bodyTop: "#2c3c48", bodyBottom: "rgba(4, 8, 13, 0.97)",
+        capTop: "rgba(130, 158, 174, 0.85)", capBottom: "rgba(62, 84, 100, 0.6)",
+        edge: "rgba(182, 210, 224, 0.7)", seam: "rgba(0, 3, 8, 0.4)",
+        seamBright: "rgba(150, 182, 202, 0.18)", speckle: "#6f8a9c",
+        layerAlpha: 0.14, hangA: "rgba(112, 142, 160, 0.55)", hangB: "rgba(38, 58, 72, 0.5)",
+      };
+    case "core":
+      return {
+        bodyTop: "#2d2139", bodyBottom: "rgba(7, 3, 13, 0.97)",
+        capTop: "rgba(234, 170, 216, 0.76)", capBottom: "rgba(122, 64, 112, 0.55)",
+        edge: "rgba(250, 216, 238, 0.7)", seam: "rgba(0, 0, 6, 0.5)",
+        seamBright: "rgba(255, 158, 198, 0.38)", speckle: "#c78fc0",
+        layerAlpha: 0.18, hangA: "rgba(255, 158, 198, 0.5)", hangB: "rgba(92, 42, 82, 0.5)",
+        glowSeam: true,
+      };
+    case "icefield":
+    default:
+      return {
+        bodyTop: palette.iceMid, bodyBottom: "rgba(7, 22, 31, 0.92)",
+        capTop: "rgba(228, 249, 252, 0.95)", capBottom: "rgba(111, 194, 210, 0.55)",
+        edge: "rgba(240, 252, 254, 0.92)", seam: "rgba(7, 22, 31, 0.2)",
+        seamBright: "rgba(216, 247, 251, 0.2)", speckle: palette.iceLight,
+        layerAlpha: 0.18, hangA: "rgba(216, 247, 251, 0.55)", hangB: "rgba(111, 194, 210, 0.42)",
+      };
+  }
+}
+
+/** 悬挂物：沿平台下缘垂下的冰凌/石笋/熔岩滴，颜色随主题材质。 */
+function drawHanging(
+  context: CanvasRenderingContext2D,
+  x: number,
+  bottomY: number,
+  width: number,
+  random: () => number,
+  surface: ThemeSurface,
+): void {
+  const count = Math.max(3, Math.floor(width / 34));
+  for (let i = 0; i < count; i += 1) {
+    const ix = x + ((i + random() * 0.7) / count) * width;
+    const length = 4 + random() * 11;
+    const thickness = 2.5 + random() * 3.5;
+    const tip = ix + (random() - 0.5) * 3;
+    context.fillStyle = i % 3 === 0 ? surface.hangA : surface.hangB;
+    context.beginPath();
+    context.moveTo(ix - thickness, bottomY);
+    context.lineTo(ix + thickness, bottomY);
+    context.lineTo(tip, bottomY + length);
+    context.closePath();
+    context.fill();
+  }
+}
+
+/** 表面裂缝：沿顶缘延伸的暗色分层线与亮色细裂纹（含主题材质）。 */
+function drawSurfaceSeams(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  random: () => number,
+  surface: ThemeSurface,
+): void {
+  const seamCount = Math.max(1, Math.floor(width / 110));
+  context.lineWidth = 1.4;
+  for (let i = 0; i < seamCount; i += 1) {
+    const sx = x + ((i + 0.35 + random() * 0.3) * width) / seamCount;
+    const depth = 8 + random() * Math.min(38, Math.max(10, height * 0.5));
+    context.strokeStyle = surface.seam;
+    context.beginPath();
+    context.moveTo(sx, y + 2);
+    context.lineTo(sx, y + depth);
+    context.stroke();
+    context.strokeStyle = surface.seamBright;
+    context.beginPath();
+    context.moveTo(sx, y + depth * 0.45);
+    context.lineTo(sx + (random() - 0.5) * 16, y + depth * 0.85);
+    context.stroke();
+  }
+  if (surface.glowSeam) {
+    context.strokeStyle = surface.seamBright;
+    context.lineWidth = 1;
+    context.globalAlpha = 0.8;
+    const glowCount = Math.max(1, Math.floor(width / 160));
+    for (let i = 0; i < glowCount; i += 1) {
+      const gx = x + ((i + 0.2 + random() * 0.6) * width) / glowCount;
+      context.beginPath();
+      context.moveTo(gx, y + 3);
+      context.quadraticCurveTo(gx + (random() - 0.5) * 12, y + height * 0.3, gx + (random() - 0.5) * 16, y + height * 0.5);
+      context.stroke();
+    }
+    context.globalAlpha = 1;
+  }
+}
+
+/** 薄板（单向平台）：按主题材质的半透明板。 */
 function drawOneWayPlatform(
   context: CanvasRenderingContext2D,
   x: number,
@@ -609,26 +1271,28 @@ function drawOneWayPlatform(
   height: number,
   palette: LevelPalette,
   levelHeight: number,
+  theme: PlatformerTheme,
 ): void {
   const random = createSeededRandom(hashSeed(`${x}-${y}-${width}-shelf`));
+  const surface = getThemeSurface(theme, palette);
 
   const pane = context.createLinearGradient(0, y, 0, y + height);
-  pane.addColorStop(0, "rgba(228, 249, 252, 0.92)");
-  pane.addColorStop(0.55, "rgba(111, 194, 210, 0.4)");
-  pane.addColorStop(1, "rgba(111, 194, 210, 0.16)");
-  context.globalAlpha = 0.88;
+  pane.addColorStop(0, surface.capTop);
+  pane.addColorStop(0.55, surface.capBottom);
+  pane.addColorStop(1, surface.capBottom);
+  context.globalAlpha = 0.62;
   context.fillStyle = pane;
   context.fillRect(x, y, width, height);
   context.globalAlpha = 1;
 
-  context.fillStyle = "rgba(240, 252, 254, 0.85)";
+  context.fillStyle = surface.edge;
   context.fillRect(x, y, width, 2);
-  context.fillStyle = "rgba(111, 194, 210, 0.3)";
+  context.fillStyle = surface.capBottom;
   context.fillRect(x, y + height - 2, width, 2);
 
   const speckles = Math.floor(width / 30);
   context.globalAlpha = 0.16;
-  context.fillStyle = palette.iceLight;
+  context.fillStyle = surface.speckle;
   for (let i = 0; i < speckles; i += 1) {
     const sx = x + random() * (width - 3);
     const sy = y + 2 + random() * Math.max(1, height - 3);
@@ -637,11 +1301,12 @@ function drawOneWayPlatform(
   context.globalAlpha = 1;
 
   if (y + height <= levelHeight - 60) {
-    drawIcicles(context, x, y + height, width, random);
+    drawHanging(context, x, y + height, width, random, surface);
   }
 }
 
 /** 实体冰台/地面：分层冰盖 + 冰缝 + 冰凌，移动平台带推进器光晕。 */
+/** 实体平台/地面：按主题材质分层 + 裂缝 + 悬挂物，移动平台带推进器光晕。 */
 function drawSolidPlatform(
   context: CanvasRenderingContext2D,
   x: number,
@@ -651,44 +1316,48 @@ function drawSolidPlatform(
   palette: LevelPalette,
   motion: PlatformMotion | undefined,
   levelHeight: number,
+  theme: PlatformerTheme,
   timeMs: number,
   reducedMotion: boolean,
 ): void {
   const random = createSeededRandom(hashSeed(`${x}-${y}-${width}-${height}`));
+  const surface = getThemeSurface(theme, palette);
 
   const body = context.createLinearGradient(0, y, 0, y + height);
-  body.addColorStop(0, palette.iceMid);
-  body.addColorStop(0.42, palette.iceDeep);
-  body.addColorStop(1, "rgba(7, 22, 31, 0.92)");
+  body.addColorStop(0, surface.bodyTop);
+  body.addColorStop(0.42, surface.bodyBottom);
+  body.addColorStop(1, surface.bodyBottom);
   context.fillStyle = body;
   context.fillRect(x, y, width, height);
 
-  // 冰层横向分层切片
-  context.globalAlpha = 0.18;
-  context.fillStyle = palette.iceLight;
+  // 材质横向分层切片
+  context.globalAlpha = surface.layerAlpha;
+  context.fillStyle = surface.speckle;
   for (let layer = 1; layer <= 2; layer += 1) {
     const ly = y + height * (0.52 + layer * 0.17);
     context.fillRect(x + 2, ly, width - 4, 1);
   }
   context.globalAlpha = 1;
 
-  // 顶部亮冰盖（站立面）
+  // 顶部亮盖（站立面）
   const cap = Math.min(14, height);
   const capGradient = context.createLinearGradient(0, y, 0, y + cap);
-  capGradient.addColorStop(0, "rgba(228, 249, 252, 0.95)");
-  capGradient.addColorStop(1, "rgba(111, 194, 210, 0.55)");
+  capGradient.addColorStop(0, surface.capTop);
+  capGradient.addColorStop(1, surface.capBottom);
   context.fillStyle = capGradient;
   context.fillRect(x, y, width, cap);
 
-  context.fillStyle = "rgba(240, 252, 254, 0.92)";
+  context.fillStyle = surface.edge;
   context.fillRect(x, y, width, 2);
-  context.fillStyle = "rgba(216, 247, 251, 0.35)";
+  context.globalAlpha = 0.45;
+  context.fillStyle = surface.edge;
   context.fillRect(x, y + 2, width, 2);
+  context.globalAlpha = 1;
 
-  // 冰面霜点
+  // 表面霜点/岩屑
   const speckles = Math.floor(width / 26);
   context.globalAlpha = 0.14;
-  context.fillStyle = palette.iceLight;
+  context.fillStyle = surface.speckle;
   for (let i = 0; i < speckles; i += 1) {
     const sx = x + random() * (width - 3);
     const sy = y + 3 + random() * Math.max(1, cap - 4);
@@ -696,11 +1365,11 @@ function drawSolidPlatform(
   }
   context.globalAlpha = 1;
 
-  drawIceSeams(context, x, y, width, height, random);
+  drawSurfaceSeams(context, x, y, width, height, random, surface);
 
-  // 悬浮平台下缘冰凌
+  // 悬浮平台下缘悬挂物（冰凌/石笋/熔岩滴）
   if (y + height <= levelHeight - 60) {
-    drawIcicles(context, x, y + height, width, random);
+    drawHanging(context, x, y + height, width, random, surface);
   }
 
   // 移动平台：推进器光晕与边沿警示灯
@@ -730,6 +1399,7 @@ function drawSolidPlatform(
   }
 }
 
+
 function drawPlatforms({ context, level, world, reducedMotion }: DrawState): void {
   for (const platform of level.platforms) {
     const offset = world.platformOffsets[platform.id];
@@ -744,7 +1414,7 @@ function drawPlatforms({ context, level, world, reducedMotion }: DrawState): voi
     }
 
     if (platform.kind === "oneWay") {
-      drawOneWayPlatform(context, x, y, width, height, palette, level.height);
+      drawOneWayPlatform(context, x, y, width, height, palette, level.height, level.theme);
       continue;
     }
 
@@ -757,6 +1427,7 @@ function drawPlatforms({ context, level, world, reducedMotion }: DrawState): voi
       palette,
       platform.motion,
       level.height,
+      level.theme,
       world.levelTimeMs,
       reducedMotion,
     );

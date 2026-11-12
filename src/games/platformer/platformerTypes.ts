@@ -152,7 +152,15 @@ export type LevelDecorationKind =
   | "rockColumn"
   | "tideWisp"
   | "emberVent"
-  | "floatingShard";
+  | "floatingShard"
+  | "snowDrift"
+  | "rockRubble"
+  | "crystalCluster"
+  | "stalactite"
+  | "iceberg"
+  | "frozenPine"
+  | "magmaVein"
+  | "bubbleRise";
 
 /** 场景装饰物：仅影响背景渲染，不参与碰撞。 */
 export interface LevelDecoration {

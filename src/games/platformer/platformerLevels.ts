@@ -1,4 +1,4 @@
-import type { PlatformerLevel } from "./platformerTypes";
+import type { LevelDecoration, LevelDecorationKind, PlatformerLevel } from "./platformerTypes";
 import {
   PLATFORMER_LEVEL_CHECKPOINTS,
   PLATFORMER_LEVEL_CRYSTALS,
@@ -4468,6 +4468,95 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
     }
   }
 ];
+
+/** 地形装饰板：按关卡主题批量生成近景地形装饰（雪堆/碎石/晶簇/钟乳石/冰山/松树/熔岩缝/气泡）。 */
+const TERRAIN_PLATES: ReadonlyArray<{
+  levelId: number;
+  plates: Array<{
+    kind: LevelDecorationKind;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    count: number;
+    step: number;
+  }>;
+}> = [
+  {
+    levelId: 1,
+    plates: [
+      { kind: "snowDrift", x: 40, y: 585, width: 90, height: 35, count: 70, step: 120 },
+      { kind: "crystalCluster", x: 240, y: 588, width: 34, height: 32, count: 12, step: 640 },
+    ],
+  },
+  {
+    levelId: 2,
+    plates: [
+      { kind: "rockRubble", x: 40, y: 598, width: 70, height: 22, count: 86, step: 120 },
+      { kind: "stalactite", x: 160, y: 0, width: 60, height: 120, count: 10, step: 1000 },
+    ],
+  },
+  {
+    levelId: 3,
+    plates: [
+      { kind: "iceberg", x: 120, y: 480, width: 140, height: 110, count: 14, step: 880 },
+      { kind: "bubbleRise", x: 40, y: 430, width: 100, height: 170, count: 80, step: 150 },
+    ],
+  },
+  {
+    levelId: 4,
+    plates: [
+      { kind: "frozenPine", x: 80, y: 530, width: 56, height: 90, count: 40, step: 340 },
+      { kind: "snowDrift", x: 40, y: 585, width: 90, height: 35, count: 50, step: 260 },
+    ],
+  },
+  {
+    levelId: 5,
+    plates: [
+      { kind: "stalactite", x: 60, y: 0, width: 60, height: 120, count: 30, step: 520 },
+      { kind: "rockRubble", x: 40, y: 598, width: 70, height: 22, count: 70, step: 220 },
+      { kind: "crystalCluster", x: 260, y: 588, width: 34, height: 32, count: 14, step: 1080 },
+    ],
+  },
+  {
+    levelId: 6,
+    plates: [
+      { kind: "magmaVein", x: 40, y: 600, width: 80, height: 20, count: 70, step: 240 },
+      { kind: "crystalCluster", x: 220, y: 588, width: 34, height: 32, count: 16, step: 1080 },
+      { kind: "stalactite", x: 140, y: 0, width: 60, height: 120, count: 12, step: 1440 },
+    ],
+  },
+];
+
+/** 将地形装饰板扩展为具体装饰物（纯背景，不参与碰撞）。 */
+function expandTerrainDecorations(levels: readonly PlatformerLevel[]): void {
+  for (const entry of TERRAIN_PLATES) {
+    const level = levels.find((item) => item.id === entry.levelId);
+    if (!level) {
+      throw new Error(`Unknown terrain plate level id: ${entry.levelId}`);
+    }
+    const generated: LevelDecoration[] = [];
+    for (const plate of entry.plates) {
+      for (let i = 0; i < plate.count; i += 1) {
+        const x = plate.x + i * plate.step;
+        if (x + plate.width > level.width) {
+          throw new Error(`Terrain plate overflows level ${level.id}.`);
+        }
+        generated.push({
+          id: `l${level.id}-terrain-${plate.kind}-${String(i + 1).padStart(2, "0")}`,
+          kind: plate.kind,
+          x,
+          y: plate.y,
+          width: plate.width,
+          height: plate.height,
+          variant: i % 4,
+        });
+      }
+    }
+    level.decorations.push(...generated);
+  }
+}
+expandTerrainDecorations(PLATFORMER_LEVELS);
 
 export const PLATFORMER_LEVELS_BY_ID = new Map(
   PLATFORMER_LEVELS.map((level) => [level.id, level]),
