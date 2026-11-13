@@ -4469,12 +4469,25 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
   }
 ];
 
-/** 地形装饰板：按关卡主题批量生成近景地形装饰（雪堆/碎石/晶簇/钟乳石/冰山/松树/熔岩缝/气泡）。 */
+
+/** 地面类地形装饰：必须贴附在固体平台顶部，坑上方不放置。 */
+const GROUND_DECO_KINDS: ReadonlySet<LevelDecorationKind> = new Set([
+  "snowDrift",
+  "rockRubble",
+  "crystalCluster",
+  "frozenPine",
+  "magmaVein",
+]);
+
+/** 地形装饰板：按关卡主题批量生成近景地形装饰（雪堆/碎石/晶簇/钟乳石/冰山/松树/熔岩缝/气泡）。
+ *  地面类装饰自动贴附所在位置的固体平台顶部，坑上方自动跳过；
+ *  点缀类装饰与主景互相避让，避免物体重叠。 */
 const TERRAIN_PLATES: ReadonlyArray<{
   levelId: number;
   plates: Array<{
     kind: LevelDecorationKind;
     x: number;
+    /** 背景类装饰的固定 y（地面类装饰忽略，由贴地计算得出）。 */
     y: number;
     width: number;
     height: number;
@@ -4485,14 +4498,14 @@ const TERRAIN_PLATES: ReadonlyArray<{
   {
     levelId: 1,
     plates: [
-      { kind: "snowDrift", x: 40, y: 585, width: 90, height: 35, count: 70, step: 120 },
-      { kind: "crystalCluster", x: 240, y: 588, width: 34, height: 32, count: 12, step: 640 },
+      { kind: "snowDrift", x: 40, y: 585, width: 80, height: 35, count: 68, step: 130 },
+      { kind: "crystalCluster", x: 260, y: 588, width: 28, height: 30, count: 17, step: 520 },
     ],
   },
   {
     levelId: 2,
     plates: [
-      { kind: "rockRubble", x: 40, y: 598, width: 70, height: 22, count: 86, step: 120 },
+      { kind: "rockRubble", x: 40, y: 598, width: 70, height: 22, count: 78, step: 140 },
       { kind: "stalactite", x: 160, y: 0, width: 60, height: 120, count: 10, step: 1000 },
     ],
   },
@@ -4506,57 +4519,134 @@ const TERRAIN_PLATES: ReadonlyArray<{
   {
     levelId: 4,
     plates: [
-      { kind: "frozenPine", x: 80, y: 530, width: 56, height: 90, count: 40, step: 340 },
-      { kind: "snowDrift", x: 40, y: 585, width: 90, height: 35, count: 50, step: 260 },
+      { kind: "snowDrift", x: 40, y: 585, width: 80, height: 35, count: 74, step: 200 },
+      { kind: "frozenPine", x: 200, y: 530, width: 44, height: 88, count: 27, step: 560 },
     ],
   },
   {
     levelId: 5,
     plates: [
+      { kind: "rockRubble", x: 40, y: 598, width: 70, height: 22, count: 84, step: 200 },
       { kind: "stalactite", x: 60, y: 0, width: 60, height: 120, count: 30, step: 520 },
-      { kind: "rockRubble", x: 40, y: 598, width: 70, height: 22, count: 70, step: 220 },
-      { kind: "crystalCluster", x: 260, y: 588, width: 34, height: 32, count: 14, step: 1080 },
+      { kind: "crystalCluster", x: 300, y: 588, width: 28, height: 30, count: 18, step: 920 },
     ],
   },
   {
     levelId: 6,
     plates: [
-      { kind: "magmaVein", x: 40, y: 600, width: 80, height: 20, count: 70, step: 240 },
-      { kind: "crystalCluster", x: 220, y: 588, width: 34, height: 32, count: 16, step: 1080 },
+      { kind: "magmaVein", x: 40, y: 600, width: 70, height: 20, count: 86, step: 220 },
       { kind: "stalactite", x: 140, y: 0, width: 60, height: 120, count: 12, step: 1440 },
+      { kind: "crystalCluster", x: 300, y: 588, width: 28, height: 30, count: 20, step: 920 },
     ],
   },
 ];
 
-/** 将地形装饰板扩展为具体装饰物（纯背景，不参与碰撞）。 */
+/** 返回 x 处最上层固体平台的顶部 y；无固体平台覆盖则返回 null。 */
+function solidTopYAt(level: PlatformerLevel, x: number): number | null {
+  let topY: number | null = null;
+  for (const platform of level.platforms) {
+    if (platform.kind !== "solid") continue;
+    if (x >= platform.x && x < platform.x + platform.width) {
+      topY = topY === null ? platform.y : Math.min(topY, platform.y);
+    }
+  }
+  return topY;
+}
+
+/** 返回装饰底边 [x0, x1] 所贴附的固体平台顶部 y；若底边悬空或横跨不同高度的平台则返回 null。 */
+function groundBaseYForSpan(level: PlatformerLevel, x0: number, x1: number): number | null {
+  let topY: number | null = null;
+  for (const sx of [x0, (x0 + x1) * 0.5, x1]) {
+    const t = solidTopYAt(level, sx);
+    if (t === null) return null;
+    if (topY === null) {
+      topY = t;
+    } else if (topY !== t) {
+      return null;
+    }
+  }
+  return topY;
+}
+
+function rectsOverlap(
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number },
+): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
+function decoRect(decoration: LevelDecoration): { x: number; y: number; width: number; height: number } {
+  return { x: decoration.x, y: decoration.y, width: decoration.width, height: decoration.height };
+}
+
+/** 将地形装饰板扩展为具体装饰物（纯背景，不参与碰撞）。
+ *  地面类装饰贴附固体平台顶部、坑上方自动跳过；所有装饰互相避让避免重叠。 */
 function expandTerrainDecorations(levels: readonly PlatformerLevel[]): void {
   for (const entry of TERRAIN_PLATES) {
     const level = levels.find((item) => item.id === entry.levelId);
     if (!level) {
       throw new Error(`Unknown terrain plate level id: ${entry.levelId}`);
     }
+    const placed: Array<{ x: number; y: number; width: number; height: number }> = [
+      ...level.decorations.map(decoRect),
+      ...level.platforms.map((platform) => ({
+        x: platform.x,
+        y: platform.y,
+        width: platform.width,
+        height: platform.height,
+      })),
+    ];
     const generated: LevelDecoration[] = [];
     for (const plate of entry.plates) {
+      const isGround = GROUND_DECO_KINDS.has(plate.kind);
+      let index = 0;
       for (let i = 0; i < plate.count; i += 1) {
-        const x = plate.x + i * plate.step;
-        if (x + plate.width > level.width) {
-          throw new Error(`Terrain plate overflows level ${level.id}.`);
+        const candidateX = plate.x + i * plate.step;
+        let x = candidateX;
+        let y = plate.y;
+        if (isGround) {
+          const baseY = groundBaseYForSpan(level, candidateX, candidateX + plate.width);
+          if (baseY === null) continue;
+          y = baseY - plate.height;
         }
+        // 与已放置装饰重叠时向右寻找空隙（最多偏移 step/2），仍重叠则跳过
+        const maxShift = Math.max(0, Math.floor(plate.step / 2));
+        let placedOk = false;
+        for (let shift = 0; shift <= maxShift; shift += 12) {
+          const px = candidateX + shift;
+          if (px + plate.width > level.width) break;
+          let py = y;
+          if (isGround) {
+            const shiftedBase = groundBaseYForSpan(level, px, px + plate.width);
+            if (shiftedBase === null) continue;
+            py = shiftedBase - plate.height;
+          }
+          const rect = { x: px, y: py, width: plate.width, height: plate.height };
+          if (placed.some((item) => rectsOverlap(rect, item))) continue;
+          x = px;
+          y = py;
+          placedOk = true;
+          break;
+        }
+        if (!placedOk) continue;
+        index += 1;
         generated.push({
-          id: `l${level.id}-terrain-${plate.kind}-${String(i + 1).padStart(2, "0")}`,
+          id: `l${level.id}-terrain-${plate.kind}-${String(index).padStart(2, "0")}`,
           kind: plate.kind,
           x,
-          y: plate.y,
+          y,
           width: plate.width,
           height: plate.height,
           variant: i % 4,
         });
+        placed.push({ x, y, width: plate.width, height: plate.height });
       }
     }
     level.decorations.push(...generated);
   }
 }
 expandTerrainDecorations(PLATFORMER_LEVELS);
+
 
 export const PLATFORMER_LEVELS_BY_ID = new Map(
   PLATFORMER_LEVELS.map((level) => [level.id, level]),
