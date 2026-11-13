@@ -137,14 +137,7 @@ export function PlatformerCanvas({ world, reducedMotion, ariaLabel }: Platformer
     };
   }, [reducedMotion]);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="platformer-canvas"
-      role="img"
-      aria-label={ariaLabel}
-    />
-  );
+  return <canvas ref={canvasRef} className="platformer-canvas" role="img" aria-label={ariaLabel} />;
 }
 
 /** 天空：按主题渐变与星点光晕（最远景层）。 */
@@ -238,58 +231,151 @@ function parallaxStart(cameraX: number, factor: number, tile: number): number {
   return -((cameraX * factor) % tile);
 }
 
-/** 圆润冰丘：连续拱形剪影，可复用于冰原/永夜等雪原地貌。 */
-function drawHumpBackdrop(
+/** 平缓地平线：近乎平坦的远景雪原/海平线剪影，顶部仅有轻微起伏，避免山形。 */
+function drawHorizonBackdrop(
   context: CanvasRenderingContext2D,
   color: string,
   cameraX: number,
   factor: number,
   tile: number,
-  humpHeight: number,
+  bandHeight: number,
   baseY: number,
   count: number,
 ): void {
   const startX = parallaxStart(cameraX, factor, tile);
-  const random = createSeededRandom(hashSeed(`hump-${factor}-${tile}`));
+  const random = createSeededRandom(hashSeed(`horizon-${factor}-${tile}`));
   context.fillStyle = color;
   context.beginPath();
   context.moveTo(startX - tile, PLATFORMER_LOGICAL_HEIGHT);
   for (let i = 0; i <= count; i += 1) {
     const x = startX - tile + i * tile;
-    const topY = baseY - humpHeight * (0.72 + random() * 0.5);
-    context.quadraticCurveTo(x + tile * 0.2, topY + humpHeight * 0.55, x + tile * 0.5, topY);
-    context.quadraticCurveTo(x + tile * 0.8, topY + humpHeight * 0.55, x + tile, baseY);
+    const topY = baseY - bandHeight * (0.86 + random() * 0.2);
+    const ripple = (random() - 0.5) * bandHeight * 0.16;
+    context.quadraticCurveTo(x + tile * 0.25, topY + ripple, x + tile * 0.5, topY);
+    context.quadraticCurveTo(x + tile * 0.75, topY - ripple, x + tile, topY);
   }
   context.lineTo(startX + count * tile, PLATFORMER_LOGICAL_HEIGHT);
   context.closePath();
   context.fill();
 }
 
-/** 锯齿岩脊：陡悍的三角岩峰链，用于峡谷地貌。 */
-function drawSawBackdrop(
+/** 层状岩层：顶部近乎水平的台地式岩层带，用于峡谷/洞穴的崖壁与洞底。 */
+function drawStrataBackdrop(
   context: CanvasRenderingContext2D,
   color: string,
   cameraX: number,
   factor: number,
   tile: number,
+  bandHeight: number,
   baseY: number,
-  peakHeight: number,
   count: number,
 ): void {
   const startX = parallaxStart(cameraX, factor, tile);
-  const random = createSeededRandom(hashSeed(`saw-${factor}-${tile}`));
+  const random = createSeededRandom(hashSeed(`strata-${factor}-${tile}`));
   context.fillStyle = color;
   context.beginPath();
   context.moveTo(startX - tile, PLATFORMER_LOGICAL_HEIGHT);
+  let prevY = baseY - bandHeight * (0.82 + random() * 0.2);
   for (let i = 0; i <= count; i += 1) {
     const x = startX - tile + i * tile;
-    const topY = baseY - peakHeight * (0.6 + random() * 0.7);
+    const topY = baseY - bandHeight * (0.78 + random() * 0.26);
+    context.lineTo(x + tile * 0.5, prevY);
     context.lineTo(x + tile * 0.5, topY);
-    context.lineTo(x + tile, baseY);
+    context.lineTo(x + tile, topY);
+    prevY = topY;
   }
   context.lineTo(startX + count * tile, PLATFORMER_LOGICAL_HEIGHT);
   context.closePath();
   context.fill();
+}
+
+/** 竖直岩柱：峡谷中矗立的柱状崖壁剪影，顶部平齐带轻微缺口。 */
+function drawCliffBackdrop(
+  context: CanvasRenderingContext2D,
+  color: string,
+  cameraX: number,
+  factor: number,
+  tile: number,
+  height: number,
+  baseY: number,
+  count: number,
+): void {
+  const startX = parallaxStart(cameraX, factor, tile);
+  const random = createSeededRandom(hashSeed(`cliff-${factor}-${tile}`));
+  context.fillStyle = color;
+  for (let i = 0; i <= count; i += 1) {
+    const x = startX + i * tile;
+    const w = tile * (0.46 + random() * 0.28);
+    const h = height * (0.5 + random() * 0.6);
+    const top = baseY - h;
+    context.beginPath();
+    context.moveTo(x - w * 0.5, baseY);
+    context.lineTo(x - w * 0.5, top);
+    context.lineTo(x - w * 0.16, top - 2 - random() * 4);
+    context.lineTo(x + w * 0.08, top + 1 + random() * 3);
+    context.lineTo(x + w * 0.5, top - 3 - random() * 5);
+    context.lineTo(x + w * 0.5, baseY);
+    context.closePath();
+    context.fill();
+  }
+}
+
+/** 浮冰：海面上圆润漂浮的冰体，随波轻摆，替代三角形山形剪影。 */
+function drawFloeBackdrop(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+  factor: number,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const startX = parallaxStart(cameraX, factor, 320);
+  const random = createSeededRandom(hashSeed(`floe-${factor}`));
+  context.save();
+  for (let i = 0; i < 6; i += 1) {
+    const x = startX + i * 320 + random() * 110;
+    const w = 80 + random() * 90;
+    const h = 18 + random() * 14;
+    const y = 596 + random() * 36;
+    const bob = !reducedMotion && timeMs > 0 ? Math.sin(timeMs * 0.0006 + i * 1.35) * 5 : 0;
+    context.fillStyle = palette.iceMid + (i % 2 === 0 ? "cc" : "8c");
+    context.beginPath();
+    context.ellipse(x, y + bob, w * 0.5, h, 0, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = palette.iceLight + "55";
+    context.beginPath();
+    context.ellipse(x - w * 0.1, y + bob - h * 0.6, w * 0.26, h * 0.4, 0, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.restore();
+}
+
+/** 冰晶浮片：远处漂浮的菱形冰晶剪影，为冰原远景增添层次。 */
+function drawShardBackdrop(
+  context: CanvasRenderingContext2D,
+  color: string,
+  cameraX: number,
+  factor: number,
+  tile: number,
+  size: number,
+  count: number,
+): void {
+  const startX = parallaxStart(cameraX, factor, tile);
+  const random = createSeededRandom(hashSeed(`shard-${factor}-${tile}`));
+  context.fillStyle = color;
+  for (let i = 0; i <= count; i += 1) {
+    const x = startX + i * tile + random() * tile * 0.55;
+    const y = 220 + random() * 280;
+    const s = size * (0.5 + random() * 0.85);
+    context.beginPath();
+    context.moveTo(x, y - s);
+    context.lineTo(x + s * 0.45, y - s * 0.2);
+    context.lineTo(x + s * 0.22, y + s * 0.5);
+    context.lineTo(x - s * 0.22, y + s * 0.5);
+    context.lineTo(x - s * 0.45, y - s * 0.2);
+    context.closePath();
+    context.fill();
+  }
 }
 
 /** 波浪带：自 baseY 向下填充的水面/能量波层，可随时间流动。 */
@@ -412,15 +498,15 @@ function drawIsletBackdrop(
   context.restore();
 }
 
-/** 冰原（第 1 关）：圆润冰丘 + 漂浮冰尘。 */
+/** 冰原（第 1 关）：平缓冰原地平线 + 漂浮冰晶与冰尘。 */
 function drawIcefieldBackdrop(
   context: CanvasRenderingContext2D,
   palette: LevelPalette,
   cameraX: number,
 ): void {
-  drawHumpBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 180, 42, 600, 6);
-  drawHumpBackdrop(context, palette.iceDeep + "8c", cameraX, 0.2, 132, 66, 622, 7);
-  drawHumpBackdrop(context, palette.iceMid + "b8", cameraX, 0.32, 96, 52, 652, 8);
+  drawHorizonBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 220, 40, 612, 6);
+  drawHorizonBackdrop(context, palette.iceDeep + "8c", cameraX, 0.2, 150, 58, 638, 7);
+  drawShardBackdrop(context, palette.iceMid + "88", cameraX, 0.32, 190, 20, 8);
   const startX = parallaxStart(cameraX, 0.44, 130);
   const random = createSeededRandom(hashSeed("icefield-dust"));
   context.save();
@@ -436,15 +522,15 @@ function drawIcefieldBackdrop(
   context.restore();
 }
 
-/** 裂隙回廊（第 2 关）：锯齿岩脊 + 谷底雾带。 */
+/** 裂隙回廊（第 2 关）：层状岩壁 + 竖直岩柱 + 谷底雾带。 */
 function drawGorgeBackdrop(
   context: CanvasRenderingContext2D,
   palette: LevelPalette,
   cameraX: number,
 ): void {
-  drawSawBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 176, 606, 74, 6);
-  drawSawBackdrop(context, palette.iceDeep + "99", cameraX, 0.18, 132, 622, 104, 7);
-  drawSawBackdrop(context, palette.iceMid + "8c", cameraX, 0.3, 98, 648, 68, 8);
+  drawStrataBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 240, 60, 622, 5);
+  drawStrataBackdrop(context, palette.iceDeep + "8c", cameraX, 0.18, 170, 78, 642, 7);
+  drawCliffBackdrop(context, palette.iceMid + "8c", cameraX, 0.3, 210, 196, 664, 6);
   const fogStart = parallaxStart(cameraX, 0.42, 220);
   const fog = context.createLinearGradient(0, 552, 0, 700);
   fog.addColorStop(0, "rgba(4, 17, 26, 0)");
@@ -453,7 +539,7 @@ function drawGorgeBackdrop(
   context.fillRect(fogStart - 220, 552, PLATFORMER_LOGICAL_WIDTH + 440, 148);
 }
 
-/** 潮汐回响（第 3 关）：流动海浪 + 漂浮冰山。 */
+/** 潮汐回响（第 3 关）：流动海浪 + 圆润漂浮浮冰。 */
 function drawTideBackdrop(
   context: CanvasRenderingContext2D,
   palette: LevelPalette,
@@ -461,43 +547,43 @@ function drawTideBackdrop(
   timeMs: number,
   reducedMotion: boolean,
 ): void {
-  drawWaveBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 170, 606, timeMs * 0.4, reducedMotion);
-  drawWaveBackdrop(context, palette.iceDeep + "b3", cameraX, 0.2, 124, 632, timeMs * 0.7, reducedMotion);
+  drawWaveBackdrop(
+    context,
+    palette.iceDeep + "59",
+    cameraX,
+    0.08,
+    170,
+    606,
+    timeMs * 0.4,
+    reducedMotion,
+  );
+  drawWaveBackdrop(
+    context,
+    palette.iceDeep + "b3",
+    cameraX,
+    0.2,
+    124,
+    632,
+    timeMs * 0.7,
+    reducedMotion,
+  );
   drawWaveBackdrop(context, palette.iceMid + "c2", cameraX, 0.32, 88, 658, timeMs, reducedMotion);
-  const startX = parallaxStart(cameraX, 0.44, 300);
-  const random = createSeededRandom(hashSeed("tide-berg"));
-  context.save();
-  for (let i = 0; i < 5; i += 1) {
-    const x = startX + i * 300 + random() * 120;
-    const w = 60 + random() * 90;
-    const h = 50 + random() * 80;
-    const waterY = 600;
-    context.fillStyle = palette.iceMid + "aa";
-    context.beginPath();
-    context.moveTo(x - w * 0.5, waterY);
-    context.lineTo(x, waterY - h);
-    context.lineTo(x + w * 0.5, waterY);
-    context.lineTo(x + w * 0.3, waterY + 26);
-    context.lineTo(x - w * 0.3, waterY + 26);
-    context.closePath();
-    context.fill();
-  }
-  context.restore();
+  drawFloeBackdrop(context, palette, cameraX, 0.44, timeMs, reducedMotion);
 }
 
-/** 永夜星云（第 4 关）：雪丘 + 冰封松树剪影。 */
+/** 永夜星云（第 4 关）：平缓雪原 + 冰封松树剪影。 */
 function drawNightBackdrop(
   context: CanvasRenderingContext2D,
   palette: LevelPalette,
   cameraX: number,
 ): void {
-  drawHumpBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 184, 40, 604, 6);
-  drawHumpBackdrop(context, palette.iceDeep + "99", cameraX, 0.2, 138, 62, 626, 7);
-  drawPineBackdrop(context, palette.iceMid + "99", cameraX, 0.32, 116, 650, 80, 7);
-  drawPineBackdrop(context, palette.iceDeep + "d9", cameraX, 0.46, 92, 668, 58, 8);
+  drawHorizonBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 200, 34, 618, 6);
+  drawPineBackdrop(context, palette.iceDeep + "99", cameraX, 0.2, 150, 636, 78, 7);
+  drawPineBackdrop(context, palette.iceMid + "99", cameraX, 0.32, 116, 652, 92, 7);
+  drawPineBackdrop(context, palette.iceDeep + "d9", cameraX, 0.46, 92, 670, 66, 8);
 }
 
-/** 幽暗冰洞（第 5 关）：洞顶钟乳石 + 洞壁岩层 + 洞底雾气。 */
+/** 幽暗冰洞（第 5 关）：洞顶钟乳石 + 洞底层状岩层 + 洞底雾气。 */
 function drawCavernBackdrop(
   context: CanvasRenderingContext2D,
   palette: LevelPalette,
@@ -505,8 +591,8 @@ function drawCavernBackdrop(
 ): void {
   drawStalactiteBackdrop(context, palette.iceDeep + "8c", cameraX, 0.1, 96, 130, 8);
   drawStalactiteBackdrop(context, palette.iceDeep + "e6", cameraX, 0.24, 74, 196, 8);
-  drawHumpBackdrop(context, palette.iceDeep + "66", cameraX, 0.14, 176, 46, 606, 6);
-  drawHumpBackdrop(context, palette.iceMid + "8c", cameraX, 0.3, 120, 70, 630, 7);
+  drawStrataBackdrop(context, palette.iceDeep + "66", cameraX, 0.14, 210, 48, 646, 6);
+  drawStrataBackdrop(context, palette.iceMid + "8c", cameraX, 0.3, 130, 60, 668, 8);
   const fogStart = parallaxStart(cameraX, 0.44, 200);
   const fog = context.createLinearGradient(0, 556, 0, 700);
   fog.addColorStop(0, "rgba(13, 10, 22, 0)");
@@ -523,10 +609,28 @@ function drawCoreBackdrop(
   timeMs: number,
   reducedMotion: boolean,
 ): void {
-  drawWaveBackdrop(context, "rgba(10, 8, 22, 0.92)", cameraX, 0.08, 26, 472, timeMs * 0.3, reducedMotion);
+  drawWaveBackdrop(
+    context,
+    "rgba(10, 8, 22, 0.92)",
+    cameraX,
+    0.08,
+    26,
+    472,
+    timeMs * 0.3,
+    reducedMotion,
+  );
   drawWaveBackdrop(context, palette.accentSoft, cameraX, 0.2, 34, 520, timeMs * 0.7, reducedMotion);
   drawIsletBackdrop(context, palette, cameraX, 0.32, timeMs, reducedMotion);
-  drawWaveBackdrop(context, palette.iceDeep + "99", cameraX, 0.42, 44, 582, timeMs * 1.1, reducedMotion);
+  drawWaveBackdrop(
+    context,
+    palette.iceDeep + "99",
+    cameraX,
+    0.42,
+    44,
+    582,
+    timeMs * 1.1,
+    reducedMotion,
+  );
 }
 
 /** 场景装饰物：按主题在背景层绘制极光、星云与地貌特征（不参与碰撞）。 */
@@ -603,12 +707,18 @@ function drawAuroraBand(
 ): void {
   const sway = reducedMotion ? 0 : Math.sin(timeMs * 0.0011 + decoration.variant * 1.7) * 26;
   const midY = decoration.y + decoration.height * 0.5;
-  const gradient = context.createLinearGradient(0, decoration.y, 0, decoration.y + decoration.height);
+  const gradient = context.createLinearGradient(
+    0,
+    decoration.y,
+    0,
+    decoration.y + decoration.height,
+  );
   gradient.addColorStop(0, "rgba(88, 217, 236, 0)");
   gradient.addColorStop(0.5, palette.accentSoft);
   gradient.addColorStop(1, "rgba(88, 217, 236, 0)");
   context.save();
-  context.globalAlpha = 0.6 + (reducedMotion ? 0 : 0.18 * Math.sin(timeMs * 0.002 + decoration.variant * 2));
+  context.globalAlpha =
+    0.6 + (reducedMotion ? 0 : 0.18 * Math.sin(timeMs * 0.002 + decoration.variant * 2));
   context.fillStyle = gradient;
   context.beginPath();
   context.moveTo(decoration.x, midY);
@@ -696,7 +806,9 @@ function drawCrystalSpire(
 ): void {
   const baseY = decoration.y + decoration.height;
   const cx = decoration.x + decoration.width * 0.5;
-  const pulse = reducedMotion ? 0.7 : 0.62 + 0.2 * Math.sin(timeMs * 0.005 + decoration.variant * 2);
+  const pulse = reducedMotion
+    ? 0.7
+    : 0.62 + 0.2 * Math.sin(timeMs * 0.005 + decoration.variant * 2);
   context.save();
   context.globalAlpha = pulse;
   context.fillStyle = palette.accent;
@@ -774,7 +886,13 @@ function drawTideWisp(
   context.globalAlpha = 1;
   context.fillStyle = palette.iceLight;
   context.beginPath();
-  context.arc(cx - decoration.width * 0.15, cy - decoration.height * 0.15, decoration.width * 0.14, 0, Math.PI * 2);
+  context.arc(
+    cx - decoration.width * 0.15,
+    cy - decoration.height * 0.15,
+    decoration.width * 0.14,
+    0,
+    Math.PI * 2,
+  );
   context.fill();
   context.restore();
 }
@@ -877,12 +995,7 @@ function drawSnowDrift(
   context.fillStyle = body;
   context.beginPath();
   context.moveTo(decoration.x, baseY);
-  context.quadraticCurveTo(
-    decoration.x + decoration.width * 0.22,
-    decoration.y,
-    cx,
-    decoration.y,
-  );
+  context.quadraticCurveTo(decoration.x + decoration.width * 0.22, decoration.y, cx, decoration.y);
   context.quadraticCurveTo(
     decoration.x + decoration.width * 0.78,
     decoration.y,
@@ -895,7 +1008,12 @@ function drawSnowDrift(
   context.fillStyle = palette.iceLight;
   context.beginPath();
   context.moveTo(cx - decoration.width * 0.16, decoration.y + decoration.height * 0.22);
-  context.quadraticCurveTo(cx, decoration.y + decoration.height * 0.06, cx + decoration.width * 0.18, decoration.y + decoration.height * 0.24);
+  context.quadraticCurveTo(
+    cx,
+    decoration.y + decoration.height * 0.06,
+    cx + decoration.width * 0.18,
+    decoration.y + decoration.height * 0.24,
+  );
   context.lineTo(cx + decoration.width * 0.1, decoration.y + decoration.height * 0.42);
   context.lineTo(cx - decoration.width * 0.12, decoration.y + decoration.height * 0.4);
   context.closePath();
@@ -904,10 +1022,7 @@ function drawSnowDrift(
 }
 
 /** 碎石堆：近景地面的暗色岩块。 */
-function drawRockRubble(
-  context: CanvasRenderingContext2D,
-  decoration: LevelDecoration,
-): void {
+function drawRockRubble(context: CanvasRenderingContext2D, decoration: LevelDecoration): void {
   const baseY = decoration.y + decoration.height;
   const random = createSeededRandom(hashSeed(`rubble-${decoration.x}`));
   context.save();
@@ -938,7 +1053,9 @@ function drawCrystalCluster(
 ): void {
   const baseY = decoration.y + decoration.height;
   const cx = decoration.x + decoration.width * 0.5;
-  const pulse = reducedMotion ? 0.7 : 0.62 + 0.18 * Math.sin(timeMs * 0.005 + decoration.variant * 2);
+  const pulse = reducedMotion
+    ? 0.7
+    : 0.62 + 0.18 * Math.sin(timeMs * 0.005 + decoration.variant * 2);
   context.save();
   context.globalAlpha = pulse;
   context.fillStyle = palette.accent;
@@ -973,7 +1090,12 @@ function drawStalactite(
 ): void {
   const random = createSeededRandom(hashSeed(`deco-stal-${decoration.x}`));
   context.save();
-  const gradient = context.createLinearGradient(0, decoration.y, 0, decoration.y + decoration.height);
+  const gradient = context.createLinearGradient(
+    0,
+    decoration.y,
+    0,
+    decoration.y + decoration.height,
+  );
   gradient.addColorStop(0, palette.iceDeep);
   gradient.addColorStop(1, "rgba(5, 10, 16, 0.9)");
   context.fillStyle = gradient;
@@ -1076,7 +1198,9 @@ function drawMagmaVein(
   reducedMotion: boolean,
 ): void {
   const random = createSeededRandom(hashSeed(`magma-${decoration.x}`));
-  const pulse = reducedMotion ? 0.6 : 0.5 + 0.25 * Math.sin(timeMs * 0.006 + decoration.variant * 2);
+  const pulse = reducedMotion
+    ? 0.6
+    : 0.5 + 0.25 * Math.sin(timeMs * 0.006 + decoration.variant * 2);
   context.save();
   context.globalAlpha = pulse;
   context.strokeStyle = palette.accent;
@@ -1144,53 +1268,89 @@ function getThemeSurface(theme: PlatformerTheme, palette: LevelPalette): ThemeSu
   switch (theme) {
     case "gorge":
       return {
-        bodyTop: "#3a3e48", bodyBottom: "rgba(8, 11, 16, 0.96)",
-        capTop: "rgba(150, 158, 172, 0.9)", capBottom: "rgba(70, 78, 94, 0.6)",
-        edge: "rgba(208, 216, 230, 0.7)", seam: "rgba(0, 0, 0, 0.35)",
-        seamBright: "rgba(196, 206, 222, 0.2)", speckle: "#8b919f",
-        layerAlpha: 0.16, hangA: "rgba(96, 104, 118, 0.6)", hangB: "rgba(38, 44, 56, 0.5)",
+        bodyTop: "#3a3e48",
+        bodyBottom: "rgba(8, 11, 16, 0.96)",
+        capTop: "rgba(150, 158, 172, 0.9)",
+        capBottom: "rgba(70, 78, 94, 0.6)",
+        edge: "rgba(208, 216, 230, 0.7)",
+        seam: "rgba(0, 0, 0, 0.35)",
+        seamBright: "rgba(196, 206, 222, 0.2)",
+        speckle: "#8b919f",
+        layerAlpha: 0.16,
+        hangA: "rgba(96, 104, 118, 0.6)",
+        hangB: "rgba(38, 44, 56, 0.5)",
       };
     case "tide":
       return {
-        bodyTop: "#1c5b67", bodyBottom: "rgba(3, 16, 22, 0.96)",
-        capTop: "rgba(196, 243, 239, 0.82)", capBottom: "rgba(72, 170, 182, 0.5)",
-        edge: "rgba(222, 250, 246, 0.75)", seam: "rgba(2, 12, 18, 0.38)",
-        seamBright: "rgba(150, 232, 226, 0.22)", speckle: "#a9e8e2",
-        layerAlpha: 0.16, hangA: "rgba(122, 212, 202, 0.5)", hangB: "rgba(28, 98, 108, 0.45)",
+        bodyTop: "#1c5b67",
+        bodyBottom: "rgba(3, 16, 22, 0.96)",
+        capTop: "rgba(196, 243, 239, 0.82)",
+        capBottom: "rgba(72, 170, 182, 0.5)",
+        edge: "rgba(222, 250, 246, 0.75)",
+        seam: "rgba(2, 12, 18, 0.38)",
+        seamBright: "rgba(150, 232, 226, 0.22)",
+        speckle: "#a9e8e2",
+        layerAlpha: 0.16,
+        hangA: "rgba(122, 212, 202, 0.5)",
+        hangB: "rgba(28, 98, 108, 0.45)",
       };
     case "night":
       return {
-        bodyTop: "#2b3c52", bodyBottom: "rgba(5, 9, 18, 0.96)",
-        capTop: "rgba(226, 238, 250, 0.85)", capBottom: "rgba(122, 144, 168, 0.55)",
-        edge: "rgba(240, 248, 255, 0.8)", seam: "rgba(0, 4, 12, 0.38)",
-        seamBright: "rgba(204, 224, 244, 0.2)", speckle: "#cddcee",
-        layerAlpha: 0.14, hangA: "rgba(184, 208, 228, 0.5)", hangB: "rgba(88, 118, 148, 0.4)",
+        bodyTop: "#2b3c52",
+        bodyBottom: "rgba(5, 9, 18, 0.96)",
+        capTop: "rgba(226, 238, 250, 0.85)",
+        capBottom: "rgba(122, 144, 168, 0.55)",
+        edge: "rgba(240, 248, 255, 0.8)",
+        seam: "rgba(0, 4, 12, 0.38)",
+        seamBright: "rgba(204, 224, 244, 0.2)",
+        speckle: "#cddcee",
+        layerAlpha: 0.14,
+        hangA: "rgba(184, 208, 228, 0.5)",
+        hangB: "rgba(88, 118, 148, 0.4)",
       };
     case "cavern":
       return {
-        bodyTop: "#2c3c48", bodyBottom: "rgba(4, 8, 13, 0.97)",
-        capTop: "rgba(130, 158, 174, 0.85)", capBottom: "rgba(62, 84, 100, 0.6)",
-        edge: "rgba(182, 210, 224, 0.7)", seam: "rgba(0, 3, 8, 0.4)",
-        seamBright: "rgba(150, 182, 202, 0.18)", speckle: "#6f8a9c",
-        layerAlpha: 0.14, hangA: "rgba(112, 142, 160, 0.55)", hangB: "rgba(38, 58, 72, 0.5)",
+        bodyTop: "#2c3c48",
+        bodyBottom: "rgba(4, 8, 13, 0.97)",
+        capTop: "rgba(130, 158, 174, 0.85)",
+        capBottom: "rgba(62, 84, 100, 0.6)",
+        edge: "rgba(182, 210, 224, 0.7)",
+        seam: "rgba(0, 3, 8, 0.4)",
+        seamBright: "rgba(150, 182, 202, 0.18)",
+        speckle: "#6f8a9c",
+        layerAlpha: 0.14,
+        hangA: "rgba(112, 142, 160, 0.55)",
+        hangB: "rgba(38, 58, 72, 0.5)",
       };
     case "core":
       return {
-        bodyTop: "#2d2139", bodyBottom: "rgba(7, 3, 13, 0.97)",
-        capTop: "rgba(234, 170, 216, 0.76)", capBottom: "rgba(122, 64, 112, 0.55)",
-        edge: "rgba(250, 216, 238, 0.7)", seam: "rgba(0, 0, 6, 0.5)",
-        seamBright: "rgba(255, 158, 198, 0.38)", speckle: "#c78fc0",
-        layerAlpha: 0.18, hangA: "rgba(255, 158, 198, 0.5)", hangB: "rgba(92, 42, 82, 0.5)",
+        bodyTop: "#2d2139",
+        bodyBottom: "rgba(7, 3, 13, 0.97)",
+        capTop: "rgba(234, 170, 216, 0.76)",
+        capBottom: "rgba(122, 64, 112, 0.55)",
+        edge: "rgba(250, 216, 238, 0.7)",
+        seam: "rgba(0, 0, 6, 0.5)",
+        seamBright: "rgba(255, 158, 198, 0.38)",
+        speckle: "#c78fc0",
+        layerAlpha: 0.18,
+        hangA: "rgba(255, 158, 198, 0.5)",
+        hangB: "rgba(92, 42, 82, 0.5)",
         glowSeam: true,
       };
     case "icefield":
     default:
       return {
-        bodyTop: palette.iceMid, bodyBottom: "rgba(7, 22, 31, 0.92)",
-        capTop: "rgba(228, 249, 252, 0.95)", capBottom: "rgba(111, 194, 210, 0.55)",
-        edge: "rgba(240, 252, 254, 0.92)", seam: "rgba(7, 22, 31, 0.2)",
-        seamBright: "rgba(216, 247, 251, 0.2)", speckle: palette.iceLight,
-        layerAlpha: 0.18, hangA: "rgba(216, 247, 251, 0.55)", hangB: "rgba(111, 194, 210, 0.42)",
+        bodyTop: palette.iceMid,
+        bodyBottom: "rgba(7, 22, 31, 0.92)",
+        capTop: "rgba(228, 249, 252, 0.95)",
+        capBottom: "rgba(111, 194, 210, 0.55)",
+        edge: "rgba(240, 252, 254, 0.92)",
+        seam: "rgba(7, 22, 31, 0.2)",
+        seamBright: "rgba(216, 247, 251, 0.2)",
+        speckle: palette.iceLight,
+        layerAlpha: 0.18,
+        hangA: "rgba(216, 247, 251, 0.55)",
+        hangB: "rgba(111, 194, 210, 0.42)",
       };
   }
 }
@@ -1255,7 +1415,12 @@ function drawSurfaceSeams(
       const gx = x + ((i + 0.2 + random() * 0.6) * width) / glowCount;
       context.beginPath();
       context.moveTo(gx, y + 3);
-      context.quadraticCurveTo(gx + (random() - 0.5) * 12, y + height * 0.3, gx + (random() - 0.5) * 16, y + height * 0.5);
+      context.quadraticCurveTo(
+        gx + (random() - 0.5) * 12,
+        y + height * 0.3,
+        gx + (random() - 0.5) * 16,
+        y + height * 0.5,
+      );
       context.stroke();
     }
     context.globalAlpha = 1;
@@ -1399,7 +1564,6 @@ function drawSolidPlatform(
   }
 }
 
-
 function drawPlatforms({ context, level, world, reducedMotion }: DrawState): void {
   for (const platform of level.platforms) {
     const offset = world.platformOffsets[platform.id];
@@ -1526,7 +1690,14 @@ function drawEnemies({ context, level, world, reducedMotion }: DrawState): void 
 }
 
 /** 冰核哨兵：经典的巡逻哨兵，胸口核心灯脉冲。 */
-function drawClassicSentinel({ context, sentinel, top, timeMs, reducedMotion, palette }: EnemyDrawState): void {
+function drawClassicSentinel({
+  context,
+  sentinel,
+  top,
+  timeMs,
+  reducedMotion,
+  palette,
+}: EnemyDrawState): void {
   const definition = sentinel.definition;
   const sx = sentinel.x;
   const sy = top;
@@ -1538,7 +1709,15 @@ function drawClassicSentinel({ context, sentinel, top, timeMs, reducedMotion, pa
   context.globalAlpha = 0.16;
   context.fillStyle = palette.accent;
   context.beginPath();
-  context.ellipse(sx + definition.width * 0.5, sy + definition.height + 2, 18, 5, 0, 0, Math.PI * 2);
+  context.ellipse(
+    sx + definition.width * 0.5,
+    sy + definition.height + 2,
+    18,
+    5,
+    0,
+    0,
+    Math.PI * 2,
+  );
   context.fill();
   context.globalAlpha = 1;
 
@@ -1591,7 +1770,14 @@ function drawClassicSentinel({ context, sentinel, top, timeMs, reducedMotion, pa
 }
 
 /** 冰甲爬虫：低矮贴地，六足交替爬行。 */
-function drawCrawler({ context, sentinel, top, timeMs, reducedMotion, palette }: EnemyDrawState): void {
+function drawCrawler({
+  context,
+  sentinel,
+  top,
+  timeMs,
+  reducedMotion,
+  palette,
+}: EnemyDrawState): void {
   const definition = sentinel.definition;
   const sy = top + (reducedMotion ? 0 : Math.sin(timeMs / 170) * 1);
   const facing = sentinel.direction;
@@ -1664,7 +1850,14 @@ function drawCrawler({ context, sentinel, top, timeMs, reducedMotion, palette }:
 }
 
 /** 裂隙浮游体：悬浮在裂隙间的发光浮游生物。 */
-function drawDrifter({ context, sentinel, top, timeMs, reducedMotion, palette }: EnemyDrawState): void {
+function drawDrifter({
+  context,
+  sentinel,
+  top,
+  timeMs,
+  reducedMotion,
+  palette,
+}: EnemyDrawState): void {
   const definition = sentinel.definition;
   const sx = sentinel.x;
   const sy = top;
@@ -1684,7 +1877,12 @@ function drawDrifter({ context, sentinel, top, timeMs, reducedMotion, palette }:
     const x2 = cx - 11 + i * 11 + sway * 1.6;
     context.beginPath();
     context.moveTo(x0, sy + definition.height - 2);
-    context.quadraticCurveTo(x1, sy + definition.height + 5, x2, sy + definition.height + 10 + (i % 2) * 2);
+    context.quadraticCurveTo(
+      x1,
+      sy + definition.height + 5,
+      x2,
+      sy + definition.height + 10 + (i % 2) * 2,
+    );
     context.stroke();
   }
 
@@ -1695,7 +1893,15 @@ function drawDrifter({ context, sentinel, top, timeMs, reducedMotion, palette }:
   context.fill();
   context.fillStyle = "rgba(216, 247, 251, 0.2)";
   context.beginPath();
-  context.ellipse(cx - 3, cy - 5, definition.width * 0.24, definition.height * 0.2, -0.3, 0, Math.PI * 2);
+  context.ellipse(
+    cx - 3,
+    cy - 5,
+    definition.width * 0.24,
+    definition.height * 0.2,
+    -0.3,
+    0,
+    Math.PI * 2,
+  );
   context.fill();
 
   // 核心
@@ -1715,12 +1921,22 @@ function drawDrifter({ context, sentinel, top, timeMs, reducedMotion, palette }:
   context.fillStyle = palette.iceMid;
   context.beginPath();
   context.moveTo(cx - definition.width * 0.5 + 2, cy - 4);
-  context.quadraticCurveTo(cx - definition.width * 0.5 - 8, cy + 2 + flap, cx - definition.width * 0.5 + 2, cy + 8);
+  context.quadraticCurveTo(
+    cx - definition.width * 0.5 - 8,
+    cy + 2 + flap,
+    cx - definition.width * 0.5 + 2,
+    cy + 8,
+  );
   context.closePath();
   context.fill();
   context.beginPath();
   context.moveTo(cx + definition.width * 0.5 - 2, cy - 4);
-  context.quadraticCurveTo(cx + definition.width * 0.5 + 8, cy + 2 - flap, cx + definition.width * 0.5 - 2, cy + 8);
+  context.quadraticCurveTo(
+    cx + definition.width * 0.5 + 8,
+    cy + 2 - flap,
+    cx + definition.width * 0.5 - 2,
+    cy + 8,
+  );
   context.closePath();
   context.fill();
 
@@ -1734,7 +1950,14 @@ function drawDrifter({ context, sentinel, top, timeMs, reducedMotion, palette }:
 }
 
 /** 弹跳兽：周期性弹跳，落地时压缩弹簧腿并扬尘。 */
-function drawHopper({ context, sentinel, top, timeMs, reducedMotion, palette }: EnemyDrawState): void {
+function drawHopper({
+  context,
+  sentinel,
+  top,
+  timeMs,
+  reducedMotion,
+  palette,
+}: EnemyDrawState): void {
   const definition = sentinel.definition;
   const sx = sentinel.x;
   const sy = top;
@@ -1805,7 +2028,14 @@ function drawHopper({ context, sentinel, top, timeMs, reducedMotion, palette }: 
   context.restore();
 }
 /** 炮台射手：装甲炮塔 + 旋转炮管，进入射程后瞄准玩家开火。 */
-function drawGunner({ context, sentinel, top, timeMs, reducedMotion, palette }: EnemyDrawState): void {
+function drawGunner({
+  context,
+  sentinel,
+  top,
+  timeMs,
+  reducedMotion,
+  palette,
+}: EnemyDrawState): void {
   const definition = sentinel.definition;
   const sy = top;
   const facing = sentinel.direction;
@@ -1875,7 +2105,14 @@ function drawGunner({ context, sentinel, top, timeMs, reducedMotion, palette }: 
 }
 
 /** 冲锋兽：重装冰甲 + 护目镜头盔，冲锋时拉出加速残影。 */
-function drawCharger({ context, sentinel, top, timeMs, reducedMotion, palette }: EnemyDrawState): void {
+function drawCharger({
+  context,
+  sentinel,
+  top,
+  timeMs,
+  reducedMotion,
+  palette,
+}: EnemyDrawState): void {
   const definition = sentinel.definition;
   const sy = top;
   const facing = sentinel.direction;
@@ -1890,7 +2127,13 @@ function drawCharger({ context, sentinel, top, timeMs, reducedMotion, palette }:
     context.globalAlpha = 0.22;
     context.fillStyle = palette.accent;
     context.beginPath();
-    context.roundRect(-definition.width * 0.5 - 16, 2, definition.width * 0.9, definition.height * 0.55, 8);
+    context.roundRect(
+      -definition.width * 0.5 - 16,
+      2,
+      definition.width * 0.9,
+      definition.height * 0.55,
+      8,
+    );
     context.fill();
     context.globalAlpha = 1;
   }
@@ -1907,7 +2150,13 @@ function drawCharger({ context, sentinel, top, timeMs, reducedMotion, palette }:
   // 背甲板
   context.fillStyle = palette.iceDeep;
   context.beginPath();
-  context.roundRect(-definition.width * 0.5 + 3, 4, definition.width - 6, definition.height * 0.4, 6);
+  context.roundRect(
+    -definition.width * 0.5 + 3,
+    4,
+    definition.width - 6,
+    definition.height * 0.4,
+    6,
+  );
   context.fill();
   context.strokeStyle = "rgba(216, 247, 251, 0.2)";
   context.lineWidth = 1.5;
@@ -1936,10 +2185,22 @@ function drawCharger({ context, sentinel, top, timeMs, reducedMotion, palette }:
   // 腿部（冲锋时前倾）
   context.fillStyle = "#0a1a24";
   context.beginPath();
-  context.roundRect(-definition.width * 0.4, definition.height * 0.66, 8, definition.height * 0.34, 3);
+  context.roundRect(
+    -definition.width * 0.4,
+    definition.height * 0.66,
+    8,
+    definition.height * 0.34,
+    3,
+  );
   context.fill();
   context.beginPath();
-  context.roundRect(definition.width * 0.14, definition.height * 0.66, 8, definition.height * 0.34, 3);
+  context.roundRect(
+    definition.width * 0.14,
+    definition.height * 0.66,
+    8,
+    definition.height * 0.34,
+    3,
+  );
   context.fill();
   context.fillStyle = palette.accent;
   context.beginPath();
@@ -1953,7 +2214,14 @@ function drawCharger({ context, sentinel, top, timeMs, reducedMotion, palette }:
 }
 
 /** 尖刺傀儡：原地驻守，周期性伸出/收回尖刺（伸出时不可踩踏）。 */
-function drawSpiker({ context, sentinel, top, timeMs, reducedMotion, palette }: EnemyDrawState): void {
+function drawSpiker({
+  context,
+  sentinel,
+  top,
+  timeMs,
+  reducedMotion,
+  palette,
+}: EnemyDrawState): void {
   const definition = sentinel.definition;
   const sy = top;
   const cycle = definition.spikeCycleMs ?? 2000;
@@ -2010,17 +2278,32 @@ function drawProjectiles({ context, level, world, reducedMotion }: DrawState): v
     }
     const cx = projectile.x + projectile.width * 0.5;
     const cy = projectile.y + projectile.height * 0.5;
-    const trail = reducedMotion ? 0.4 : 0.3 + 0.25 * Math.sin(world.levelTimeMs * 0.03 + projectile.x);
+    const trail = reducedMotion
+      ? 0.4
+      : 0.3 + 0.25 * Math.sin(world.levelTimeMs * 0.03 + projectile.x);
     context.save();
     if (projectile.kind === "plasma") {
       // 玩家等离子弹：青蓝流线弹体 + 拖尾
       context.globalAlpha = trail;
       context.fillStyle = palette.accentSoft;
       context.beginPath();
-      context.ellipse(cx - projectile.width * 1.8, cy, projectile.width * 2.1, projectile.height * 0.7, 0, 0, Math.PI * 2);
+      context.ellipse(
+        cx - projectile.width * 1.8,
+        cy,
+        projectile.width * 2.1,
+        projectile.height * 0.7,
+        0,
+        0,
+        Math.PI * 2,
+      );
       context.fill();
       context.globalAlpha = 1;
-      const body = context.createLinearGradient(projectile.x, 0, projectile.x + projectile.width, 0);
+      const body = context.createLinearGradient(
+        projectile.x,
+        0,
+        projectile.x + projectile.width,
+        0,
+      );
       body.addColorStop(0, palette.iceLight);
       body.addColorStop(1, palette.accent);
       context.fillStyle = body;
