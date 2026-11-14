@@ -205,7 +205,7 @@ function drawParallax({ context, level, cameraX, world, reducedMotion }: DrawSta
   const timeMs = world.levelTimeMs;
   switch (level.theme) {
     case "gorge":
-      drawGorgeBackdrop(context, level.palette, cameraX);
+      drawGorgeBackdrop(context, level.palette, cameraX, timeMs, reducedMotion);
       break;
     case "tide":
       drawTideBackdrop(context, level.palette, cameraX, timeMs, reducedMotion);
@@ -214,7 +214,7 @@ function drawParallax({ context, level, cameraX, world, reducedMotion }: DrawSta
       drawNightBackdrop(context, level.palette, cameraX);
       break;
     case "cavern":
-      drawCavernBackdrop(context, level.palette, cameraX);
+      drawCavernBackdrop(context, level.palette, cameraX, timeMs, reducedMotion);
       break;
     case "core":
       drawCoreBackdrop(context, level.palette, cameraX, timeMs, reducedMotion);
@@ -534,16 +534,445 @@ function drawIsletBackdrop(
   context.restore();
 }
 
-/** 冰原（第 1 关）：平缓冰原地平线 + 漂浮冰晶与冰尘。 */
+/** 把 #rrggbb 十六进制颜色转成带 alpha 的 rgba 字符串，供渐变使用。 */
+function hexAlpha(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")";
+}
+
+/** 锯齿雪山山脊：不规则峰谷折线山体，雪帽沿等高线覆盖，用于各关远景山脉。 */
+function drawRidgeBackdrop(
+  context: CanvasRenderingContext2D,
+  bodyColor: string,
+  capColor: string,
+  cameraX: number,
+  factor: number,
+  tile: number,
+  baseY: number,
+  amplitude: number,
+  count: number,
+): void {
+  const startX = parallaxStart(cameraX, factor, tile);
+  const base = parallaxTileBase(cameraX, factor, tile);
+  const peakH: number[] = [];
+  const valleyH: number[] = [];
+  for (let i = 0; i <= count + 1; i += 1) {
+    const peakRandom = tileRandom("ridge-p-" + factor + "-" + tile, base + i);
+    peakH.push(amplitude * (0.48 + peakRandom() * 0.6));
+    const valleyRandom = tileRandom("ridge-v-" + factor + "-" + tile, base + i);
+    valleyH.push(amplitude * (0.08 + valleyRandom() * 0.16));
+  }
+  const trace = (): void => {
+    context.beginPath();
+    context.moveTo(startX - tile, PLATFORMER_LOGICAL_HEIGHT);
+    context.lineTo(startX - tile, baseY - valleyH[0]!);
+    for (let i = 0; i <= count; i += 1) {
+      const x = startX - tile + i * tile;
+      const random = tileRandom("ridge-x-" + factor + "-" + tile, base + i);
+      const peakX = x + tile * (0.2 + random() * 0.6);
+      context.lineTo(peakX, baseY - peakH[i]!);
+      context.lineTo(x + tile, baseY - valleyH[i + 1]!);
+    }
+    context.lineTo(startX + count * tile, PLATFORMER_LOGICAL_HEIGHT);
+    context.closePath();
+  };
+  trace();
+  context.fillStyle = bodyColor;
+  context.fill();
+  // 雪帽：裁剪到山体轮廓后，在等高线以上填充雪色，形成峰顶积雪。
+  context.save();
+  trace();
+  context.clip();
+  context.fillStyle = capColor;
+  context.fillRect(startX - tile, 0, (count + 2) * tile, baseY - amplitude * 0.5);
+  context.restore();
+}
+
+/** 针叶林：带树干、分层枝桠与积雪的松树，比单一三角剪影更丰富。 */
+function drawBorealForest(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+  factor: number,
+  tile: number,
+  baseY: number,
+  height: number,
+  count: number,
+): void {
+  const startX = parallaxStart(cameraX, factor, tile);
+  const base = parallaxTileBase(cameraX, factor, tile);
+  for (let i = 0; i <= count; i += 1) {
+    const tileIndex = base + i;
+    const random = tileRandom("forest-" + factor + "-" + tile, tileIndex);
+    const x = startX + i * tile + random() * tile * 0.24;
+    const h = height * (0.75 + random() * 0.5);
+    const w = tile * 0.42;
+    const tilt = (random() - 0.5) * 0.06;
+    context.save();
+    context.translate(x, baseY);
+    context.rotate(tilt);
+    // 树干
+    context.fillStyle = palette.iceDeep + "d9";
+    context.fillRect(-w * 0.06, -h * 0.62, w * 0.12, h * 0.62);
+    // 三层枝桠：底部宽、顶部窄，枝桠顶部带积雪
+    const tiers: Array<[number, number, number]> = [
+      [-h * 0.28, -h * 0.62, w * 0.5],
+      [-h * 0.52, -h * 0.84, w * 0.38],
+      [-h * 0.76, -h, w * 0.24],
+    ];
+    for (const [yBottom, yTop, halfW] of tiers) {
+      const tierH = yBottom - yTop;
+      context.fillStyle = palette.iceMid + "b3";
+      context.beginPath();
+      context.moveTo(-halfW, yBottom);
+      context.lineTo(-halfW * 0.55, yTop + tierH * 0.42);
+      context.lineTo(0, yTop);
+      context.lineTo(halfW * 0.55, yTop + tierH * 0.42);
+      context.lineTo(halfW, yBottom);
+      context.closePath();
+      context.fill();
+      // 枝桠顶部积雪
+      context.fillStyle = palette.iceLight + "66";
+      context.beginPath();
+      context.moveTo(-halfW * 0.18, yTop + tierH * 0.26);
+      context.lineTo(0, yTop);
+      context.lineTo(halfW * 0.18, yTop + tierH * 0.26);
+      context.closePath();
+      context.fill();
+    }
+    context.restore();
+  }
+}
+
+/** 雪丘起伏：近景连绵雪丘，顶缘带高光，用于冰原与永夜的雪原地貌。 */
+function drawSnowDuneBackdrop(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+  factor: number,
+  tile: number,
+  baseY: number,
+  count: number,
+): void {
+  const startX = parallaxStart(cameraX, factor, tile);
+  const base = parallaxTileBase(cameraX, factor, tile);
+  for (let i = 0; i <= count; i += 1) {
+    const tileIndex = base + i;
+    const random = tileRandom("dune-" + factor + "-" + tile, tileIndex);
+    const x = startX + i * tile + random() * tile * 0.32;
+    const w = tile * (1.05 + random() * 0.65);
+    const h = 24 + random() * 36;
+    const y = baseY + h * 0.15;
+    context.fillStyle = palette.iceDeep + (tileIndex % 2 === 0 ? "66" : "8c");
+    context.beginPath();
+    context.ellipse(x, y, w * 0.5, h, 0, 0, Math.PI * 2);
+    context.fill();
+    // 顶缘受光
+    context.fillStyle = palette.iceMid + "40";
+    context.beginPath();
+    context.ellipse(x + w * 0.08, y - h * 0.62, w * 0.3, h * 0.26, 0, 0, Math.PI * 2);
+    context.fill();
+  }
+}
+
+/** 动态雾带：半透明渐变雾气，顶部随视差与时间缓慢流动（瓦片稳定，不闪烁）。 */
+function drawMistBand(
+  context: CanvasRenderingContext2D,
+  topColor: string,
+  bottomColor: string,
+  cameraX: number,
+  factor: number,
+  tile: number,
+  baseY: number,
+  height: number,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const world = cameraX * factor;
+  const drift = !reducedMotion && timeMs > 0 ? (timeMs * 0.015) % tile : 0;
+  const scroll = world - drift;
+  const base = Math.floor(scroll / tile);
+  const startX = -(scroll - base * tile);
+  const count = Math.ceil((PLATFORMER_LOGICAL_WIDTH + tile * 2) / tile) + 1;
+  const gradient = context.createLinearGradient(0, baseY, 0, baseY + height);
+  gradient.addColorStop(0, topColor);
+  gradient.addColorStop(1, bottomColor);
+  context.fillStyle = gradient;
+  context.beginPath();
+  context.moveTo(startX - tile, baseY + height);
+  for (let i = 0; i <= count; i += 1) {
+    const x = startX - tile + i * tile;
+    const phase = (((base + i) % 3) + 3) % 3;
+    const amp = 8 + phase * 7;
+    context.quadraticCurveTo(x + tile * 0.25, baseY - amp, x + tile * 0.5, baseY);
+    context.quadraticCurveTo(x + tile * 0.75, baseY + amp * 0.5, x + tile, baseY);
+  }
+  context.lineTo(startX + count * tile, baseY + height);
+  context.closePath();
+  context.fill();
+}
+
+/** 暮云带：低垂云层剪影，为海平线上空增添层次。 */
+function drawCloudBandBackdrop(
+  context: CanvasRenderingContext2D,
+  color: string,
+  cameraX: number,
+  factor: number,
+  tile: number,
+  baseY: number,
+  count: number,
+): void {
+  const startX = parallaxStart(cameraX, factor, tile);
+  const base = parallaxTileBase(cameraX, factor, tile);
+  context.fillStyle = color;
+  for (let i = 0; i <= count; i += 1) {
+    const tileIndex = base + i;
+    const random = tileRandom("cloud-" + factor + "-" + tile, tileIndex);
+    const x = startX + i * tile + random() * tile * 0.55;
+    const y = baseY + (random() - 0.5) * 20;
+    const w = tile * (0.5 + random() * 0.55);
+    const h = 12 + random() * 18;
+    context.beginPath();
+    context.ellipse(x, y, w * 0.5, h * 0.5, 0, 0, Math.PI * 2);
+    context.fill();
+    context.beginPath();
+    context.ellipse(x + w * 0.32, y + h * 0.18, w * 0.3, h * 0.34, 0, 0, Math.PI * 2);
+    context.fill();
+  }
+}
+
+/** 浪尖碎沫：沿波浪层顶部的高光短线，增强潮汐关水面的质感。 */
+function drawWaveCrestBackdrop(
+  context: CanvasRenderingContext2D,
+  color: string,
+  cameraX: number,
+  factor: number,
+  tile: number,
+  baseY: number,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const world = cameraX * factor;
+  const drift = !reducedMotion && timeMs > 0 ? (timeMs * 0.02) % tile : 0;
+  const scroll = world - drift;
+  const base = Math.floor(scroll / tile);
+  const startX = -(scroll - base * tile);
+  const count = Math.ceil((PLATFORMER_LOGICAL_WIDTH + tile * 2) / tile) + 1;
+  context.strokeStyle = color;
+  context.lineWidth = 1.6;
+  context.lineCap = "round";
+  for (let i = 0; i <= count; i += 1) {
+    const x = startX - tile + i * tile;
+    const phase = (((base + i) % 3) + 3) % 3;
+    const amp = 6 + phase * 4;
+    const cx = x + tile * 0.25;
+    context.beginPath();
+    context.moveTo(cx - 9, baseY - amp * 0.5 + 2);
+    context.quadraticCurveTo(cx, baseY - amp * 0.5 - 2, cx + 9, baseY - amp * 0.5 + 2);
+    context.stroke();
+  }
+}
+
+/** 海上升明月：潮汐关的月面环形山与水面倒影，替代空旷夜空。 */
+function drawMoonGlow(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+): void {
+  const factor = 0.012;
+  const tile = 1400;
+  const startX = parallaxStart(cameraX, factor, tile);
+  const base = parallaxTileBase(cameraX, factor, tile);
+  const moonX = startX + 760;
+  const moonY = 126;
+  const radius = 56;
+  // 月晕
+  const halo = context.createRadialGradient(moonX, moonY, radius * 0.4, moonX, moonY, radius * 2.6);
+  halo.addColorStop(0, hexAlpha(palette.accent, 0.26));
+  halo.addColorStop(1, "rgba(0, 0, 0, 0)");
+  context.fillStyle = halo;
+  context.fillRect(moonX - radius * 2.6, moonY - radius * 2.6, radius * 5.2, radius * 5.2);
+  // 月面
+  context.fillStyle = palette.iceLight + "e6";
+  context.beginPath();
+  context.arc(moonX, moonY, radius, 0, Math.PI * 2);
+  context.fill();
+  // 环形山（月海）
+  const random = tileRandom("moon-" + factor, base);
+  context.fillStyle = palette.iceMid + "59";
+  for (let i = 0; i < 6; i += 1) {
+    const a = random() * Math.PI * 2;
+    const d = random() * radius * 0.52;
+    const r = 3 + random() * 7;
+    context.beginPath();
+    context.arc(moonX + Math.cos(a) * d, moonY + Math.sin(a) * d * 0.72, r, 0, Math.PI * 2);
+    context.fill();
+  }
+  // 水面倒影光带
+  const reflection = context.createLinearGradient(0, 486, 0, 664);
+  reflection.addColorStop(0, "rgba(0, 0, 0, 0)");
+  reflection.addColorStop(0.5, hexAlpha(palette.accent, 0.26));
+  reflection.addColorStop(1, "rgba(0, 0, 0, 0)");
+  context.fillStyle = reflection;
+  context.beginPath();
+  context.ellipse(moonX, 566, radius * 0.9, 150, 0, 0, Math.PI * 2);
+  context.fill();
+}
+
+/** 洞窟荧光：嵌入洞顶与洞壁的发光晶簇和地面光池，为洞穴增添神秘光源。 */
+function drawCaveGlow(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+  factor: number,
+  tile: number,
+  count: number,
+): void {
+  const startX = parallaxStart(cameraX, factor, tile);
+  const base = parallaxTileBase(cameraX, factor, tile);
+  for (let i = 0; i <= count; i += 1) {
+    const tileIndex = base + i;
+    const random = tileRandom("caveglow-" + factor + "-" + tile, tileIndex);
+    const x = startX + i * tile + random() * tile * 0.62;
+    const onCeiling = tileIndex % 2 === 0;
+    const y = onCeiling ? 30 + random() * 46 : 612 + random() * 56;
+    const s = 6 + random() * 9;
+    const dir = onCeiling ? 1 : -1;
+    // 地面光池
+    if (!onCeiling) {
+      const pool = context.createRadialGradient(x, y, 0, x, y, s * 5);
+      pool.addColorStop(0, hexAlpha(palette.accent, 0.2));
+      pool.addColorStop(1, "rgba(0, 0, 0, 0)");
+      context.fillStyle = pool;
+      context.fillRect(x - s * 5, y - s * 5, s * 10, s * 10);
+    }
+    // 光晕
+    const glow = context.createRadialGradient(x, y, 0, x, y, s * 3.4);
+    glow.addColorStop(0, hexAlpha(palette.accent, 0.5));
+    glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+    context.fillStyle = glow;
+    context.fillRect(x - s * 3.4, y - s * 3.4, s * 6.8, s * 6.8);
+    // 晶簇：数根细长晶体向外放射
+    const crystals = 2 + Math.floor(random() * 2);
+    let lastLen = s;
+    let lastLean = 0;
+    for (let c = 0; c < crystals; c += 1) {
+      const len = s * (0.7 + random() * 0.9);
+      const lean = (random() - 0.5) * 0.9;
+      lastLen = len;
+      lastLean = lean;
+      context.fillStyle = palette.accent + "aa";
+      context.beginPath();
+      context.moveTo(x - len * 0.16, y);
+      context.lineTo(x + lean * len * 0.5, y + dir * len);
+      context.lineTo(x + len * 0.16, y);
+      context.closePath();
+      context.fill();
+    }
+    // 晶体高光
+    context.fillStyle = palette.iceLight + "99";
+    context.beginPath();
+    context.moveTo(x - lastLen * 0.08, y);
+    context.lineTo(x + lastLean * lastLen * 0.22, y + dir * lastLen * 0.86);
+    context.lineTo(x + lastLen * 0.08, y);
+    context.closePath();
+    context.fill();
+  }
+}
+
+/** 星云雾团：多层径向渐变星云与核心辉光，用于星核与永夜天空。 */
+function drawNebulaCore(context: CanvasRenderingContext2D, palette: LevelPalette): void {
+  const random = createSeededRandom(hashSeed("nebula-" + palette.accent));
+  const colors = [palette.accent, palette.iceMid, palette.iceLight, palette.iceDeep];
+  for (let i = 0; i < 7; i += 1) {
+    const bx = 40 + random() * (PLATFORMER_LOGICAL_WIDTH - 80);
+    const by = 30 + random() * 300;
+    const br = 60 + random() * 140;
+    const color = colors[i % colors.length]!;
+    const alpha = i < 4 ? 0.12 + random() * 0.14 : 0.06 + random() * 0.08;
+    const g = context.createRadialGradient(bx, by, 0, bx, by, br);
+    g.addColorStop(0, hexAlpha(color, alpha));
+    g.addColorStop(1, "rgba(0, 0, 0, 0)");
+    context.fillStyle = g;
+    context.beginPath();
+    context.arc(bx, by, br, 0, Math.PI * 2);
+    context.fill();
+  }
+}
+
+/** 能量流丝线：星核空间中蜿蜒流动的光丝，随视差缓慢漂移（瓦片稳定）。 */
+function drawEnergyStream(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+  factor: number,
+  tile: number,
+  timeMs: number,
+  reducedMotion: boolean,
+  count: number,
+): void {
+  const world = cameraX * factor;
+  const drift = !reducedMotion && timeMs > 0 ? (timeMs * 0.03) % tile : 0;
+  const scroll = world - drift;
+  const base = Math.floor(scroll / tile);
+  const startX = -(scroll - base * tile);
+  context.save();
+  for (let i = 0; i <= count; i += 1) {
+    const tileIndex = base + i;
+    const random = tileRandom("stream-" + factor + "-" + tile, tileIndex);
+    const x0 = startX + i * tile + random() * tile * 0.7;
+    const y0 = 120 + random() * 340;
+    const w = 80 + random() * 120;
+    const amp = 18 + random() * 34;
+    const sag = (random() - 0.5) * 40;
+    const color = tileIndex % 2 === 0 ? palette.accent : palette.iceLight;
+    context.strokeStyle = hexAlpha(color, 0.24 + random() * 0.22);
+    context.lineWidth = 1.2 + random() * 1.8;
+    context.beginPath();
+    context.moveTo(x0, y0);
+    context.bezierCurveTo(x0 + w * 0.35, y0 - amp, x0 + w * 0.68, y0 + amp * 0.8, x0 + w, y0 + sag);
+    context.stroke();
+  }
+  context.restore();
+}
+
+/** 冰原跃迁（第 1 关）：远山雪脊 + 平缓雪原 + 漂浮冰晶与冰尘。 */
 function drawIcefieldBackdrop(
   context: CanvasRenderingContext2D,
   palette: LevelPalette,
   cameraX: number,
 ): void {
+  drawRidgeBackdrop(
+    context,
+    palette.iceDeep + "59",
+    palette.iceLight + "40",
+    cameraX,
+    0.05,
+    260,
+    566,
+    132,
+    8,
+  );
   drawHorizonBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 220, 40, 612, 7);
+  drawRidgeBackdrop(
+    context,
+    palette.iceDeep + "8c",
+    palette.iceLight + "59",
+    cameraX,
+    0.12,
+    200,
+    612,
+    92,
+    10,
+  );
   drawHorizonBackdrop(context, palette.iceDeep + "8c", cameraX, 0.2, 150, 58, 638, 10);
+  drawShardBackdrop(context, palette.iceMid + "66", cameraX, 0.26, 220, 26, 6);
   drawShardBackdrop(context, palette.iceMid + "88", cameraX, 0.32, 190, 20, 8);
-  const startX = parallaxStart(cameraX, 0.44, 130);
+  drawSnowDuneBackdrop(context, palette, cameraX, 0.42, 210, 658, 7);
+  // 冰尘
+  const startX = parallaxStart(cameraX, 0.5, 130);
   const random = createSeededRandom(hashSeed("icefield-dust"));
   context.save();
   context.fillStyle = palette.iceLight;
@@ -558,24 +987,44 @@ function drawIcefieldBackdrop(
   context.restore();
 }
 
-/** 裂隙回廊（第 2 关）：层状岩壁 + 竖直岩柱 + 谷底雾带。 */
+/** 裂隙回廊（第 2 关）：远山山脊 + 层状岩壁 + 竖直岩柱 + 近处岩架 + 谷底流动雾气。 */
 function drawGorgeBackdrop(
   context: CanvasRenderingContext2D,
   palette: LevelPalette,
   cameraX: number,
+  timeMs: number,
+  reducedMotion: boolean,
 ): void {
+  drawRidgeBackdrop(
+    context,
+    palette.iceDeep + "59",
+    palette.iceLight + "3d",
+    cameraX,
+    0.05,
+    240,
+    586,
+    128,
+    8,
+  );
   drawStrataBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 240, 60, 622, 7);
   drawStrataBackdrop(context, palette.iceDeep + "8c", cameraX, 0.18, 170, 78, 642, 9);
   drawCliffBackdrop(context, palette.iceMid + "8c", cameraX, 0.3, 210, 196, 664, 8);
-  const fogStart = parallaxStart(cameraX, 0.42, 220);
-  const fog = context.createLinearGradient(0, 552, 0, 700);
-  fog.addColorStop(0, "rgba(4, 17, 26, 0)");
-  fog.addColorStop(1, "rgba(4, 17, 26, 0.6)");
-  context.fillStyle = fog;
-  context.fillRect(fogStart - 220, 552, PLATFORMER_LOGICAL_WIDTH + 440, 148);
+  drawStrataBackdrop(context, palette.iceDeep + "b3", cameraX, 0.38, 150, 46, 682, 10);
+  drawMistBand(
+    context,
+    "rgba(4, 17, 26, 0)",
+    "rgba(4, 17, 26, 0.55)",
+    cameraX,
+    0.46,
+    240,
+    556,
+    150,
+    timeMs,
+    reducedMotion,
+  );
 }
 
-/** 潮汐回响（第 3 关）：流动海浪 + 圆润漂浮浮冰。 */
+/** 潮汐回响（第 3 关）：明月倒影 + 暮云 + 流动海浪 + 浪尖碎沫 + 圆润浮冰。 */
 function drawTideBackdrop(
   context: CanvasRenderingContext2D,
   palette: LevelPalette,
@@ -583,6 +1032,8 @@ function drawTideBackdrop(
   timeMs: number,
   reducedMotion: boolean,
 ): void {
+  drawMoonGlow(context, palette, cameraX);
+  drawCloudBandBackdrop(context, palette.iceDeep + "40", cameraX, 0.03, 240, 548, 6);
   drawWaveBackdrop(
     context,
     palette.iceDeep + "59",
@@ -603,41 +1054,95 @@ function drawTideBackdrop(
     timeMs * 0.7,
     reducedMotion,
   );
+  drawWaveCrestBackdrop(
+    context,
+    palette.iceLight + "66",
+    cameraX,
+    0.2,
+    124,
+    632,
+    timeMs * 0.7,
+    reducedMotion,
+  );
   drawWaveBackdrop(context, palette.iceMid + "c2", cameraX, 0.32, 88, 658, timeMs, reducedMotion);
+  drawWaveCrestBackdrop(
+    context,
+    palette.iceLight + "80",
+    cameraX,
+    0.32,
+    88,
+    658,
+    timeMs,
+    reducedMotion,
+  );
   drawFloeBackdrop(context, palette, cameraX, 0.44, timeMs, reducedMotion);
 }
 
-/** 永夜星云（第 4 关）：平缓雪原 + 冰封松树剪影。 */
+/** 永夜星云（第 4 关）：星云夜空 + 远山雪脊 + 冰封松林 + 近景雪丘。 */
 function drawNightBackdrop(
   context: CanvasRenderingContext2D,
   palette: LevelPalette,
   cameraX: number,
 ): void {
+  drawNebulaCore(context, palette);
+  drawRidgeBackdrop(
+    context,
+    palette.iceDeep + "59",
+    palette.iceLight + "3d",
+    cameraX,
+    0.05,
+    260,
+    570,
+    120,
+    8,
+  );
   drawHorizonBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 200, 34, 618, 8);
+  drawRidgeBackdrop(
+    context,
+    palette.iceDeep + "8c",
+    palette.iceLight + "59",
+    cameraX,
+    0.12,
+    200,
+    620,
+    84,
+    10,
+  );
   drawPineBackdrop(context, palette.iceDeep + "99", cameraX, 0.2, 150, 636, 78, 10);
-  drawPineBackdrop(context, palette.iceMid + "99", cameraX, 0.32, 116, 652, 92, 13);
-  drawPineBackdrop(context, palette.iceDeep + "d9", cameraX, 0.46, 92, 670, 66, 15);
+  drawBorealForest(context, palette, cameraX, 0.3, 130, 648, 96, 12);
+  drawPineBackdrop(context, palette.iceMid + "99", cameraX, 0.36, 116, 656, 88, 13);
+  drawSnowDuneBackdrop(context, palette, cameraX, 0.46, 200, 668, 7);
 }
 
-/** 幽暗冰洞（第 5 关）：洞顶钟乳石 + 洞底层状岩层 + 洞底雾气。 */
+/** 幽暗冰洞（第 5 关）：洞顶钟乳石 + 洞壁荧光晶簇 + 层状岩层 + 流动雾气。 */
 function drawCavernBackdrop(
   context: CanvasRenderingContext2D,
   palette: LevelPalette,
   cameraX: number,
+  timeMs: number,
+  reducedMotion: boolean,
 ): void {
   drawStalactiteBackdrop(context, palette.iceDeep + "8c", cameraX, 0.1, 96, 130, 15);
-  drawStalactiteBackdrop(context, palette.iceDeep + "e6", cameraX, 0.24, 74, 196, 19);
   drawStrataBackdrop(context, palette.iceDeep + "66", cameraX, 0.14, 210, 48, 646, 8);
+  drawCaveGlow(context, palette, cameraX, 0.16, 300, 6);
+  drawStalactiteBackdrop(context, palette.iceDeep + "e6", cameraX, 0.24, 74, 196, 19);
   drawStrataBackdrop(context, palette.iceMid + "8c", cameraX, 0.3, 130, 60, 668, 11);
-  const fogStart = parallaxStart(cameraX, 0.44, 200);
-  const fog = context.createLinearGradient(0, 556, 0, 700);
-  fog.addColorStop(0, "rgba(13, 10, 22, 0)");
-  fog.addColorStop(1, "rgba(13, 10, 22, 0.62)");
-  context.fillStyle = fog;
-  context.fillRect(fogStart - 200, 556, PLATFORMER_LOGICAL_WIDTH + 400, 144);
+  drawStrataBackdrop(context, palette.iceDeep + "b3", cameraX, 0.38, 170, 40, 684, 9);
+  drawMistBand(
+    context,
+    "rgba(13, 10, 22, 0)",
+    "rgba(13, 10, 22, 0.6)",
+    cameraX,
+    0.46,
+    220,
+    556,
+    150,
+    timeMs,
+    reducedMotion,
+  );
 }
 
-/** 冰核核心（第 6 关）：脉动能量波 + 悬浮几何浮岛。 */
+/** 冰核核心（第 6 关）：星云雾团 + 能量流丝线 + 脉动能量波 + 双层悬浮浮岛。 */
 function drawCoreBackdrop(
   context: CanvasRenderingContext2D,
   palette: LevelPalette,
@@ -645,6 +1150,8 @@ function drawCoreBackdrop(
   timeMs: number,
   reducedMotion: boolean,
 ): void {
+  drawNebulaCore(context, palette);
+  drawEnergyStream(context, palette, cameraX, 0.1, 300, timeMs, reducedMotion, 8);
   drawWaveBackdrop(
     context,
     "rgba(10, 8, 22, 0.92)",
@@ -667,6 +1174,7 @@ function drawCoreBackdrop(
     timeMs * 1.1,
     reducedMotion,
   );
+  drawIsletBackdrop(context, palette, cameraX, 0.5, timeMs, reducedMotion);
 }
 
 /** 场景装饰物：按主题在背景层绘制极光、星云与地貌特征（不参与碰撞）。 */
