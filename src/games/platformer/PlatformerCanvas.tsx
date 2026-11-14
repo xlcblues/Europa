@@ -457,16 +457,16 @@ function drawPineBackdrop(
     const w = tile * 0.44;
     context.beginPath();
     context.moveTo(x, baseY);
-    context.lineTo(x - w * 0.6, baseY - h * 0.34);
-    context.lineTo(x - w * 0.3, baseY - h * 0.34);
-    context.lineTo(x - w * 0.78, baseY - h * 0.68);
-    context.lineTo(x - w * 0.38, baseY - h * 0.68);
+    context.lineTo(x - w * 0.78, baseY - h * 0.34);
+    context.lineTo(x - w * 0.38, baseY - h * 0.34);
+    context.lineTo(x - w * 0.6, baseY - h * 0.68);
+    context.lineTo(x - w * 0.3, baseY - h * 0.68);
     context.lineTo(x - w * 0.52, baseY - h);
     context.lineTo(x + w * 0.52, baseY - h);
-    context.lineTo(x + w * 0.38, baseY - h * 0.68);
-    context.lineTo(x + w * 0.78, baseY - h * 0.68);
-    context.lineTo(x + w * 0.3, baseY - h * 0.34);
-    context.lineTo(x + w * 0.6, baseY - h * 0.34);
+    context.lineTo(x + w * 0.3, baseY - h * 0.68);
+    context.lineTo(x + w * 0.6, baseY - h * 0.68);
+    context.lineTo(x + w * 0.38, baseY - h * 0.34);
+    context.lineTo(x + w * 0.78, baseY - h * 0.34);
     context.closePath();
     context.fill();
   }
