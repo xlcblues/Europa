@@ -228,7 +228,18 @@ function drawParallax({ context, level, cameraX, world, reducedMotion }: DrawSta
 
 /** 视差起始坐标：按 factor 折算相机位移并对齐网格，避免平铺接缝闪烁。 */
 function parallaxStart(cameraX: number, factor: number, tile: number): number {
+  // 正数直接取模，startX 落在 [-tile, 0]，与旧实现一致。
   return -((cameraX * factor) % tile);
+}
+
+/** 当前视差层左侧覆盖的第一个绝对瓦片序号：由绝对视差坐标决定，跨瓦片时取形稳定。 */
+function parallaxTileBase(cameraX: number, factor: number, tile: number): number {
+  return Math.floor((cameraX * factor) / tile);
+}
+
+/** 按绝对瓦片序号生成确定性随机源：同一绝对瓦片永远取同一形状，相机跨瓦片时背景不跳变。 */
+function tileRandom(seedKey: string, tileIndex: number): () => number {
+  return createSeededRandom(hashSeed(`${seedKey}#${tileIndex}`));
 }
 
 /** 平缓地平线：近乎平坦的远景雪原/海平线剪影，顶部仅有轻微起伏，避免山形。 */
@@ -243,11 +254,13 @@ function drawHorizonBackdrop(
   count: number,
 ): void {
   const startX = parallaxStart(cameraX, factor, tile);
-  const random = createSeededRandom(hashSeed(`horizon-${factor}-${tile}`));
+  const base = parallaxTileBase(cameraX, factor, tile);
   context.fillStyle = color;
   context.beginPath();
   context.moveTo(startX - tile, PLATFORMER_LOGICAL_HEIGHT);
   for (let i = 0; i <= count; i += 1) {
+    const tileIndex = base + i;
+    const random = tileRandom(`horizon-${factor}-${tile}`, tileIndex);
     const x = startX - tile + i * tile;
     const topY = baseY - bandHeight * (0.86 + random() * 0.2);
     const ripple = (random() - 0.5) * bandHeight * 0.16;
@@ -271,12 +284,15 @@ function drawStrataBackdrop(
   count: number,
 ): void {
   const startX = parallaxStart(cameraX, factor, tile);
-  const random = createSeededRandom(hashSeed(`strata-${factor}-${tile}`));
+  const base = parallaxTileBase(cameraX, factor, tile);
   context.fillStyle = color;
   context.beginPath();
   context.moveTo(startX - tile, PLATFORMER_LOGICAL_HEIGHT);
-  let prevY = baseY - bandHeight * (0.82 + random() * 0.2);
+  let prevY =
+    baseY - bandHeight * (0.78 + tileRandom(`strata-${factor}-${tile}`, base - 1)() * 0.26);
   for (let i = 0; i <= count; i += 1) {
+    const tileIndex = base + i;
+    const random = tileRandom(`strata-${factor}-${tile}`, tileIndex);
     const x = startX - tile + i * tile;
     const topY = baseY - bandHeight * (0.78 + random() * 0.26);
     context.lineTo(x + tile * 0.5, prevY);
@@ -301,9 +317,11 @@ function drawCliffBackdrop(
   count: number,
 ): void {
   const startX = parallaxStart(cameraX, factor, tile);
-  const random = createSeededRandom(hashSeed(`cliff-${factor}-${tile}`));
+  const base = parallaxTileBase(cameraX, factor, tile);
   context.fillStyle = color;
   for (let i = 0; i <= count; i += 1) {
+    const tileIndex = base + i;
+    const random = tileRandom(`cliff-${factor}-${tile}`, tileIndex);
     const x = startX + i * tile;
     const w = tile * (0.46 + random() * 0.28);
     const h = height * (0.5 + random() * 0.6);
@@ -329,16 +347,19 @@ function drawFloeBackdrop(
   timeMs: number,
   reducedMotion: boolean,
 ): void {
-  const startX = parallaxStart(cameraX, factor, 320);
-  const random = createSeededRandom(hashSeed(`floe-${factor}`));
+  const tile = 320;
+  const startX = parallaxStart(cameraX, factor, tile);
+  const base = parallaxTileBase(cameraX, factor, tile);
   context.save();
   for (let i = 0; i < 6; i += 1) {
-    const x = startX + i * 320 + random() * 110;
+    const tileIndex = base + i;
+    const random = tileRandom(`floe-${factor}`, tileIndex);
+    const x = startX + i * tile + random() * 110;
     const w = 80 + random() * 90;
     const h = 18 + random() * 14;
     const y = 596 + random() * 36;
-    const bob = !reducedMotion && timeMs > 0 ? Math.sin(timeMs * 0.0006 + i * 1.35) * 5 : 0;
-    context.fillStyle = palette.iceMid + (i % 2 === 0 ? "cc" : "8c");
+    const bob = !reducedMotion && timeMs > 0 ? Math.sin(timeMs * 0.0006 + tileIndex * 1.35) * 5 : 0;
+    context.fillStyle = palette.iceMid + (tileIndex % 2 === 0 ? "cc" : "8c");
     context.beginPath();
     context.ellipse(x, y + bob, w * 0.5, h, 0, 0, Math.PI * 2);
     context.fill();
@@ -361,9 +382,11 @@ function drawShardBackdrop(
   count: number,
 ): void {
   const startX = parallaxStart(cameraX, factor, tile);
-  const random = createSeededRandom(hashSeed(`shard-${factor}-${tile}`));
+  const base = parallaxTileBase(cameraX, factor, tile);
   context.fillStyle = color;
   for (let i = 0; i <= count; i += 1) {
+    const tileIndex = base + i;
+    const random = tileRandom(`shard-${factor}-${tile}`, tileIndex);
     const x = startX + i * tile + random() * tile * 0.55;
     const y = 220 + random() * 280;
     const s = size * (0.5 + random() * 0.85);
@@ -389,19 +412,25 @@ function drawWaveBackdrop(
   timeMs: number,
   reducedMotion: boolean,
 ): void {
-  const startX = parallaxStart(cameraX, factor, tile);
+  // 视差位移与波浪流动合并为一个绝对滚动量，波浪相位由绝对瓦片序号决定：
+  // 跨瓦片与 drift 归零瞬间图案完全一致，杜绝层间“跳变闪烁”。
+  const world = cameraX * factor;
   const drift = !reducedMotion && timeMs > 0 ? (timeMs * 0.02) % tile : 0;
+  const scroll = world - drift;
+  const base = Math.floor(scroll / tile);
+  const startX = -(scroll - base * tile);
   const count = Math.ceil((PLATFORMER_LOGICAL_WIDTH + tile * 2) / tile) + 1;
   context.fillStyle = color;
   context.beginPath();
-  context.moveTo(startX - tile - drift, PLATFORMER_LOGICAL_HEIGHT);
+  context.moveTo(startX - tile, PLATFORMER_LOGICAL_HEIGHT);
   for (let i = 0; i <= count; i += 1) {
-    const x = startX - tile + i * tile - drift;
-    const amp = 6 + (i % 3) * 4;
+    const x = startX - tile + i * tile;
+    const phase = (((base + i) % 3) + 3) % 3;
+    const amp = 6 + phase * 4;
     context.quadraticCurveTo(x + tile * 0.25, baseY - amp, x + tile * 0.5, baseY);
     context.quadraticCurveTo(x + tile * 0.75, baseY + amp, x + tile, baseY);
   }
-  context.lineTo(startX + count * tile - drift, PLATFORMER_LOGICAL_HEIGHT);
+  context.lineTo(startX + count * tile, PLATFORMER_LOGICAL_HEIGHT);
   context.closePath();
   context.fill();
 }
@@ -418,9 +447,11 @@ function drawPineBackdrop(
   count: number,
 ): void {
   const startX = parallaxStart(cameraX, factor, tile);
-  const random = createSeededRandom(hashSeed(`pine-${factor}-${tile}`));
+  const base = parallaxTileBase(cameraX, factor, tile);
   context.fillStyle = color;
   for (let i = 0; i <= count; i += 1) {
+    const tileIndex = base + i;
+    const random = tileRandom(`pine-${factor}-${tile}`, tileIndex);
     const x = startX + i * tile;
     const h = height * (0.7 + random() * 0.55);
     const w = tile * 0.44;
@@ -452,9 +483,11 @@ function drawStalactiteBackdrop(
   count: number,
 ): void {
   const startX = parallaxStart(cameraX, factor, tile);
-  const random = createSeededRandom(hashSeed(`stal-${factor}-${tile}`));
+  const base = parallaxTileBase(cameraX, factor, tile);
   context.fillStyle = color;
   for (let i = 0; i <= count; i += 1) {
+    const tileIndex = base + i;
+    const random = tileRandom(`stal-${factor}-${tile}`, tileIndex);
     const x = startX + i * tile;
     const len = length * (0.55 + random() * 0.85);
     const w = tile * 0.3;
@@ -476,16 +509,19 @@ function drawIsletBackdrop(
   timeMs: number,
   reducedMotion: boolean,
 ): void {
-  const startX = parallaxStart(cameraX, factor, 240);
-  const random = createSeededRandom(hashSeed(`islet-${factor}`));
+  const tile = 240;
+  const startX = parallaxStart(cameraX, factor, tile);
+  const base = parallaxTileBase(cameraX, factor, tile);
   context.save();
   for (let i = 0; i < 7; i += 1) {
-    const x = startX + i * 240 + random() * 70;
+    const tileIndex = base + i;
+    const random = tileRandom(`islet-${factor}`, tileIndex);
+    const x = startX + i * tile + random() * 70;
     const y = 260 + random() * 200;
     const w = 60 + random() * 70;
     const h = 22 + random() * 26;
-    const bob = !reducedMotion && timeMs > 0 ? Math.sin(timeMs * 0.0005 + i * 1.7) * 9 : 0;
-    context.fillStyle = i % 2 === 0 ? palette.iceMid + "88" : palette.iceDeep + "cc";
+    const bob = !reducedMotion && timeMs > 0 ? Math.sin(timeMs * 0.0005 + tileIndex * 1.7) * 9 : 0;
+    context.fillStyle = tileIndex % 2 === 0 ? palette.iceMid + "88" : palette.iceDeep + "cc";
     context.beginPath();
     context.moveTo(x - w * 0.5, y + bob);
     context.lineTo(x, y + bob - h * 0.7);
@@ -504,8 +540,8 @@ function drawIcefieldBackdrop(
   palette: LevelPalette,
   cameraX: number,
 ): void {
-  drawHorizonBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 220, 40, 612, 6);
-  drawHorizonBackdrop(context, palette.iceDeep + "8c", cameraX, 0.2, 150, 58, 638, 7);
+  drawHorizonBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 220, 40, 612, 7);
+  drawHorizonBackdrop(context, palette.iceDeep + "8c", cameraX, 0.2, 150, 58, 638, 10);
   drawShardBackdrop(context, palette.iceMid + "88", cameraX, 0.32, 190, 20, 8);
   const startX = parallaxStart(cameraX, 0.44, 130);
   const random = createSeededRandom(hashSeed("icefield-dust"));
@@ -528,9 +564,9 @@ function drawGorgeBackdrop(
   palette: LevelPalette,
   cameraX: number,
 ): void {
-  drawStrataBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 240, 60, 622, 5);
-  drawStrataBackdrop(context, palette.iceDeep + "8c", cameraX, 0.18, 170, 78, 642, 7);
-  drawCliffBackdrop(context, palette.iceMid + "8c", cameraX, 0.3, 210, 196, 664, 6);
+  drawStrataBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 240, 60, 622, 7);
+  drawStrataBackdrop(context, palette.iceDeep + "8c", cameraX, 0.18, 170, 78, 642, 9);
+  drawCliffBackdrop(context, palette.iceMid + "8c", cameraX, 0.3, 210, 196, 664, 8);
   const fogStart = parallaxStart(cameraX, 0.42, 220);
   const fog = context.createLinearGradient(0, 552, 0, 700);
   fog.addColorStop(0, "rgba(4, 17, 26, 0)");
@@ -577,10 +613,10 @@ function drawNightBackdrop(
   palette: LevelPalette,
   cameraX: number,
 ): void {
-  drawHorizonBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 200, 34, 618, 6);
-  drawPineBackdrop(context, palette.iceDeep + "99", cameraX, 0.2, 150, 636, 78, 7);
-  drawPineBackdrop(context, palette.iceMid + "99", cameraX, 0.32, 116, 652, 92, 7);
-  drawPineBackdrop(context, palette.iceDeep + "d9", cameraX, 0.46, 92, 670, 66, 8);
+  drawHorizonBackdrop(context, palette.iceDeep + "59", cameraX, 0.08, 200, 34, 618, 8);
+  drawPineBackdrop(context, palette.iceDeep + "99", cameraX, 0.2, 150, 636, 78, 10);
+  drawPineBackdrop(context, palette.iceMid + "99", cameraX, 0.32, 116, 652, 92, 13);
+  drawPineBackdrop(context, palette.iceDeep + "d9", cameraX, 0.46, 92, 670, 66, 15);
 }
 
 /** 幽暗冰洞（第 5 关）：洞顶钟乳石 + 洞底层状岩层 + 洞底雾气。 */
@@ -589,10 +625,10 @@ function drawCavernBackdrop(
   palette: LevelPalette,
   cameraX: number,
 ): void {
-  drawStalactiteBackdrop(context, palette.iceDeep + "8c", cameraX, 0.1, 96, 130, 8);
-  drawStalactiteBackdrop(context, palette.iceDeep + "e6", cameraX, 0.24, 74, 196, 8);
-  drawStrataBackdrop(context, palette.iceDeep + "66", cameraX, 0.14, 210, 48, 646, 6);
-  drawStrataBackdrop(context, palette.iceMid + "8c", cameraX, 0.3, 130, 60, 668, 8);
+  drawStalactiteBackdrop(context, palette.iceDeep + "8c", cameraX, 0.1, 96, 130, 15);
+  drawStalactiteBackdrop(context, palette.iceDeep + "e6", cameraX, 0.24, 74, 196, 19);
+  drawStrataBackdrop(context, palette.iceDeep + "66", cameraX, 0.14, 210, 48, 646, 8);
+  drawStrataBackdrop(context, palette.iceMid + "8c", cameraX, 0.3, 130, 60, 668, 11);
   const fogStart = parallaxStart(cameraX, 0.44, 200);
   const fog = context.createLinearGradient(0, 556, 0, 700);
   fog.addColorStop(0, "rgba(13, 10, 22, 0)");
