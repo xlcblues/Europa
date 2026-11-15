@@ -221,7 +221,7 @@ function drawParallax({ context, level, cameraX, world, reducedMotion }: DrawSta
       break;
     case "icefield":
     default:
-      drawIcefieldBackdrop(context, level.palette, cameraX);
+      drawIcefieldBackdrop(context, level.palette, cameraX, timeMs, reducedMotion);
       break;
   }
 }
@@ -307,7 +307,7 @@ function drawStrataBackdrop(
 
 
 
-/** 冰晶浮片：远处漂浮的菱形冰晶剪影，为冰原远景增添层次。 */
+/** 冰尘浮片：远处漂流的细长冰晶碎屑，柔和低饱和，为冰原远景增添轻盈层次。 */
 function drawShardBackdrop(
   context: CanvasRenderingContext2D,
   color: string,
@@ -316,25 +316,39 @@ function drawShardBackdrop(
   tile: number,
   size: number,
   count: number,
+  timeMs: number,
+  reducedMotion: boolean,
 ): void {
   const startX = parallaxStart(cameraX, factor, tile);
   const base = parallaxTileBase(cameraX, factor, tile);
-  context.fillStyle = color;
+  context.save();
   for (let i = 0; i <= count; i += 1) {
     const tileIndex = base + i;
     const random = tileRandom(`shard-${factor}-${tile}`, tileIndex);
-    const x = startX + i * tile + random() * tile * 0.55;
-    const y = 220 + random() * 280;
-    const s = size * (0.5 + random() * 0.85);
+    const x = startX + i * tile + random() * tile * 0.6;
+    const y = 210 + random() * 260;
+    const s = size * (0.4 + random() * 0.45);
+    const tilt = (random() - 0.5) * 0.7;
+    const bob = reducedMotion ? 0 : Math.sin(timeMs * 0.0009 + tileIndex * 1.9) * 3;
+    context.save();
+    context.translate(x, y + bob);
+    context.rotate(tilt);
+    // 细长冰晶碎屑：半透明菱形短棒 + 亮芯细线
+    context.globalAlpha = 0.5;
+    context.fillStyle = color;
     context.beginPath();
-    context.moveTo(x, y - s);
-    context.lineTo(x + s * 0.45, y - s * 0.2);
-    context.lineTo(x + s * 0.22, y + s * 0.5);
-    context.lineTo(x - s * 0.22, y + s * 0.5);
-    context.lineTo(x - s * 0.45, y - s * 0.2);
+    context.moveTo(s * 0.42, 0);
+    context.lineTo(0, s * 0.08);
+    context.lineTo(-s * 0.42, 0);
+    context.lineTo(0, -s * 0.08);
     context.closePath();
     context.fill();
+    context.globalAlpha = 0.7;
+    context.fillStyle = "rgba(216, 247, 251, 0.4)";
+    context.fillRect(-s * 0.28, -0.7, s * 0.56, 1.4);
+    context.restore();
   }
+  context.restore();
 }
 
 /** 波浪带：自 baseY 向下填充的水面/能量波层，可随时间流动。 */
@@ -780,6 +794,8 @@ function drawIcefieldBackdrop(
   context: CanvasRenderingContext2D,
   palette: LevelPalette,
   cameraX: number,
+  timeMs: number,
+  reducedMotion: boolean,
 ): void {
   // 远：带雪帽的雪脊，基座抬高，只占据画面上部，不与近景重叠
   drawRidgeBackdrop(
@@ -793,8 +809,8 @@ function drawIcefieldBackdrop(
     118,
     9,
   );
-  // 中：稀疏冰晶浮片（少量、淡色）
-  drawShardBackdrop(context, palette.iceMid + "59", cameraX, 0.14, 240, 20, 5);
+  // 中：稀疏冰晶浮片（少量、淡色、细长碎屑）
+  drawShardBackdrop(context, palette.iceMid + "4d", cameraX, 0.14, 240, 16, 5, timeMs, reducedMotion);
   // 近：深色冰原平地，压住画面底部，形成清晰的前后纵深
   drawHorizonBackdrop(context, palette.iceDeep + "b3", cameraX, 0.36, 170, 60, 650, 9);
 }
@@ -1022,7 +1038,7 @@ function drawDecorations({ context, level, world, reducedMotion }: DrawState): v
   }
 }
 
-/** 极光带：蜿蜒的透明光带，随游戏时间缓慢流动。 */
+/** 极光幕：半透明的垂直光幕，多条流动光柱自上而下渐变、底部波浪碎边，避免旗帜般的实心条带。 */
 function drawAuroraBand(
   context: CanvasRenderingContext2D,
   decoration: LevelDecoration,
@@ -1030,39 +1046,49 @@ function drawAuroraBand(
   timeMs: number,
   reducedMotion: boolean,
 ): void {
-  const sway = reducedMotion ? 0 : Math.sin(timeMs * 0.0011 + decoration.variant * 1.7) * 26;
-  const midY = decoration.y + decoration.height * 0.5;
-  const gradient = context.createLinearGradient(
+  const rays = 6 + (decoration.variant % 3) * 2;
+  const rayWidth = decoration.width / rays;
+  const sway = reducedMotion ? 0 : Math.sin(timeMs * 0.0009 + decoration.variant * 1.9) * 20;
+  const alpha =
+    0.6 + (reducedMotion ? 0 : 0.16 * Math.sin(timeMs * 0.002 + decoration.variant * 2.2));
+  context.save();
+  for (let i = 0; i < rays; i += 1) {
+    const rx = decoration.x + (i + 0.5) * rayWidth + sway * (i / (rays - 1) - 0.5);
+    const rw = rayWidth * (0.52 + ((i + decoration.variant) % 3 === 0 ? 0.22 : 0));
+    const topY = decoration.y + decoration.height * 0.05 * (((i * 5 + decoration.variant) % 3) + 1);
+    const botY = decoration.y + decoration.height * 0.98;
+    const bend = reducedMotion ? 0 : Math.sin(timeMs * 0.0016 + i * 0.9 + decoration.variant * 2) * 13;
+    const rayGrad = context.createLinearGradient(0, topY, 0, botY);
+    rayGrad.addColorStop(0, hexAlpha(palette.accent, 0.5));
+    rayGrad.addColorStop(0.45, hexAlpha(palette.accent, 0.18));
+    rayGrad.addColorStop(1, "rgba(88, 217, 236, 0)");
+    context.globalAlpha = alpha;
+    context.fillStyle = rayGrad;
+    context.beginPath();
+    context.moveTo(rx - rw, topY);
+    context.quadraticCurveTo(rx - rw * 0.55, topY + (botY - topY) * 0.5, rx + bend - rw * 0.42, botY);
+    context.lineTo(rx + bend + rw * 0.42, botY);
+    context.quadraticCurveTo(rx + rw * 0.55, topY + (botY - topY) * 0.5, rx + rw, topY);
+    context.closePath();
+    context.fill();
+  }
+  // 底部柔光：让光幕底部弥散，避免生硬边缘
+  context.globalAlpha = 1;
+  const glow = context.createLinearGradient(
     0,
-    decoration.y,
+    decoration.y + decoration.height * 0.35,
     0,
     decoration.y + decoration.height,
   );
-  gradient.addColorStop(0, "rgba(88, 217, 236, 0)");
-  gradient.addColorStop(0.5, palette.accentSoft);
-  gradient.addColorStop(1, "rgba(88, 217, 236, 0)");
-  context.save();
-  context.globalAlpha =
-    0.6 + (reducedMotion ? 0 : 0.18 * Math.sin(timeMs * 0.002 + decoration.variant * 2));
-  context.fillStyle = gradient;
-  context.beginPath();
-  context.moveTo(decoration.x, midY);
-  context.quadraticCurveTo(
-    decoration.x + decoration.width * 0.3,
-    midY + sway,
-    decoration.x + decoration.width * 0.58,
-    midY,
+  glow.addColorStop(0, "rgba(88, 217, 236, 0)");
+  glow.addColorStop(1, hexAlpha(palette.accent, 0.13));
+  context.fillStyle = glow;
+  context.fillRect(
+    decoration.x - 24,
+    decoration.y + decoration.height * 0.35,
+    decoration.width + 48,
+    decoration.height * 0.65,
   );
-  context.quadraticCurveTo(
-    decoration.x + decoration.width * 0.82,
-    midY - sway * 0.7,
-    decoration.x + decoration.width,
-    midY,
-  );
-  context.lineTo(decoration.x + decoration.width, decoration.y + decoration.height);
-  context.lineTo(decoration.x, decoration.y + decoration.height);
-  context.closePath();
-  context.fill();
   context.restore();
 }
 
@@ -1088,7 +1114,7 @@ function drawNebulaBlob(
   context.restore();
 }
 
-/** 冰峰：从冰面向上生长的尖锐冰刺。 */
+/** 冰峰：从冰面向上生长的尖锐冰刺，亮尖深底，基部渐隐融入冰面。 */
 function drawIceSpire(
   context: CanvasRenderingContext2D,
   decoration: LevelDecoration,
@@ -1097,10 +1123,12 @@ function drawIceSpire(
   const baseY = decoration.y + decoration.height;
   const half = decoration.width * 0.5;
   const lean = (decoration.variant % 3) - 1;
-  const body = context.createLinearGradient(decoration.x, 0, decoration.x + decoration.width, 0);
-  body.addColorStop(0, palette.iceDeep);
-  body.addColorStop(0.5, palette.iceMid);
-  body.addColorStop(1, palette.iceLight);
+  const body = context.createLinearGradient(0, decoration.y, 0, baseY);
+  body.addColorStop(0, palette.iceLight);
+  body.addColorStop(0.3, palette.iceMid);
+  body.addColorStop(0.7, palette.iceDeep);
+  body.addColorStop(0.92, "rgba(13, 32, 43, 0.85)");
+  body.addColorStop(1, "rgba(13, 32, 43, 0)");
   context.save();
   context.fillStyle = body;
   context.beginPath();
@@ -1109,7 +1137,7 @@ function drawIceSpire(
   context.lineTo(decoration.x + half + lean * 8, decoration.y);
   context.closePath();
   context.fill();
-  context.globalAlpha = 0.5;
+  context.globalAlpha = 0.45;
   context.fillStyle = palette.iceLight;
   context.beginPath();
   context.moveTo(decoration.x + decoration.width * 0.5, baseY);

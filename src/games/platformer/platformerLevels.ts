@@ -350,7 +350,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
         "id": "l1-deco-iceSpire-05",
         "kind": "iceSpire",
         "x": 70,
-        "y": 582,
+        "y": 564,
         "width": 34,
         "height": 56,
         "variant": 0
@@ -358,8 +358,8 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-06",
         "kind": "iceSpire",
-        "x": 590,
-        "y": 582,
+        "x": 450,
+        "y": 544,
         "width": 46,
         "height": 76,
         "variant": 1
@@ -367,8 +367,8 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-07",
         "kind": "iceSpire",
-        "x": 1110,
-        "y": 582,
+        "x": 1100,
+        "y": 524,
         "width": 58,
         "height": 96,
         "variant": 2
@@ -376,8 +376,8 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-08",
         "kind": "iceSpire",
-        "x": 1400,
-        "y": 582,
+        "x": 1450,
+        "y": 564,
         "width": 34,
         "height": 56,
         "variant": 0
@@ -385,8 +385,8 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-09",
         "kind": "iceSpire",
-        "x": 1930,
-        "y": 582,
+        "x": 2000,
+        "y": 544,
         "width": 46,
         "height": 76,
         "variant": 1
@@ -394,8 +394,8 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-10",
         "kind": "iceSpire",
-        "x": 2460,
-        "y": 582,
+        "x": 2650,
+        "y": 524,
         "width": 58,
         "height": 96,
         "variant": 2
@@ -403,8 +403,8 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-11",
         "kind": "iceSpire",
-        "x": 2750,
-        "y": 582,
+        "x": 3300,
+        "y": 564,
         "width": 34,
         "height": 56,
         "variant": 0
@@ -412,8 +412,8 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-12",
         "kind": "iceSpire",
-        "x": 3280,
-        "y": 582,
+        "x": 3900,
+        "y": 544,
         "width": 46,
         "height": 76,
         "variant": 1
@@ -421,8 +421,8 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-13",
         "kind": "iceSpire",
-        "x": 3810,
-        "y": 582,
+        "x": 4550,
+        "y": 524,
         "width": 58,
         "height": 96,
         "variant": 2
@@ -430,8 +430,8 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-14",
         "kind": "iceSpire",
-        "x": 4100,
-        "y": 582,
+        "x": 5200,
+        "y": 564,
         "width": 34,
         "height": 56,
         "variant": 0
@@ -439,8 +439,8 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-15",
         "kind": "iceSpire",
-        "x": 4630,
-        "y": 582,
+        "x": 5900,
+        "y": 544,
         "width": 46,
         "height": 76,
         "variant": 1
@@ -448,8 +448,8 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-16",
         "kind": "iceSpire",
-        "x": 5160,
-        "y": 582,
+        "x": 6500,
+        "y": 524,
         "width": 58,
         "height": 96,
         "variant": 2
@@ -457,8 +457,8 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-17",
         "kind": "iceSpire",
-        "x": 5450,
-        "y": 582,
+        "x": 7100,
+        "y": 564,
         "width": 34,
         "height": 56,
         "variant": 0
@@ -466,8 +466,8 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-18",
         "kind": "iceSpire",
-        "x": 5980,
-        "y": 582,
+        "x": 7750,
+        "y": 544,
         "width": 46,
         "height": 76,
         "variant": 1
@@ -475,62 +475,8 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-19",
         "kind": "iceSpire",
-        "x": 6510,
-        "y": 582,
-        "width": 58,
-        "height": 96,
-        "variant": 2
-      },
-      {
-        "id": "l1-deco-iceSpire-20",
-        "kind": "iceSpire",
-        "x": 6800,
-        "y": 582,
-        "width": 34,
-        "height": 56,
-        "variant": 0
-      },
-      {
-        "id": "l1-deco-iceSpire-21",
-        "kind": "iceSpire",
-        "x": 7330,
-        "y": 582,
-        "width": 46,
-        "height": 76,
-        "variant": 1
-      },
-      {
-        "id": "l1-deco-iceSpire-22",
-        "kind": "iceSpire",
-        "x": 7860,
-        "y": 582,
-        "width": 58,
-        "height": 96,
-        "variant": 2
-      },
-      {
-        "id": "l1-deco-iceSpire-23",
-        "kind": "iceSpire",
-        "x": 8150,
-        "y": 582,
-        "width": 34,
-        "height": 56,
-        "variant": 0
-      },
-      {
-        "id": "l1-deco-iceSpire-24",
-        "kind": "iceSpire",
-        "x": 8540,
-        "y": 582,
-        "width": 46,
-        "height": 76,
-        "variant": 1
-      },
-      {
-        "id": "l1-deco-iceSpire-25",
-        "kind": "iceSpire",
-        "x": 8930,
-        "y": 582,
+        "x": 8450,
+        "y": 524,
         "width": 58,
         "height": 96,
         "variant": 2
@@ -4498,8 +4444,8 @@ const TERRAIN_PLATES: ReadonlyArray<{
   {
     levelId: 1,
     plates: [
-      { kind: "snowDrift", x: 40, y: 585, width: 80, height: 35, count: 68, step: 130 },
-      { kind: "crystalCluster", x: 260, y: 588, width: 28, height: 30, count: 17, step: 520 },
+      { kind: "snowDrift", x: 40, y: 585, width: 80, height: 35, count: 38, step: 200 },
+      { kind: "crystalCluster", x: 260, y: 588, width: 28, height: 30, count: 9, step: 1100 },
     ],
   },
   {
