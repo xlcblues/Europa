@@ -762,7 +762,7 @@ dependencies = [
 
 [[package]]
 name = "europa"
-version = "1.1.6"
+version = "1.1.7"
 dependencies = [
  "rusqlite",
  "serde",

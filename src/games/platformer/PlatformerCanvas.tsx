@@ -1038,7 +1038,7 @@ function drawDecorations({ context, level, world, reducedMotion }: DrawState): v
   }
 }
 
-/** 极光幕：半透明的垂直光幕，多条流动光柱自上而下渐变、底部波浪碎边，避免旗帜般的实心条带。 */
+/** 极光幕：自天际垂落的柔和光帘，宽幅光幕相互叠加且亮度峰值上下错开、两端自然消隐并轻微溢出装饰框，避免「箱子+须子」与横向亮带。 */
 function drawAuroraBand(
   context: CanvasRenderingContext2D,
   decoration: LevelDecoration,
@@ -1046,49 +1046,73 @@ function drawAuroraBand(
   timeMs: number,
   reducedMotion: boolean,
 ): void {
-  const rays = 6 + (decoration.variant % 3) * 2;
-  const rayWidth = decoration.width / rays;
-  const sway = reducedMotion ? 0 : Math.sin(timeMs * 0.0009 + decoration.variant * 1.9) * 20;
+  const topY = decoration.y;
+  const baseY = decoration.y + decoration.height;
+  const height = decoration.height;
+  const sway = reducedMotion ? 0 : Math.sin(timeMs * 0.0008 + decoration.variant * 1.7) * 10;
   const alpha =
-    0.6 + (reducedMotion ? 0 : 0.16 * Math.sin(timeMs * 0.002 + decoration.variant * 2.2));
+    0.6 + (reducedMotion ? 0 : 0.12 * Math.sin(timeMs * 0.002 + decoration.variant * 2.1));
+
   context.save();
-  for (let i = 0; i < rays; i += 1) {
-    const rx = decoration.x + (i + 0.5) * rayWidth + sway * (i / (rays - 1) - 0.5);
-    const rw = rayWidth * (0.52 + ((i + decoration.variant) % 3 === 0 ? 0.22 : 0));
-    const topY = decoration.y + decoration.height * 0.05 * (((i * 5 + decoration.variant) % 3) + 1);
-    const botY = decoration.y + decoration.height * 0.98;
-    const bend = reducedMotion ? 0 : Math.sin(timeMs * 0.0016 + i * 0.9 + decoration.variant * 2) * 13;
-    const rayGrad = context.createLinearGradient(0, topY, 0, botY);
-    rayGrad.addColorStop(0, hexAlpha(palette.accent, 0.5));
-    rayGrad.addColorStop(0.45, hexAlpha(palette.accent, 0.18));
-    rayGrad.addColorStop(1, "rgba(88, 217, 236, 0)");
-    context.globalAlpha = alpha;
-    context.fillStyle = rayGrad;
+  context.globalCompositeOperation = "lighter";
+
+  // 宽幅光帘：亮度峰值在每条光帘间上下错开，避免叠加成横向亮带；两端渐隐并轻微溢出装饰框
+  const curtains = 3 + (decoration.variant % 3);
+  for (let i = 0; i < curtains; i += 1) {
+    const u = curtains === 1 ? 0.5 : i / (curtains - 1);
+    const curtainCx =
+      decoration.x + decoration.width * (0.14 + u * 0.72) + sway * (u - 0.5) * 1.6;
+    const cw = decoration.width * (0.3 + ((i + decoration.variant) % 3) * 0.12);
+    const drift = reducedMotion ? 0 : Math.sin(timeMs * 0.0011 + i * 1.3 + decoration.variant * 0.8) * 11;
+    const topInset = height * (0.02 + 0.04 * ((i * 3 + decoration.variant) % 3));
+    const bottomInset = height * (0.1 + 0.16 * ((i * 2 + decoration.variant) % 3));
+    const bend = reducedMotion ? 0 : Math.sin(timeMs * 0.0014 + i * 1.1 + decoration.variant) * height * 0.09;
+    const curtainTop = topY - height * 0.08;
+    const curtainBottom = baseY + height * 0.15;
+    const peakFrac = 0.22 + 0.12 * ((i * 2 + decoration.variant) % 3);
+    const grad = context.createLinearGradient(0, curtainTop, 0, curtainBottom);
+    grad.addColorStop(0, hexAlpha(palette.accent, 0.02 * alpha));
+    grad.addColorStop(Math.max(0.06, peakFrac - 0.11), hexAlpha(palette.accent, 0.13 * alpha));
+    grad.addColorStop(peakFrac, hexAlpha(palette.accent, 0.2 * alpha));
+    grad.addColorStop(Math.min(0.92, peakFrac + 0.2), hexAlpha(palette.accent, 0.07 * alpha));
+    grad.addColorStop(1, hexAlpha(palette.accent, 0));
+    context.globalAlpha = 1;
+    context.fillStyle = grad;
     context.beginPath();
-    context.moveTo(rx - rw, topY);
-    context.quadraticCurveTo(rx - rw * 0.55, topY + (botY - topY) * 0.5, rx + bend - rw * 0.42, botY);
-    context.lineTo(rx + bend + rw * 0.42, botY);
-    context.quadraticCurveTo(rx + rw * 0.55, topY + (botY - topY) * 0.5, rx + rw, topY);
+    context.moveTo(curtainCx - cw * 0.5, curtainTop + topInset);
+    context.quadraticCurveTo(
+      curtainCx - cw * 0.64 + drift,
+      curtainTop + height * 0.4,
+      curtainCx - cw * 0.32 + bend,
+      curtainBottom - bottomInset,
+    );
+    context.lineTo(curtainCx + cw * 0.32 + bend, curtainBottom - bottomInset);
+    context.quadraticCurveTo(
+      curtainCx + cw * 0.64 + drift,
+      curtainTop + height * 0.4,
+      curtainCx + cw * 0.5,
+      curtainTop + topInset,
+    );
     context.closePath();
     context.fill();
   }
-  // 底部柔光：让光幕底部弥散，避免生硬边缘
-  context.globalAlpha = 1;
-  const glow = context.createLinearGradient(
-    0,
-    decoration.y + decoration.height * 0.35,
-    0,
-    decoration.y + decoration.height,
-  );
-  glow.addColorStop(0, "rgba(88, 217, 236, 0)");
-  glow.addColorStop(1, hexAlpha(palette.accent, 0.13));
-  context.fillStyle = glow;
-  context.fillRect(
-    decoration.x - 24,
-    decoration.y + decoration.height * 0.35,
-    decoration.width + 48,
-    decoration.height * 0.65,
-  );
+
+  // 帘内柔光丝：边缘渐隐的细光丝，透明度极低，仅增加纵向丝理而不构成独立形状
+  const rays = 5 + (decoration.variant % 3) * 2;
+  for (let r = 0; r < rays; r += 1) {
+    const rxC =
+      decoration.x + decoration.width * ((r + 0.5) / rays) + sway * (r / (rays - 1) - 0.5) * 0.9;
+    const rw = decoration.width * (0.035 + ((r + decoration.variant) % 3) * 0.011);
+    const rTop = topY - height * 0.04;
+    const rBot = baseY + height * 0.1 - height * (0.06 + 0.16 * ((r * 2 + decoration.variant) % 3));
+    const rayGrad = context.createLinearGradient(rxC - rw, 0, rxC + rw, 0);
+    rayGrad.addColorStop(0, "rgba(88, 217, 236, 0)");
+    rayGrad.addColorStop(0.5, hexAlpha(palette.accent, 0.09 * alpha));
+    rayGrad.addColorStop(1, "rgba(88, 217, 236, 0)");
+    context.fillStyle = rayGrad;
+    context.fillRect(rxC - rw, rTop, rw * 2, rBot - rTop);
+  }
+
   context.restore();
 }
 
