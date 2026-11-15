@@ -200,7 +200,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-group-d-02",
         "x": 3070,
-        "y": 540,
+        "y": 500,
         "groupId": "l1-group-d"
       },
       {
@@ -230,7 +230,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-group-f-02",
         "x": 5780,
-        "y": 540,
+        "y": 500,
         "groupId": "l1-group-f"
       }
     ],
@@ -703,13 +703,13 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l2-group-a-02",
         "x": 440,
-        "y": 540,
+        "y": 500,
         "groupId": "l2-group-a"
       },
       {
         "id": "l2-group-a-03",
         "x": 660,
-        "y": 540,
+        "y": 500,
         "groupId": "l2-group-a"
       },
       {
@@ -1321,13 +1321,13 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l3-group-a-02",
         "x": 440,
-        "y": 540,
+        "y": 500,
         "groupId": "l3-group-a"
       },
       {
         "id": "l3-group-a-03",
         "x": 640,
-        "y": 540,
+        "y": 500,
         "groupId": "l3-group-a"
       },
       {
@@ -1375,7 +1375,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l3-group-d-02",
         "x": 3120,
-        "y": 540,
+        "y": 500,
         "groupId": "l3-group-d"
       },
       {
@@ -1405,13 +1405,13 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l3-group-f-01",
         "x": 5900,
-        "y": 540,
+        "y": 500,
         "groupId": "l3-group-f"
       },
       {
         "id": "l3-group-f-02",
         "x": 6120,
-        "y": 540,
+        "y": 500,
         "groupId": "l3-group-f"
       },
       {
@@ -2041,13 +2041,13 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l4-group-a-02",
         "x": 440,
-        "y": 540,
+        "y": 500,
         "groupId": "l4-group-a"
       },
       {
         "id": "l4-group-a-03",
         "x": 640,
-        "y": 540,
+        "y": 500,
         "groupId": "l4-group-a"
       },
       {
@@ -2095,7 +2095,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l4-group-d-02",
         "x": 3120,
-        "y": 540,
+        "y": 500,
         "groupId": "l4-group-d"
       },
       {
@@ -2113,7 +2113,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l4-group-e-02",
         "x": 6170,
-        "y": 540,
+        "y": 500,
         "groupId": "l4-group-e"
       },
       {
@@ -2125,7 +2125,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l4-group-f-01",
         "x": 8850,
-        "y": 540,
+        "y": 500,
         "groupId": "l4-group-f"
       },
       {
@@ -2143,7 +2143,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l4-group-g-01",
         "x": 11800,
-        "y": 540,
+        "y": 500,
         "groupId": "l4-group-g"
       },
       {
@@ -2834,13 +2834,13 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l5-group-a-02",
         "x": 440,
-        "y": 540,
+        "y": 500,
         "groupId": "l5-group-a"
       },
       {
         "id": "l5-group-a-03",
         "x": 640,
-        "y": 540,
+        "y": 500,
         "groupId": "l5-group-a"
       },
       {
@@ -2888,7 +2888,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l5-group-d-02",
         "x": 3120,
-        "y": 540,
+        "y": 500,
         "groupId": "l5-group-d"
       },
       {
@@ -2906,7 +2906,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l5-group-e-02",
         "x": 6170,
-        "y": 540,
+        "y": 500,
         "groupId": "l5-group-e"
       },
       {
@@ -2918,7 +2918,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l5-group-f-01",
         "x": 8800,
-        "y": 540,
+        "y": 500,
         "groupId": "l5-group-f"
       },
       {
@@ -3710,13 +3710,13 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l6-group-a-02",
         "x": 440,
-        "y": 540,
+        "y": 500,
         "groupId": "l6-group-a"
       },
       {
         "id": "l6-group-a-03",
         "x": 640,
-        "y": 540,
+        "y": 500,
         "groupId": "l6-group-a"
       },
       {
@@ -3764,7 +3764,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l6-group-d-02",
         "x": 3120,
-        "y": 540,
+        "y": 500,
         "groupId": "l6-group-d"
       },
       {
@@ -3782,7 +3782,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l6-group-e-02",
         "x": 6220,
-        "y": 540,
+        "y": 500,
         "groupId": "l6-group-e"
       },
       {
@@ -3794,7 +3794,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l6-group-f-01",
         "x": 9000,
-        "y": 540,
+        "y": 500,
         "groupId": "l6-group-f"
       },
       {
@@ -3830,13 +3830,13 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l6-group-h-01",
         "x": 12100,
-        "y": 540,
+        "y": 500,
         "groupId": "l6-group-h"
       },
       {
         "id": "l6-group-h-02",
         "x": 12320,
-        "y": 540,
+        "y": 500,
         "groupId": "l6-group-h"
       },
       {
@@ -3866,7 +3866,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l6-group-j-01",
         "x": 15200,
-        "y": 540,
+        "y": 500,
         "groupId": "l6-group-j"
       },
       {

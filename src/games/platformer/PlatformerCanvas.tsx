@@ -1188,7 +1188,7 @@ function drawRockColumn(
   context.restore();
 }
 
-/** 潮汐萤光：漂浮的青色光球，缓慢上下浮动。 */
+/** 潮汐浮游：半透明水母般的浮游生物，钟形伞盖 + 柔缓触须，随洋流起伏。 */
 function drawTideWisp(
   context: CanvasRenderingContext2D,
   decoration: LevelDecoration,
@@ -1196,29 +1196,48 @@ function drawTideWisp(
   timeMs: number,
   reducedMotion: boolean,
 ): void {
+  const random = createSeededRandom(hashSeed("wisp-" + decoration.x));
+  const scale = 0.7 + random() * 0.45;
+  const w = Math.max(6, decoration.width * scale);
+  const h = Math.max(10, decoration.height * scale);
   const cx = decoration.x + decoration.width * 0.5;
-  const cy =
-    decoration.y +
-    decoration.height * 0.5 +
-    (reducedMotion ? 0 : Math.sin(timeMs * 0.004 + decoration.variant * 2) * 8);
-  const pulse = reducedMotion ? 0.8 : 0.6 + 0.3 * Math.sin(timeMs * 0.007 + decoration.variant * 3);
+  const bob = reducedMotion ? 0 : Math.sin(timeMs * 0.0032 + decoration.variant * 2.1) * 7;
+  const sway = reducedMotion ? 0 : Math.sin(timeMs * 0.0021 + decoration.variant * 1.7) * 3;
+  const cy = decoration.y + decoration.height * 0.5 + bob;
+  const pulse = reducedMotion ? 0.36 : 0.26 + 0.16 * Math.sin(timeMs * 0.006 + decoration.variant * 3);
   context.save();
-  context.globalAlpha = pulse;
-  context.fillStyle = palette.accent;
+  context.translate(cx + sway, cy);
+  // 钟形伞盖：顶部亮、向下的半透明穹顶
+  const bell = context.createLinearGradient(0, -h * 0.52, 0, h * 0.2);
+  bell.addColorStop(0, hexAlpha(palette.accent, 0.7));
+  bell.addColorStop(1, hexAlpha(palette.accent, 0.05));
+  context.globalAlpha = pulse + 0.32;
+  context.fillStyle = bell;
   context.beginPath();
-  context.arc(cx, cy, decoration.width * 0.5, 0, Math.PI * 2);
+  context.moveTo(-w * 0.5, 0);
+  context.quadraticCurveTo(-w * 0.5, -h * 0.52, 0, -h * 0.52);
+  context.quadraticCurveTo(w * 0.5, -h * 0.52, w * 0.5, 0);
+  context.quadraticCurveTo(0, h * 0.08, -w * 0.5, 0);
+  context.closePath();
   context.fill();
-  context.globalAlpha = 1;
+  // 伞盖高光
+  context.globalAlpha = 0.5;
   context.fillStyle = palette.iceLight;
   context.beginPath();
-  context.arc(
-    cx - decoration.width * 0.15,
-    cy - decoration.height * 0.15,
-    decoration.width * 0.14,
-    0,
-    Math.PI * 2,
-  );
+  context.ellipse(0, -h * 0.3, w * 0.22, h * 0.15, 0, 0, Math.PI * 2);
   context.fill();
+  // 三条柔缓触须
+  context.globalAlpha = 0.34;
+  context.strokeStyle = palette.accent;
+  context.lineWidth = 1.3;
+  for (let i = -1; i <= 1; i += 1) {
+    const tx = i * w * 0.24;
+    const wave = reducedMotion ? 0 : Math.sin(timeMs * 0.004 + decoration.variant * 2 + i * 0.9) * 3;
+    context.beginPath();
+    context.moveTo(tx, 0);
+    context.quadraticCurveTo(tx + wave, h * 0.24, tx - wave * 0.35, h * 0.46);
+    context.stroke();
+  }
   context.restore();
 }
 
@@ -1267,7 +1286,7 @@ function drawEmberVent(
   context.restore();
 }
 
-/** 浮空碎片：缓慢漂浮的菱形冰晶。 */
+/** 浮空冰尘：细小的冰晶棱柱，柔和微光，随星云气流缓慢漂移。 */
 function drawFloatingShard(
   context: CanvasRenderingContext2D,
   decoration: LevelDecoration,
@@ -1275,30 +1294,51 @@ function drawFloatingShard(
   timeMs: number,
   reducedMotion: boolean,
 ): void {
+  const random = createSeededRandom(hashSeed("shard-" + decoration.x));
+  const scale = 0.55 + random() * 0.5;
+  const w = Math.max(5, decoration.width * scale);
+  const h = Math.max(8, decoration.height * scale);
   const cx = decoration.x + decoration.width * 0.5;
-  const cy =
-    decoration.y +
-    decoration.height * 0.5 +
-    (reducedMotion ? 0 : Math.sin(timeMs * 0.003 + decoration.variant * 2) * 7);
-  const pulse = reducedMotion ? 0.75 : 0.65 + 0.2 * Math.sin(timeMs * 0.006 + decoration.variant);
+  const bob = reducedMotion ? 0 : Math.sin(timeMs * 0.0026 + decoration.variant * 2.4) * 6;
+  const sway = reducedMotion ? 0 : Math.sin(timeMs * 0.0017 + decoration.variant * 1.3) * 2.5;
+  const cy = decoration.y + decoration.height * 0.5 + bob;
+  const tilt = reducedMotion ? 0 : Math.sin(timeMs * 0.002 + decoration.variant * 1.1) * 0.32;
   context.save();
-  context.globalAlpha = pulse;
+  // 柔和光晕：低透明度，融入夜色
+  const glow = context.createRadialGradient(cx, cy, 0, cx, cy, w * 0.95);
+  glow.addColorStop(0, hexAlpha(palette.accent, 0.22));
+  glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+  context.globalAlpha = 0.9;
+  context.fillStyle = glow;
+  context.beginPath();
+  context.arc(cx, cy, w * 0.95, 0, Math.PI * 2);
+  context.fill();
+  context.translate(cx + sway, cy);
+  context.rotate(tilt);
+  // 冰晶棱柱：细长六边形，半透明
+  context.globalAlpha = 0.58;
   context.fillStyle = palette.accent;
   context.beginPath();
-  context.moveTo(cx, cy - decoration.height * 0.5);
-  context.lineTo(cx + decoration.width * 0.5, cy);
-  context.lineTo(cx, cy + decoration.height * 0.5);
-  context.lineTo(cx - decoration.width * 0.5, cy);
+  context.moveTo(0, -h * 0.55);
+  context.lineTo(w * 0.34, -h * 0.26);
+  context.lineTo(w * 0.22, h * 0.42);
+  context.lineTo(0, h * 0.58);
+  context.lineTo(-w * 0.22, h * 0.42);
+  context.lineTo(-w * 0.34, -h * 0.26);
   context.closePath();
   context.fill();
-  context.globalAlpha = 1;
+  // 内层亮面：一条细长的冰晶高光
+  context.globalAlpha = 0.35;
+  context.strokeStyle = palette.iceLight;
+  context.lineWidth = 1.1;
+  context.beginPath();
+  context.moveTo(0, -h * 0.42);
+  context.lineTo(0, h * 0.46);
+  context.stroke();
+  context.globalAlpha = 0.65;
   context.fillStyle = palette.iceLight;
   context.beginPath();
-  context.moveTo(cx, cy - decoration.height * 0.3);
-  context.lineTo(cx + decoration.width * 0.24, cy);
-  context.lineTo(cx, cy + decoration.height * 0.3);
-  context.lineTo(cx - decoration.width * 0.24, cy);
-  context.closePath();
+  context.arc(w * 0.12, -h * 0.2, Math.max(1, w * 0.07), 0, Math.PI * 2);
   context.fill();
   context.restore();
 }
@@ -1689,11 +1729,11 @@ function drawHanging(
   random: () => number,
   surface: ThemeSurface,
 ): void {
-  const count = Math.max(3, Math.floor(width / 34));
+  const count = Math.max(2, Math.floor(width / 52));
   for (let i = 0; i < count; i += 1) {
     const ix = x + ((i + random() * 0.7) / count) * width;
-    const length = 4 + random() * 11;
-    const thickness = 2.5 + random() * 3.5;
+    const length = 3 + random() * 7;
+    const thickness = 2 + random() * 2.5;
     const tip = ix + (random() - 0.5) * 3;
     context.fillStyle = i % 3 === 0 ? surface.hangA : surface.hangB;
     context.beginPath();
@@ -1715,11 +1755,11 @@ function drawSurfaceSeams(
   random: () => number,
   surface: ThemeSurface,
 ): void {
-  const seamCount = Math.max(1, Math.floor(width / 110));
+  const seamCount = Math.max(1, Math.floor(width / 150));
   context.lineWidth = 1.4;
   for (let i = 0; i < seamCount; i += 1) {
     const sx = x + ((i + 0.35 + random() * 0.3) * width) / seamCount;
-    const depth = 8 + random() * Math.min(38, Math.max(10, height * 0.5));
+    const depth = 6 + random() * Math.min(24, Math.max(8, height * 0.45));
     context.strokeStyle = surface.seam;
     context.beginPath();
     context.moveTo(sx, y + 2);
@@ -1760,7 +1800,6 @@ function drawOneWayPlatform(
   width: number,
   height: number,
   palette: LevelPalette,
-  levelHeight: number,
   theme: PlatformerTheme,
 ): void {
   const random = createSeededRandom(hashSeed(`${x}-${y}-${width}-shelf`));
@@ -1780,8 +1819,8 @@ function drawOneWayPlatform(
   context.fillStyle = surface.capBottom;
   context.fillRect(x, y + height - 2, width, 2);
 
-  const speckles = Math.floor(width / 30);
-  context.globalAlpha = 0.16;
+  const speckles = Math.floor(width / 46);
+  context.globalAlpha = 0.09;
   context.fillStyle = surface.speckle;
   for (let i = 0; i < speckles; i += 1) {
     const sx = x + random() * (width - 3);
@@ -1789,10 +1828,6 @@ function drawOneWayPlatform(
     context.fillRect(sx, sy, 2, 2);
   }
   context.globalAlpha = 1;
-
-  if (y + height <= levelHeight - 60) {
-    drawHanging(context, x, y + height, width, random, surface);
-  }
 }
 
 /** 实体冰台/地面：分层冰盖 + 冰缝 + 冰凌，移动平台带推进器光晕。 */
@@ -1820,13 +1855,10 @@ function drawSolidPlatform(
   context.fillStyle = body;
   context.fillRect(x, y, width, height);
 
-  // 材质横向分层切片
-  context.globalAlpha = surface.layerAlpha;
+  // 材质横向分层切片：仅保留一条细淡纹理，避免杂乱
+  context.globalAlpha = surface.layerAlpha * 0.55;
   context.fillStyle = surface.speckle;
-  for (let layer = 1; layer <= 2; layer += 1) {
-    const ly = y + height * (0.52 + layer * 0.17);
-    context.fillRect(x + 2, ly, width - 4, 1);
-  }
+  context.fillRect(x + 2, y + height * 0.68, width - 4, 1);
   context.globalAlpha = 1;
 
   // 顶部亮盖（站立面）
@@ -1839,14 +1871,14 @@ function drawSolidPlatform(
 
   context.fillStyle = surface.edge;
   context.fillRect(x, y, width, 2);
-  context.globalAlpha = 0.45;
+  context.globalAlpha = 0.28;
   context.fillStyle = surface.edge;
   context.fillRect(x, y + 2, width, 2);
   context.globalAlpha = 1;
 
   // 表面霜点/岩屑
-  const speckles = Math.floor(width / 26);
-  context.globalAlpha = 0.14;
+  const speckles = Math.floor(width / 46);
+  context.globalAlpha = 0.08;
   context.fillStyle = surface.speckle;
   for (let i = 0; i < speckles; i += 1) {
     const sx = x + random() * (width - 3);
@@ -1855,9 +1887,11 @@ function drawSolidPlatform(
   }
   context.globalAlpha = 1;
 
-  drawSurfaceSeams(context, x, y, width, height, random, surface);
+  if (height >= 26) {
+    drawSurfaceSeams(context, x, y, width, height, random, surface);
+  }
 
-  // 悬浮平台下缘悬挂物（冰凌/石笋/熔岩滴）
+  // 悬浮平台下缘悬挂物（冰凌/石笋/熔岩滴）：稀疏、短小，保持克制
   if (y + height <= levelHeight - 60) {
     drawHanging(context, x, y + height, width, random, surface);
   }
@@ -1903,7 +1937,7 @@ function drawPlatforms({ context, level, world, reducedMotion }: DrawState): voi
     }
 
     if (platform.kind === "oneWay") {
-      drawOneWayPlatform(context, x, y, width, height, palette, level.height, level.theme);
+      drawOneWayPlatform(context, x, y, width, height, palette, level.theme);
       continue;
     }
 
