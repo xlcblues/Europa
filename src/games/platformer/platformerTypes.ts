@@ -145,7 +145,6 @@ export interface WeaponPickupDefinition {
 export type PlatformerTheme = "icefield" | "gorge" | "tide" | "night" | "cavern" | "core";
 
 export type LevelDecorationKind =
-  | "aurora"
   | "nebula"
   | "iceSpire"
   | "crystalSpire"

@@ -311,42 +311,6 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
     ],
     "decorations": [
       {
-        "id": "l1-deco-aurora-01",
-        "kind": "aurora",
-        "x": 540,
-        "y": 28,
-        "width": 460,
-        "height": 86,
-        "variant": 0
-      },
-      {
-        "id": "l1-deco-aurora-02",
-        "kind": "aurora",
-        "x": 2430,
-        "y": 80,
-        "width": 690,
-        "height": 138,
-        "variant": 1
-      },
-      {
-        "id": "l1-deco-aurora-03",
-        "kind": "aurora",
-        "x": 4320,
-        "y": 132,
-        "width": 920,
-        "height": 190,
-        "variant": 2
-      },
-      {
-        "id": "l1-deco-aurora-04",
-        "kind": "aurora",
-        "x": 6210,
-        "y": 184,
-        "width": 460,
-        "height": 86,
-        "variant": 3
-      },
-      {
         "id": "l1-deco-iceSpire-05",
         "kind": "iceSpire",
         "x": 70,
@@ -4008,51 +3972,6 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       }
     ],
     "decorations": [
-      {
-        "id": "l6-deco-aurora-01",
-        "kind": "aurora",
-        "x": 1140,
-        "y": 28,
-        "width": 460,
-        "height": 86,
-        "variant": 0
-      },
-      {
-        "id": "l6-deco-aurora-02",
-        "kind": "aurora",
-        "x": 5130,
-        "y": 80,
-        "width": 690,
-        "height": 138,
-        "variant": 1
-      },
-      {
-        "id": "l6-deco-aurora-03",
-        "kind": "aurora",
-        "x": 9120,
-        "y": 132,
-        "width": 920,
-        "height": 190,
-        "variant": 2
-      },
-      {
-        "id": "l6-deco-aurora-04",
-        "kind": "aurora",
-        "x": 13110,
-        "y": 184,
-        "width": 460,
-        "height": 86,
-        "variant": 3
-      },
-      {
-        "id": "l6-deco-aurora-05",
-        "kind": "aurora",
-        "x": 17100,
-        "y": 28,
-        "width": 690,
-        "height": 138,
-        "variant": 0
-      },
       {
         "id": "l6-deco-emberVent-06",
         "kind": "emberVent",
