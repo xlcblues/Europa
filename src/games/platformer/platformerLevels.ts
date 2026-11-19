@@ -4803,6 +4803,78 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
           "speed": 1,
           "phase": 0
         }
+      },
+      {
+        "id": "l7-step-crumble-a",
+        "x": 1510,
+        "y": 545,
+        "width": 140,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-step-crumble-e",
+        "x": 12460,
+        "y": 545,
+        "width": 140,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-step1-break-b",
+        "x": 3460,
+        "y": 550,
+        "width": 140,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-step2-break-b",
+        "x": 3560,
+        "y": 495,
+        "width": 120,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-step1-break-c",
+        "x": 6460,
+        "y": 550,
+        "width": 140,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-step2-break-c",
+        "x": 6560,
+        "y": 495,
+        "width": 120,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-step1-break-d",
+        "x": 9960,
+        "y": 550,
+        "width": 140,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-step2-break-d",
+        "x": 10060,
+        "y": 495,
+        "width": 120,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-step-break-f",
+        "x": 16360,
+        "y": 495,
+        "width": 140,
+        "height": 16,
+        "kind": "oneWay"
       }
     ],
     "crystals": [
@@ -5819,6 +5891,102 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
           "speed": 1,
           "phase": 0
         }
+      },
+      {
+        "id": "l8-step-crumble-a",
+        "x": 1560,
+        "y": 545,
+        "width": 140,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-step1-break-a",
+        "x": 1960,
+        "y": 550,
+        "width": 140,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-step2-break-a",
+        "x": 2060,
+        "y": 495,
+        "width": 120,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-step1-break-b",
+        "x": 3560,
+        "y": 550,
+        "width": 140,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-step2-break-b",
+        "x": 3660,
+        "y": 495,
+        "width": 120,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-step1-break-c",
+        "x": 6660,
+        "y": 550,
+        "width": 140,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-step2-break-c",
+        "x": 6760,
+        "y": 495,
+        "width": 120,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-step1-break-d",
+        "x": 10260,
+        "y": 550,
+        "width": 140,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-step2-break-d",
+        "x": 10360,
+        "y": 495,
+        "width": 120,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-step1-break-e",
+        "x": 13460,
+        "y": 550,
+        "width": 140,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-step2-break-e",
+        "x": 13560,
+        "y": 495,
+        "width": 120,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-step-break-f",
+        "x": 16760,
+        "y": 495,
+        "width": 140,
+        "height": 16,
+        "kind": "oneWay"
       }
     ],
     "crystals": [

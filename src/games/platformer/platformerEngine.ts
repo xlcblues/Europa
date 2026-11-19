@@ -1026,10 +1026,16 @@ function updateRuntimeSentinels(world: PlatformerWorld, level: PlatformerLevel):
         return { ...sentinel, y: bob, phaseMs, attackTimerMs: remaining };
       }
 
-      const driftRange = definition.patrolMaxX - definition.patrolMinX - definition.width;
-      const driftPeriod = definition.bobPeriodMs ?? 4200;
-      const progress = (phaseMs % driftPeriod) / driftPeriod;
-      const x = definition.patrolMinX + driftRange * (0.5 + 0.5 * Math.sin(progress * Math.PI * 2));
+      const driftSpeed = definition.speed > 0 ? definition.speed : 70;
+      let x = sentinel.x + (sentinel.direction ?? 1) * driftSpeed * PLATFORMER_STEP_SECONDS;
+      let direction = sentinel.direction ?? 1;
+      if (x <= definition.patrolMinX) {
+        x = definition.patrolMinX;
+        direction = 1;
+      } else if (x + definition.width >= definition.patrolMaxX) {
+        x = definition.patrolMaxX - definition.width;
+        direction = -1;
+      }
       if (inRange) {
         return {
           ...sentinel,
@@ -1041,7 +1047,7 @@ function updateRuntimeSentinels(world: PlatformerWorld, level: PlatformerLevel):
           attackTimerMs: definition.windupMs ?? 420,
         };
       }
-      return { ...sentinel, x, y: bob, phaseMs };
+      return { ...sentinel, x, y: bob, phaseMs, direction };
     }
 
     // 爬虫/哨兵/弹跳兽/重装兽：水平匀速巡逻，并在巡逻边界折返。
