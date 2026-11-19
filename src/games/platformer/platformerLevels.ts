@@ -4331,6 +4331,2095 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       "width": 64,
       "height": 132
     }
+  },
+  {
+    "id": 7,
+    "code": "EUROPA / E-17 / 07",
+    "name": "风暴天穹",
+    "subtitle": "雷暴撕裂极夜，冰原在电光中震颤，风与闪电路径交错。",
+    "objective": "穿越风暴裂隙，利用弹跳与易碎平台抵达雷暴尽头的信标。",
+    "width": 19000,
+    "height": 720,
+    "spawnX": 92,
+    "spawnY": 574,
+    "theme": "storm",
+    "palette": {
+      "skyTop": "#0c1128",
+      "skyBottom": "#232a4d",
+      "iceLight": "#e9edff",
+      "iceMid": "#7d86c4",
+      "iceDeep": "#191f3d",
+      "accent": "#8fa6ff",
+      "accentSoft": "rgba(143, 166, 255, 0.16)",
+      "beacon": "#ffd35e"
+    },
+    "platforms": [
+      {
+        "id": "l7-ground-a",
+        "x": 0,
+        "y": 620,
+        "width": 1250,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-ground-b",
+        "x": 1380,
+        "y": 620,
+        "width": 1370,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-ground-c",
+        "x": 2900,
+        "y": 620,
+        "width": 1450,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-ground-d",
+        "x": 4520,
+        "y": 620,
+        "width": 1380,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-ground-e",
+        "x": 6040,
+        "y": 620,
+        "width": 1360,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-ground-f",
+        "x": 7560,
+        "y": 620,
+        "width": 1440,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-ground-g",
+        "x": 9150,
+        "y": 620,
+        "width": 1450,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-ground-h",
+        "x": 10760,
+        "y": 620,
+        "width": 1440,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-ground-i",
+        "x": 12350,
+        "y": 620,
+        "width": 1450,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-ground-j",
+        "x": 13970,
+        "y": 620,
+        "width": 1430,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-ground-k",
+        "x": 15550,
+        "y": 620,
+        "width": 1450,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-ground-l",
+        "x": 17160,
+        "y": 620,
+        "width": 1840,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-shelf-a",
+        "x": 520,
+        "y": 545,
+        "width": 240,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-shelf-b",
+        "x": 800,
+        "y": 500,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-shelf-c",
+        "x": 3000,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-shelf-d",
+        "x": 4600,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-shelf-e",
+        "x": 5900,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-shelf-f",
+        "x": 7700,
+        "y": 530,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-shelf-g",
+        "x": 9300,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-shelf-h",
+        "x": 11200,
+        "y": 530,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-shelf-i",
+        "x": 12900,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-shelf-j",
+        "x": 14700,
+        "y": 530,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-shelf-k",
+        "x": 16650,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-shelf-l",
+        "x": 17600,
+        "y": 520,
+        "width": 260,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l7-step-a",
+        "x": 1180,
+        "y": 560,
+        "width": 160,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-step-b",
+        "x": 4080,
+        "y": 560,
+        "width": 170,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-step-c",
+        "x": 7000,
+        "y": 560,
+        "width": 170,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-step-d",
+        "x": 10400,
+        "y": 560,
+        "width": 170,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-step-e",
+        "x": 13600,
+        "y": 560,
+        "width": 170,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-step-f",
+        "x": 16300,
+        "y": 560,
+        "width": 170,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l7-ice-a",
+        "x": 2300,
+        "y": 560,
+        "width": 420,
+        "height": 18,
+        "kind": "ice"
+      },
+      {
+        "id": "l7-ice-b",
+        "x": 4800,
+        "y": 540,
+        "width": 380,
+        "height": 18,
+        "kind": "ice"
+      },
+      {
+        "id": "l7-ice-c",
+        "x": 9600,
+        "y": 560,
+        "width": 400,
+        "height": 18,
+        "kind": "ice"
+      },
+      {
+        "id": "l7-ice-d",
+        "x": 14300,
+        "y": 540,
+        "width": 420,
+        "height": 18,
+        "kind": "ice"
+      },
+      {
+        "id": "l7-bounce-a",
+        "x": 1300,
+        "y": 612,
+        "width": 90,
+        "height": 8,
+        "kind": "bounce"
+      },
+      {
+        "id": "l7-bounce-b",
+        "x": 4420,
+        "y": 612,
+        "width": 90,
+        "height": 8,
+        "kind": "bounce"
+      },
+      {
+        "id": "l7-bounce-c",
+        "x": 7470,
+        "y": 612,
+        "width": 90,
+        "height": 8,
+        "kind": "bounce"
+      },
+      {
+        "id": "l7-bounce-d",
+        "x": 10850,
+        "y": 612,
+        "width": 90,
+        "height": 8,
+        "kind": "bounce"
+      },
+      {
+        "id": "l7-bounce-e",
+        "x": 15650,
+        "y": 612,
+        "width": 90,
+        "height": 8,
+        "kind": "bounce"
+      },
+      {
+        "id": "l7-crumble-a",
+        "x": 1650,
+        "y": 480,
+        "width": 160,
+        "height": 14,
+        "kind": "crumbling"
+      },
+      {
+        "id": "l7-crumble-b",
+        "x": 3100,
+        "y": 500,
+        "width": 170,
+        "height": 14,
+        "kind": "crumbling"
+      },
+      {
+        "id": "l7-crumble-c",
+        "x": 6200,
+        "y": 490,
+        "width": 170,
+        "height": 14,
+        "kind": "crumbling"
+      },
+      {
+        "id": "l7-crumble-d",
+        "x": 9400,
+        "y": 500,
+        "width": 160,
+        "height": 14,
+        "kind": "crumbling"
+      },
+      {
+        "id": "l7-crumble-e",
+        "x": 12500,
+        "y": 490,
+        "width": 170,
+        "height": 14,
+        "kind": "crumbling"
+      },
+      {
+        "id": "l7-crumble-f",
+        "x": 16000,
+        "y": 500,
+        "width": 160,
+        "height": 14,
+        "kind": "crumbling"
+      },
+      {
+        "id": "l7-break-a",
+        "x": 2050,
+        "y": 470,
+        "width": 120,
+        "height": 28,
+        "kind": "breakable"
+      },
+      {
+        "id": "l7-break-b",
+        "x": 3600,
+        "y": 430,
+        "width": 120,
+        "height": 28,
+        "kind": "breakable"
+      },
+      {
+        "id": "l7-break-c",
+        "x": 6600,
+        "y": 450,
+        "width": 120,
+        "height": 28,
+        "kind": "breakable"
+      },
+      {
+        "id": "l7-break-d",
+        "x": 10100,
+        "y": 440,
+        "width": 120,
+        "height": 28,
+        "kind": "breakable"
+      },
+      {
+        "id": "l7-break-e",
+        "x": 13300,
+        "y": 450,
+        "width": 120,
+        "height": 28,
+        "kind": "breakable"
+      },
+      {
+        "id": "l7-break-f",
+        "x": 16600,
+        "y": 440,
+        "width": 120,
+        "height": 28,
+        "kind": "breakable"
+      },
+      {
+        "id": "l7-mover-a",
+        "x": 5250,
+        "y": 590,
+        "width": 150,
+        "height": 20,
+        "kind": "solid",
+        "motion": {
+          "axis": "x",
+          "amplitude": 55,
+          "speed": 1,
+          "phase": 0
+        }
+      },
+      {
+        "id": "l7-mover-b",
+        "x": 12250,
+        "y": 590,
+        "width": 150,
+        "height": 20,
+        "kind": "solid",
+        "motion": {
+          "axis": "y",
+          "amplitude": 40,
+          "speed": 0.8,
+          "phase": 0
+        }
+      },
+      {
+        "id": "l7-mover-c",
+        "x": 17450,
+        "y": 590,
+        "width": 150,
+        "height": 20,
+        "kind": "solid",
+        "motion": {
+          "axis": "x",
+          "amplitude": 60,
+          "speed": 1,
+          "phase": 0
+        }
+      }
+    ],
+    "crystals": [
+      {
+        "id": "l7-group-a-01",
+        "x": 240,
+        "y": 540,
+        "groupId": "l7-group-a"
+      },
+      {
+        "id": "l7-group-a-02",
+        "x": 460,
+        "y": 500,
+        "groupId": "l7-group-a"
+      },
+      {
+        "id": "l7-group-a-03",
+        "x": 640,
+        "y": 500,
+        "groupId": "l7-group-a"
+      },
+      {
+        "id": "l7-group-b-01",
+        "x": 820,
+        "y": 425,
+        "groupId": "l7-group-b"
+      },
+      {
+        "id": "l7-group-b-02",
+        "x": 910,
+        "y": 425,
+        "groupId": "l7-group-b"
+      },
+      {
+        "id": "l7-group-b-03",
+        "x": 1000,
+        "y": 425,
+        "groupId": "l7-group-b"
+      },
+      {
+        "id": "l7-group-c-01",
+        "x": 1720,
+        "y": 430,
+        "groupId": "l7-group-c"
+      },
+      {
+        "id": "l7-group-c-02",
+        "x": 1800,
+        "y": 430,
+        "groupId": "l7-group-c"
+      },
+      {
+        "id": "l7-group-c-03",
+        "x": 1880,
+        "y": 430,
+        "groupId": "l7-group-c"
+      },
+      {
+        "id": "l7-group-d-01",
+        "x": 3160,
+        "y": 450,
+        "groupId": "l7-group-d"
+      },
+      {
+        "id": "l7-group-d-02",
+        "x": 3250,
+        "y": 450,
+        "groupId": "l7-group-d"
+      },
+      {
+        "id": "l7-group-d-03",
+        "x": 3340,
+        "y": 450,
+        "groupId": "l7-group-d"
+      },
+      {
+        "id": "l7-group-e-01",
+        "x": 3620,
+        "y": 380,
+        "groupId": "l7-group-e"
+      },
+      {
+        "id": "l7-group-e-02",
+        "x": 3720,
+        "y": 380,
+        "groupId": "l7-group-e"
+      },
+      {
+        "id": "l7-group-f-01",
+        "x": 2400,
+        "y": 505,
+        "groupId": "l7-group-f"
+      },
+      {
+        "id": "l7-group-f-02",
+        "x": 2500,
+        "y": 505,
+        "groupId": "l7-group-f"
+      },
+      {
+        "id": "l7-group-g-01",
+        "x": 4450,
+        "y": 320,
+        "groupId": "l7-group-g"
+      },
+      {
+        "id": "l7-group-g-02",
+        "x": 4550,
+        "y": 320,
+        "groupId": "l7-group-g"
+      },
+      {
+        "id": "l7-group-h-01",
+        "x": 6250,
+        "y": 440,
+        "groupId": "l7-group-h"
+      },
+      {
+        "id": "l7-group-h-02",
+        "x": 6340,
+        "y": 440,
+        "groupId": "l7-group-h"
+      },
+      {
+        "id": "l7-group-i-01",
+        "x": 7800,
+        "y": 470,
+        "groupId": "l7-group-i"
+      },
+      {
+        "id": "l7-group-i-02",
+        "x": 7900,
+        "y": 470,
+        "groupId": "l7-group-i"
+      },
+      {
+        "id": "l7-group-j-01",
+        "x": 9450,
+        "y": 450,
+        "groupId": "l7-group-j"
+      },
+      {
+        "id": "l7-group-j-02",
+        "x": 9540,
+        "y": 450,
+        "groupId": "l7-group-j"
+      },
+      {
+        "id": "l7-group-k-01",
+        "x": 10150,
+        "y": 390,
+        "groupId": "l7-group-k"
+      },
+      {
+        "id": "l7-group-k-02",
+        "x": 10250,
+        "y": 390,
+        "groupId": "l7-group-k"
+      },
+      {
+        "id": "l7-group-l-01",
+        "x": 10880,
+        "y": 330,
+        "groupId": "l7-group-l"
+      },
+      {
+        "id": "l7-group-m-01",
+        "x": 12280,
+        "y": 500,
+        "groupId": "l7-group-m"
+      },
+      {
+        "id": "l7-group-n-01",
+        "x": 12550,
+        "y": 440,
+        "groupId": "l7-group-n"
+      },
+      {
+        "id": "l7-group-n-02",
+        "x": 12640,
+        "y": 440,
+        "groupId": "l7-group-n"
+      },
+      {
+        "id": "l7-group-o-01",
+        "x": 13350,
+        "y": 400,
+        "groupId": "l7-group-o"
+      },
+      {
+        "id": "l7-group-o-02",
+        "x": 13450,
+        "y": 400,
+        "groupId": "l7-group-o"
+      },
+      {
+        "id": "l7-group-p-01",
+        "x": 15680,
+        "y": 330,
+        "groupId": "l7-group-p"
+      }
+    ],
+    "sentinels": [
+      {
+        "id": "l7-crawler-01",
+        "kind": "crawler",
+        "x": 1750,
+        "y": 590,
+        "width": 54,
+        "height": 30,
+        "patrolMinX": 1750,
+        "patrolMaxX": 2200,
+        "speed": 62
+      },
+      {
+        "id": "l7-drifter-01",
+        "kind": "drifter",
+        "x": 3400,
+        "y": 500,
+        "width": 40,
+        "height": 34,
+        "patrolMinX": 3250,
+        "patrolMaxX": 3700,
+        "speed": 40,
+        "bobAmplitude": 6,
+        "bobPeriodMs": 4200
+      },
+      {
+        "id": "l7-sentinel-01",
+        "kind": "sentinel",
+        "x": 4700,
+        "y": 576,
+        "width": 44,
+        "height": 44,
+        "patrolMinX": 4700,
+        "patrolMaxX": 5250,
+        "speed": 52
+      },
+      {
+        "id": "l7-wisp-01",
+        "kind": "wisp",
+        "x": 6200,
+        "y": 470,
+        "width": 38,
+        "height": 38,
+        "patrolMinX": 6000,
+        "patrolMaxX": 6500,
+        "speed": 70,
+        "windupMs": 420
+      },
+      {
+        "id": "l7-gunner-01",
+        "kind": "gunner",
+        "x": 7900,
+        "y": 574,
+        "width": 46,
+        "height": 46,
+        "patrolMinX": 7900,
+        "patrolMaxX": 8450,
+        "speed": 45,
+        "aggroRange": 360,
+        "fireIntervalMs": 1700,
+        "projectileSpeed": 330
+      },
+      {
+        "id": "l7-charger-01",
+        "kind": "charger",
+        "x": 9600,
+        "y": 580,
+        "width": 52,
+        "height": 40,
+        "patrolMinX": 9600,
+        "patrolMaxX": 10150,
+        "speed": 55,
+        "aggroRange": 420,
+        "chargeSpeed": 560,
+        "chargeDurationMs": 740,
+        "recoverDurationMs": 640
+      },
+      {
+        "id": "l7-wisp-02",
+        "kind": "wisp",
+        "x": 11200,
+        "y": 480,
+        "width": 38,
+        "height": 38,
+        "patrolMinX": 11050,
+        "patrolMaxX": 11550,
+        "speed": 75,
+        "windupMs": 380
+      },
+      {
+        "id": "l7-hopper-01",
+        "kind": "hopper",
+        "x": 13100,
+        "y": 584,
+        "width": 42,
+        "height": 36,
+        "patrolMinX": 13100,
+        "patrolMaxX": 13650,
+        "speed": 46,
+        "hopHeight": 50,
+        "hopPeriodMs": 1500
+      },
+      {
+        "id": "l7-spiker-01",
+        "kind": "spiker",
+        "x": 15600,
+        "y": 586,
+        "width": 44,
+        "height": 34,
+        "patrolMinX": 15600,
+        "patrolMaxX": 16050,
+        "speed": 40,
+        "spikeHeight": 22,
+        "spikeCycleMs": 2000,
+        "spikeUpMs": 650
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "l7-checkpoint-01",
+        "x": 3400,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 3430,
+        "spawnY": 574,
+        "label": "风暴中继 A"
+      },
+      {
+        "id": "l7-checkpoint-02",
+        "x": 6500,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 6530,
+        "spawnY": 574,
+        "label": "风暴中继 B"
+      },
+      {
+        "id": "l7-checkpoint-03",
+        "x": 9800,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 9830,
+        "spawnY": 574,
+        "label": "风暴中继 C"
+      },
+      {
+        "id": "l7-checkpoint-04",
+        "x": 13000,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 13030,
+        "spawnY": 574,
+        "label": "风暴中继 D"
+      }
+    ],
+    "weaponPickups": [
+      {
+        "id": "l7-pickup-01",
+        "x": 2300,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l7-pickup-02",
+        "x": 7100,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l7-pickup-03",
+        "x": 10500,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l7-pickup-04",
+        "x": 14800,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      }
+    ],
+    "decorations": [
+      {
+        "id": "l7-deco-stormCloud-01",
+        "kind": "stormCloud",
+        "x": 220,
+        "y": 110,
+        "width": 170,
+        "height": 70,
+        "variant": 0
+      },
+      {
+        "id": "l7-deco-stormCloud-02",
+        "kind": "stormCloud",
+        "x": 900,
+        "y": 150,
+        "width": 200,
+        "height": 84,
+        "variant": 1
+      },
+      {
+        "id": "l7-deco-stormCloud-03",
+        "kind": "stormCloud",
+        "x": 1700,
+        "y": 100,
+        "width": 150,
+        "height": 62,
+        "variant": 2
+      },
+      {
+        "id": "l7-deco-stormCloud-04",
+        "kind": "stormCloud",
+        "x": 2800,
+        "y": 140,
+        "width": 190,
+        "height": 78,
+        "variant": 0
+      },
+      {
+        "id": "l7-deco-stormCloud-05",
+        "kind": "stormCloud",
+        "x": 3900,
+        "y": 110,
+        "width": 210,
+        "height": 88,
+        "variant": 1
+      },
+      {
+        "id": "l7-deco-stormCloud-06",
+        "kind": "stormCloud",
+        "x": 5100,
+        "y": 150,
+        "width": 160,
+        "height": 66,
+        "variant": 2
+      },
+      {
+        "id": "l7-deco-windRibbon-01",
+        "kind": "windRibbon",
+        "x": 700,
+        "y": 330,
+        "width": 200,
+        "height": 12,
+        "variant": 0
+      },
+      {
+        "id": "l7-deco-windRibbon-02",
+        "kind": "windRibbon",
+        "x": 1500,
+        "y": 380,
+        "width": 220,
+        "height": 12,
+        "variant": 1
+      },
+      {
+        "id": "l7-deco-windRibbon-03",
+        "kind": "windRibbon",
+        "x": 2600,
+        "y": 340,
+        "width": 180,
+        "height": 10,
+        "variant": 0
+      },
+      {
+        "id": "l7-deco-windRibbon-04",
+        "kind": "windRibbon",
+        "x": 3700,
+        "y": 400,
+        "width": 220,
+        "height": 12,
+        "variant": 1
+      },
+      {
+        "id": "l7-deco-windRibbon-05",
+        "kind": "windRibbon",
+        "x": 4800,
+        "y": 350,
+        "width": 200,
+        "height": 10,
+        "variant": 0
+      },
+      {
+        "id": "l7-deco-windRibbon-06",
+        "kind": "windRibbon",
+        "x": 5900,
+        "y": 390,
+        "width": 190,
+        "height": 12,
+        "variant": 1
+      },
+      {
+        "id": "l7-deco-lightningBolt-01",
+        "kind": "lightningBolt",
+        "x": 1400,
+        "y": 200,
+        "width": 40,
+        "height": 110,
+        "variant": 0
+      },
+      {
+        "id": "l7-deco-lightningBolt-02",
+        "kind": "lightningBolt",
+        "x": 3300,
+        "y": 180,
+        "width": 36,
+        "height": 100,
+        "variant": 1
+      },
+      {
+        "id": "l7-deco-lightningBolt-03",
+        "kind": "lightningBolt",
+        "x": 5200,
+        "y": 210,
+        "width": 44,
+        "height": 120,
+        "variant": 0
+      },
+      {
+        "id": "l7-deco-lightningBolt-04",
+        "kind": "lightningBolt",
+        "x": 7500,
+        "y": 190,
+        "width": 40,
+        "height": 110,
+        "variant": 1
+      }
+    ],
+    "beacon": {
+      "id": "l7-beacon",
+      "x": 18840,
+      "y": 488,
+      "width": 64,
+      "height": 132
+    }
+  },
+  {
+    "id": 8,
+    "code": "EUROPA / E-17 / 08",
+    "name": "晶蚀回响",
+    "subtitle": "地底晶脉共振，紫晶巨柱与浮游光点构筑最后的考验。",
+    "objective": "穿越晶蚀迷宫，击败重装尖甲兽，点亮终末信标。",
+    "width": 20000,
+    "height": 720,
+    "spawnX": 92,
+    "spawnY": 574,
+    "theme": "crystal",
+    "palette": {
+      "skyTop": "#150e2e",
+      "skyBottom": "#2c1c4a",
+      "iceLight": "#f3ecff",
+      "iceMid": "#a28ee0",
+      "iceDeep": "#221243",
+      "accent": "#c8a4ff",
+      "accentSoft": "rgba(200, 164, 255, 0.16)",
+      "beacon": "#ffe9a8"
+    },
+    "platforms": [
+      {
+        "id": "l8-ground-a",
+        "x": 0,
+        "y": 620,
+        "width": 1300,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-ground-b",
+        "x": 1440,
+        "y": 620,
+        "width": 1410,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-ground-c",
+        "x": 3000,
+        "y": 620,
+        "width": 1500,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-ground-d",
+        "x": 4660,
+        "y": 620,
+        "width": 1440,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-ground-e",
+        "x": 6250,
+        "y": 620,
+        "width": 1450,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-ground-f",
+        "x": 7840,
+        "y": 620,
+        "width": 1460,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-ground-g",
+        "x": 9450,
+        "y": 620,
+        "width": 1450,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-ground-h",
+        "x": 11050,
+        "y": 620,
+        "width": 1450,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-ground-i",
+        "x": 12660,
+        "y": 620,
+        "width": 1440,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-ground-j",
+        "x": 14250,
+        "y": 620,
+        "width": 1450,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-ground-k",
+        "x": 15860,
+        "y": 620,
+        "width": 1440,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-ground-l",
+        "x": 17440,
+        "y": 620,
+        "width": 2560,
+        "height": 100,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-shelf-a",
+        "x": 520,
+        "y": 545,
+        "width": 240,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-shelf-b",
+        "x": 800,
+        "y": 500,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-shelf-c",
+        "x": 3050,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-shelf-d",
+        "x": 4700,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-shelf-e",
+        "x": 6000,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-shelf-f",
+        "x": 7900,
+        "y": 530,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-shelf-g",
+        "x": 9550,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-shelf-h",
+        "x": 11500,
+        "y": 530,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-shelf-i",
+        "x": 13100,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-shelf-j",
+        "x": 14950,
+        "y": 530,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-shelf-k",
+        "x": 16900,
+        "y": 545,
+        "width": 250,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-shelf-l",
+        "x": 18000,
+        "y": 520,
+        "width": 260,
+        "height": 16,
+        "kind": "oneWay"
+      },
+      {
+        "id": "l8-step-a",
+        "x": 1210,
+        "y": 560,
+        "width": 160,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-step-b",
+        "x": 4180,
+        "y": 560,
+        "width": 170,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-step-c",
+        "x": 7200,
+        "y": 560,
+        "width": 170,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-step-d",
+        "x": 10650,
+        "y": 560,
+        "width": 170,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-step-e",
+        "x": 13850,
+        "y": 560,
+        "width": 170,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-step-f",
+        "x": 16600,
+        "y": 560,
+        "width": 170,
+        "height": 20,
+        "kind": "solid"
+      },
+      {
+        "id": "l8-ice-a",
+        "x": 2400,
+        "y": 560,
+        "width": 420,
+        "height": 18,
+        "kind": "ice"
+      },
+      {
+        "id": "l8-ice-b",
+        "x": 4900,
+        "y": 545,
+        "width": 380,
+        "height": 18,
+        "kind": "ice"
+      },
+      {
+        "id": "l8-ice-c",
+        "x": 9800,
+        "y": 560,
+        "width": 400,
+        "height": 18,
+        "kind": "ice"
+      },
+      {
+        "id": "l8-ice-d",
+        "x": 14900,
+        "y": 545,
+        "width": 420,
+        "height": 18,
+        "kind": "ice"
+      },
+      {
+        "id": "l8-bounce-a",
+        "x": 1310,
+        "y": 612,
+        "width": 90,
+        "height": 8,
+        "kind": "bounce"
+      },
+      {
+        "id": "l8-bounce-b",
+        "x": 4560,
+        "y": 612,
+        "width": 90,
+        "height": 8,
+        "kind": "bounce"
+      },
+      {
+        "id": "l8-bounce-c",
+        "x": 7760,
+        "y": 612,
+        "width": 90,
+        "height": 8,
+        "kind": "bounce"
+      },
+      {
+        "id": "l8-bounce-d",
+        "x": 11080,
+        "y": 612,
+        "width": 90,
+        "height": 8,
+        "kind": "bounce"
+      },
+      {
+        "id": "l8-bounce-e",
+        "x": 15920,
+        "y": 612,
+        "width": 90,
+        "height": 8,
+        "kind": "bounce"
+      },
+      {
+        "id": "l8-crumble-a",
+        "x": 1700,
+        "y": 480,
+        "width": 160,
+        "height": 14,
+        "kind": "crumbling"
+      },
+      {
+        "id": "l8-crumble-b",
+        "x": 3200,
+        "y": 500,
+        "width": 170,
+        "height": 14,
+        "kind": "crumbling"
+      },
+      {
+        "id": "l8-crumble-c",
+        "x": 6400,
+        "y": 490,
+        "width": 170,
+        "height": 14,
+        "kind": "crumbling"
+      },
+      {
+        "id": "l8-crumble-d",
+        "x": 9600,
+        "y": 500,
+        "width": 160,
+        "height": 14,
+        "kind": "crumbling"
+      },
+      {
+        "id": "l8-crumble-e",
+        "x": 12800,
+        "y": 490,
+        "width": 170,
+        "height": 14,
+        "kind": "crumbling"
+      },
+      {
+        "id": "l8-crumble-f",
+        "x": 16500,
+        "y": 500,
+        "width": 160,
+        "height": 14,
+        "kind": "crumbling"
+      },
+      {
+        "id": "l8-break-a",
+        "x": 2100,
+        "y": 470,
+        "width": 120,
+        "height": 28,
+        "kind": "breakable"
+      },
+      {
+        "id": "l8-break-b",
+        "x": 3700,
+        "y": 430,
+        "width": 120,
+        "height": 28,
+        "kind": "breakable"
+      },
+      {
+        "id": "l8-break-c",
+        "x": 6800,
+        "y": 450,
+        "width": 120,
+        "height": 28,
+        "kind": "breakable"
+      },
+      {
+        "id": "l8-break-d",
+        "x": 10400,
+        "y": 440,
+        "width": 120,
+        "height": 28,
+        "kind": "breakable"
+      },
+      {
+        "id": "l8-break-e",
+        "x": 13600,
+        "y": 450,
+        "width": 120,
+        "height": 28,
+        "kind": "breakable"
+      },
+      {
+        "id": "l8-break-f",
+        "x": 17000,
+        "y": 440,
+        "width": 120,
+        "height": 28,
+        "kind": "breakable"
+      },
+      {
+        "id": "l8-mover-a",
+        "x": 5450,
+        "y": 590,
+        "width": 150,
+        "height": 20,
+        "kind": "solid",
+        "motion": {
+          "axis": "x",
+          "amplitude": 55,
+          "speed": 1,
+          "phase": 0
+        }
+      },
+      {
+        "id": "l8-mover-b",
+        "x": 12500,
+        "y": 590,
+        "width": 150,
+        "height": 20,
+        "kind": "solid",
+        "motion": {
+          "axis": "y",
+          "amplitude": 40,
+          "speed": 0.8,
+          "phase": 0
+        }
+      },
+      {
+        "id": "l8-mover-c",
+        "x": 18050,
+        "y": 590,
+        "width": 150,
+        "height": 20,
+        "kind": "solid",
+        "motion": {
+          "axis": "x",
+          "amplitude": 60,
+          "speed": 1,
+          "phase": 0
+        }
+      }
+    ],
+    "crystals": [
+      {
+        "id": "l8-group-a-01",
+        "x": 240,
+        "y": 540,
+        "groupId": "l8-group-a"
+      },
+      {
+        "id": "l8-group-a-02",
+        "x": 460,
+        "y": 500,
+        "groupId": "l8-group-a"
+      },
+      {
+        "id": "l8-group-a-03",
+        "x": 640,
+        "y": 500,
+        "groupId": "l8-group-a"
+      },
+      {
+        "id": "l8-group-b-01",
+        "x": 820,
+        "y": 425,
+        "groupId": "l8-group-b"
+      },
+      {
+        "id": "l8-group-b-02",
+        "x": 910,
+        "y": 425,
+        "groupId": "l8-group-b"
+      },
+      {
+        "id": "l8-group-b-03",
+        "x": 1000,
+        "y": 425,
+        "groupId": "l8-group-b"
+      },
+      {
+        "id": "l8-group-c-01",
+        "x": 1720,
+        "y": 430,
+        "groupId": "l8-group-c"
+      },
+      {
+        "id": "l8-group-c-02",
+        "x": 1800,
+        "y": 430,
+        "groupId": "l8-group-c"
+      },
+      {
+        "id": "l8-group-c-03",
+        "x": 1880,
+        "y": 430,
+        "groupId": "l8-group-c"
+      },
+      {
+        "id": "l8-group-d-01",
+        "x": 3160,
+        "y": 450,
+        "groupId": "l8-group-d"
+      },
+      {
+        "id": "l8-group-d-02",
+        "x": 3250,
+        "y": 450,
+        "groupId": "l8-group-d"
+      },
+      {
+        "id": "l8-group-d-03",
+        "x": 3340,
+        "y": 450,
+        "groupId": "l8-group-d"
+      },
+      {
+        "id": "l8-group-e-01",
+        "x": 3620,
+        "y": 380,
+        "groupId": "l8-group-e"
+      },
+      {
+        "id": "l8-group-e-02",
+        "x": 3720,
+        "y": 380,
+        "groupId": "l8-group-e"
+      },
+      {
+        "id": "l8-group-e-03",
+        "x": 3820,
+        "y": 380,
+        "groupId": "l8-group-e"
+      },
+      {
+        "id": "l8-group-f-01",
+        "x": 2400,
+        "y": 505,
+        "groupId": "l8-group-f"
+      },
+      {
+        "id": "l8-group-f-02",
+        "x": 2500,
+        "y": 505,
+        "groupId": "l8-group-f"
+      },
+      {
+        "id": "l8-group-g-01",
+        "x": 4560,
+        "y": 320,
+        "groupId": "l8-group-g"
+      },
+      {
+        "id": "l8-group-g-02",
+        "x": 4650,
+        "y": 320,
+        "groupId": "l8-group-g"
+      },
+      {
+        "id": "l8-group-h-01",
+        "x": 6250,
+        "y": 440,
+        "groupId": "l8-group-h"
+      },
+      {
+        "id": "l8-group-h-02",
+        "x": 6340,
+        "y": 440,
+        "groupId": "l8-group-h"
+      },
+      {
+        "id": "l8-group-i-01",
+        "x": 7800,
+        "y": 470,
+        "groupId": "l8-group-i"
+      },
+      {
+        "id": "l8-group-i-02",
+        "x": 7900,
+        "y": 470,
+        "groupId": "l8-group-i"
+      },
+      {
+        "id": "l8-group-j-01",
+        "x": 9450,
+        "y": 450,
+        "groupId": "l8-group-j"
+      },
+      {
+        "id": "l8-group-j-02",
+        "x": 9540,
+        "y": 450,
+        "groupId": "l8-group-j"
+      },
+      {
+        "id": "l8-group-k-01",
+        "x": 10150,
+        "y": 390,
+        "groupId": "l8-group-k"
+      },
+      {
+        "id": "l8-group-k-02",
+        "x": 10250,
+        "y": 390,
+        "groupId": "l8-group-k"
+      },
+      {
+        "id": "l8-group-l-01",
+        "x": 10880,
+        "y": 330,
+        "groupId": "l8-group-l"
+      },
+      {
+        "id": "l8-group-m-01",
+        "x": 12280,
+        "y": 500,
+        "groupId": "l8-group-m"
+      },
+      {
+        "id": "l8-group-n-01",
+        "x": 12550,
+        "y": 440,
+        "groupId": "l8-group-n"
+      },
+      {
+        "id": "l8-group-n-02",
+        "x": 12640,
+        "y": 440,
+        "groupId": "l8-group-n"
+      },
+      {
+        "id": "l8-group-o-01",
+        "x": 13350,
+        "y": 400,
+        "groupId": "l8-group-o"
+      },
+      {
+        "id": "l8-group-o-02",
+        "x": 13450,
+        "y": 400,
+        "groupId": "l8-group-o"
+      },
+      {
+        "id": "l8-group-p-01",
+        "x": 15680,
+        "y": 330,
+        "groupId": "l8-group-p"
+      },
+      {
+        "id": "l8-group-p-02",
+        "x": 15770,
+        "y": 330,
+        "groupId": "l8-group-p"
+      },
+      {
+        "id": "l8-group-q-01",
+        "x": 17700,
+        "y": 470,
+        "groupId": "l8-group-q"
+      }
+    ],
+    "sentinels": [
+      {
+        "id": "l8-crawler-01",
+        "kind": "crawler",
+        "x": 1750,
+        "y": 590,
+        "width": 54,
+        "height": 30,
+        "patrolMinX": 1750,
+        "patrolMaxX": 2200,
+        "speed": 62
+      },
+      {
+        "id": "l8-drifter-01",
+        "kind": "drifter",
+        "x": 3400,
+        "y": 500,
+        "width": 40,
+        "height": 34,
+        "patrolMinX": 3250,
+        "patrolMaxX": 3700,
+        "speed": 40,
+        "bobAmplitude": 6,
+        "bobPeriodMs": 4200
+      },
+      {
+        "id": "l8-sentinel-01",
+        "kind": "sentinel",
+        "x": 4700,
+        "y": 576,
+        "width": 44,
+        "height": 44,
+        "patrolMinX": 4700,
+        "patrolMaxX": 5250,
+        "speed": 52
+      },
+      {
+        "id": "l8-hopper-01",
+        "kind": "hopper",
+        "x": 6300,
+        "y": 584,
+        "width": 42,
+        "height": 36,
+        "patrolMinX": 6300,
+        "patrolMaxX": 6850,
+        "speed": 46,
+        "hopHeight": 50,
+        "hopPeriodMs": 1500
+      },
+      {
+        "id": "l8-gunner-01",
+        "kind": "gunner",
+        "x": 8000,
+        "y": 574,
+        "width": 46,
+        "height": 46,
+        "patrolMinX": 8000,
+        "patrolMaxX": 8550,
+        "speed": 45,
+        "aggroRange": 360,
+        "fireIntervalMs": 1700,
+        "projectileSpeed": 330
+      },
+      {
+        "id": "l8-wisp-01",
+        "kind": "wisp",
+        "x": 9500,
+        "y": 470,
+        "width": 38,
+        "height": 38,
+        "patrolMinX": 9300,
+        "patrolMaxX": 9800,
+        "speed": 70,
+        "windupMs": 420
+      },
+      {
+        "id": "l8-charger-01",
+        "kind": "charger",
+        "x": 11100,
+        "y": 580,
+        "width": 52,
+        "height": 40,
+        "patrolMinX": 11100,
+        "patrolMaxX": 11650,
+        "speed": 55,
+        "aggroRange": 420,
+        "chargeSpeed": 560,
+        "chargeDurationMs": 740,
+        "recoverDurationMs": 640
+      },
+      {
+        "id": "l8-brute-01",
+        "kind": "brute",
+        "x": 13200,
+        "y": 588,
+        "width": 58,
+        "height": 44,
+        "patrolMinX": 13200,
+        "patrolMaxX": 13700,
+        "speed": 42,
+        "armorSpikeHeight": 22
+      },
+      {
+        "id": "l8-spiker-01",
+        "kind": "spiker",
+        "x": 15600,
+        "y": 586,
+        "width": 44,
+        "height": 34,
+        "patrolMinX": 15600,
+        "patrolMaxX": 16050,
+        "speed": 40,
+        "spikeHeight": 22,
+        "spikeCycleMs": 2000,
+        "spikeUpMs": 650
+      },
+      {
+        "id": "l8-brute-02",
+        "kind": "brute",
+        "x": 17200,
+        "y": 588,
+        "width": 58,
+        "height": 44,
+        "patrolMinX": 17200,
+        "patrolMaxX": 17700,
+        "speed": 42,
+        "armorSpikeHeight": 22
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "l8-checkpoint-01",
+        "x": 3400,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 3430,
+        "spawnY": 574,
+        "label": "晶隙中继 A"
+      },
+      {
+        "id": "l8-checkpoint-02",
+        "x": 6500,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 6530,
+        "spawnY": 574,
+        "label": "晶隙中继 B"
+      },
+      {
+        "id": "l8-checkpoint-03",
+        "x": 9800,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 9830,
+        "spawnY": 574,
+        "label": "晶隙中继 C"
+      },
+      {
+        "id": "l8-checkpoint-04",
+        "x": 13000,
+        "y": 486,
+        "width": 42,
+        "height": 134,
+        "spawnX": 13030,
+        "spawnY": 574,
+        "label": "晶隙中继 D"
+      }
+    ],
+    "weaponPickups": [
+      {
+        "id": "l8-pickup-01",
+        "x": 2300,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l8-pickup-02",
+        "x": 7100,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l8-pickup-03",
+        "x": 10500,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      },
+      {
+        "id": "l8-pickup-04",
+        "x": 14800,
+        "y": 592,
+        "width": 26,
+        "height": 26
+      }
+    ],
+    "decorations": [
+      {
+        "id": "l8-deco-crystalPillar-01",
+        "kind": "crystalPillar",
+        "x": 500,
+        "y": 480,
+        "width": 56,
+        "height": 140,
+        "variant": 0
+      },
+      {
+        "id": "l8-deco-crystalPillar-02",
+        "kind": "crystalPillar",
+        "x": 3200,
+        "y": 470,
+        "width": 64,
+        "height": 150,
+        "variant": 1
+      },
+      {
+        "id": "l8-deco-crystalPillar-03",
+        "kind": "crystalPillar",
+        "x": 6900,
+        "y": 490,
+        "width": 52,
+        "height": 130,
+        "variant": 0
+      },
+      {
+        "id": "l8-deco-crystalPillar-04",
+        "kind": "crystalPillar",
+        "x": 11200,
+        "y": 475,
+        "width": 60,
+        "height": 145,
+        "variant": 1
+      },
+      {
+        "id": "l8-deco-crystalPillar-05",
+        "kind": "crystalPillar",
+        "x": 15800,
+        "y": 485,
+        "width": 56,
+        "height": 135,
+        "variant": 0
+      },
+      {
+        "id": "l8-deco-glowMote-01",
+        "kind": "glowMote",
+        "x": 260,
+        "y": 320,
+        "width": 26,
+        "height": 26,
+        "variant": 0
+      },
+      {
+        "id": "l8-deco-glowMote-02",
+        "kind": "glowMote",
+        "x": 900,
+        "y": 260,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l8-deco-glowMote-03",
+        "kind": "glowMote",
+        "x": 1700,
+        "y": 360,
+        "width": 28,
+        "height": 28,
+        "variant": 0
+      },
+      {
+        "id": "l8-deco-glowMote-04",
+        "kind": "glowMote",
+        "x": 2600,
+        "y": 300,
+        "width": 24,
+        "height": 24,
+        "variant": 1
+      },
+      {
+        "id": "l8-deco-glowMote-05",
+        "kind": "glowMote",
+        "x": 3800,
+        "y": 340,
+        "width": 26,
+        "height": 26,
+        "variant": 0
+      },
+      {
+        "id": "l8-deco-glowMote-06",
+        "kind": "glowMote",
+        "x": 4900,
+        "y": 280,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l8-deco-glowMote-07",
+        "kind": "glowMote",
+        "x": 6000,
+        "y": 360,
+        "width": 28,
+        "height": 28,
+        "variant": 0
+      },
+      {
+        "id": "l8-deco-glowMote-08",
+        "kind": "glowMote",
+        "x": 7200,
+        "y": 300,
+        "width": 24,
+        "height": 24,
+        "variant": 1
+      },
+      {
+        "id": "l8-deco-glowMote-09",
+        "kind": "glowMote",
+        "x": 8600,
+        "y": 340,
+        "width": 26,
+        "height": 26,
+        "variant": 0
+      },
+      {
+        "id": "l8-deco-glowMote-10",
+        "kind": "glowMote",
+        "x": 10000,
+        "y": 290,
+        "width": 22,
+        "height": 22,
+        "variant": 1
+      },
+      {
+        "id": "l8-deco-crystalSpire-01",
+        "kind": "crystalSpire",
+        "x": 120,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 0
+      },
+      {
+        "id": "l8-deco-crystalSpire-02",
+        "kind": "crystalSpire",
+        "x": 3800,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 1
+      },
+      {
+        "id": "l8-deco-crystalSpire-03",
+        "kind": "crystalSpire",
+        "x": 7400,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 2
+      },
+      {
+        "id": "l8-deco-crystalSpire-04",
+        "kind": "crystalSpire",
+        "x": 12400,
+        "y": 582,
+        "width": 46,
+        "height": 76,
+        "variant": 0
+      }
+    ],
+    "beacon": {
+      "id": "l8-beacon",
+      "x": 19800,
+      "y": 488,
+      "width": 64,
+      "height": 132
+    }
   }
 ];
 
@@ -4404,6 +6493,52 @@ const TERRAIN_PLATES: ReadonlyArray<{
       { kind: "crystalCluster", x: 300, y: 588, width: 28, height: 30, count: 20, step: 920 },
     ],
   },
+  {
+    "levelId": 7,
+    "plates": [
+      {
+        "kind": "snowDrift",
+        "x": 40,
+        "y": 585,
+        "width": 80,
+        "height": 35,
+        "count": 88,
+        "step": 200
+      },
+      {
+        "kind": "crystalCluster",
+        "x": 300,
+        "y": 588,
+        "width": 28,
+        "height": 30,
+        "count": 16,
+        "step": 1100
+      }
+    ]
+  },
+  {
+    "levelId": 8,
+    "plates": [
+      {
+        "kind": "crystalCluster",
+        "x": 300,
+        "y": 588,
+        "width": 28,
+        "height": 30,
+        "count": 22,
+        "step": 880
+      },
+      {
+        "kind": "stalactite",
+        "x": 160,
+        "y": 0,
+        "width": 60,
+        "height": 120,
+        "count": 14,
+        "step": 1400
+      }
+    ]
+  }
 ];
 
 /** 返回 x 处最上层固体平台的顶部 y；无固体平台覆盖则返回 null。 */

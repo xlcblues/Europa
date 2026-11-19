@@ -159,7 +159,11 @@ function drawSky({ context, level }: DrawState): void {
             ? "rgba(197, 140, 255, 0.13)"
             : level.theme === "gorge"
               ? "rgba(99, 228, 244, 0.12)"
-              : "rgba(232, 248, 252, 0.15)";
+              : level.theme === "storm"
+                ? "rgba(143, 166, 255, 0.15)"
+                : level.theme === "crystal"
+                  ? "rgba(200, 164, 255, 0.16)"
+                  : "rgba(232, 248, 252, 0.15)";
   const stars = context.createRadialGradient(900, 120, 8, 900, 120, 420);
   stars.addColorStop(0, glowColor);
   stars.addColorStop(1, "rgba(232, 248, 252, 0)");
@@ -219,6 +223,13 @@ function drawParallax({ context, level, cameraX, world, reducedMotion }: DrawSta
     case "core":
       drawCoreBackdrop(context, level.palette, cameraX, timeMs, reducedMotion);
       break;
+    case "storm":
+      drawStormBackdrop(context, level.palette, cameraX, timeMs, reducedMotion);
+      break;
+    case "crystal":
+      drawCrystalBackdrop(context, level.palette, cameraX, timeMs, reducedMotion);
+      break;
+
     case "icefield":
     default:
       drawIcefieldBackdrop(context, level.palette, cameraX, timeMs, reducedMotion);
@@ -305,8 +316,6 @@ function drawStrataBackdrop(
   context.fill();
 }
 
-
-
 /** 冰尘浮片：远处漂流的细长冰晶碎屑，柔和低饱和，为冰原远景增添轻盈层次。 */
 function drawShardBackdrop(
   context: CanvasRenderingContext2D,
@@ -384,7 +393,6 @@ function drawWaveBackdrop(
   context.closePath();
   context.fill();
 }
-
 
 /** 钟乳石：自画面顶部垂下的石锥群，用于洞穴地貌。 */
 function drawStalactiteBackdrop(
@@ -640,7 +648,6 @@ function drawMistBand(
   context.fill();
 }
 
-
 /** 浪尖碎沫：沿波浪层顶部的高光短线，增强潮汐关水面的质感。 */
 function drawWaveCrestBackdrop(
   context: CanvasRenderingContext2D,
@@ -800,7 +807,6 @@ function drawNebulaCore(context: CanvasRenderingContext2D, palette: LevelPalette
   }
 }
 
-
 /** 冰原跃迁（第 1 关）：晨昏极光 + 远山雪脊 + 稀疏冰晶 + 深色冰原近景。 */
 function drawIcefieldBackdrop(
   context: CanvasRenderingContext2D,
@@ -824,7 +830,17 @@ function drawIcefieldBackdrop(
     9,
   );
   // 中：稀疏冰晶浮片（少量、淡色、细长碎屑）
-  drawShardBackdrop(context, palette.iceMid + "4d", cameraX, 0.14, 240, 16, 5, timeMs, reducedMotion);
+  drawShardBackdrop(
+    context,
+    palette.iceMid + "4d",
+    cameraX,
+    0.14,
+    240,
+    16,
+    5,
+    timeMs,
+    reducedMotion,
+  );
   // 近：深色冰原平地，压住画面底部，形成清晰的前后纵深
   drawHorizonBackdrop(context, palette.iceDeep + "b3", cameraX, 0.36, 170, 60, 650, 9);
 }
@@ -991,6 +1007,228 @@ function drawCoreBackdrop(
 }
 
 /** 场景装饰物：按主题在背景层绘制极光、星云与地貌特征（不参与碰撞）。 */
+
+/** Storm sky (level 7): rolling thunderclouds + far ridges + wind streaks + slow lightning glow. */
+function drawStormBackdrop(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  drawRidgeBackdrop(
+    context,
+    palette.iceDeep + "59",
+    palette.iceLight + "2e",
+    cameraX,
+    0.04,
+    300,
+    442,
+    126,
+    10,
+  );
+  drawStormCloudLayer(context, palette, cameraX, 0.12, timeMs, reducedMotion);
+  drawWindStreakLayer(context, palette, cameraX, 0.3, timeMs, reducedMotion);
+  const flash = reducedMotion ? 0.06 : 0.05 + 0.05 * Math.sin(timeMs * 0.00042);
+  context.save();
+  context.globalAlpha = flash;
+  const glow = context.createRadialGradient(900, 90, 10, 900, 90, 460);
+  glow.addColorStop(0, palette.accent);
+  glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+  context.fillStyle = glow;
+  context.fillRect(0, 0, PLATFORMER_LOGICAL_WIDTH, 460);
+  context.restore();
+}
+
+/** Rolling cloud layer: deterministic tiling, slow horizontal drift, loops without popping. */
+function drawStormCloudLayer(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+  factor: number,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const tile = 430;
+  const base = parallaxTileBase(cameraX, factor, tile);
+  const startX = parallaxStart(cameraX, factor, tile);
+  const drift = reducedMotion ? 0 : (timeMs * 0.012) % tile;
+  const count = Math.ceil((PLATFORMER_LOGICAL_WIDTH + tile * 2) / tile) + 2;
+  context.save();
+  for (let i = 0; i <= count; i += 1) {
+    const tileIndex = base + i;
+    const random = tileRandom(`storm-cloud-${factor}`, tileIndex);
+    const cx = startX + i * tile - drift;
+    const cy = 200 + random() * 90;
+    const w = tile * (0.55 + random() * 0.25);
+    const h = 64 + random() * 40;
+    context.fillStyle = palette.iceDeep + "c4";
+    context.beginPath();
+    context.ellipse(cx, cy + 14, w * 0.62, h * 0.42, 0, 0, Math.PI * 2);
+    context.fill();
+    const puffs = 2 + Math.floor(random() * 2);
+    for (let p = 0; p < puffs; p += 1) {
+      const px = cx - w * 0.3 + p * w * 0.42 + random() * w * 0.2;
+      const py = cy - random() * 14;
+      const pw = w * (0.3 + random() * 0.22);
+      const ph = h * (0.55 + random() * 0.3);
+      context.fillStyle = "rgba(13, 18, 42, 0.9)";
+      context.beginPath();
+      context.ellipse(px, py, pw, ph, 0, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = palette.iceMid + "2e";
+      context.beginPath();
+      context.ellipse(px - pw * 0.16, py - ph * 0.2, pw * 0.66, ph * 0.42, 0, 0, Math.PI * 2);
+      context.fill();
+    }
+  }
+  context.restore();
+}
+
+/** Wind streak layer: thin translucent flow lines that sway gently. */
+function drawWindStreakLayer(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+  factor: number,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const tile = 340;
+  const base = parallaxTileBase(cameraX, factor, tile);
+  const startX = parallaxStart(cameraX, factor, tile);
+  const count = Math.ceil((PLATFORMER_LOGICAL_WIDTH + tile * 2) / tile) + 2;
+  context.save();
+  context.lineCap = "round";
+  for (let i = 0; i <= count; i += 1) {
+    const tileIndex = base + i;
+    const random = tileRandom(`wind-streak-${factor}`, tileIndex);
+    const y = 300 + random() * 170;
+    const len = 70 + random() * 110;
+    const sway = reducedMotion ? 0 : Math.sin(timeMs * 0.0016 + tileIndex * 1.3) * 9;
+    context.strokeStyle = palette.iceLight + "33";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(startX + i * tile, y);
+    context.quadraticCurveTo(
+      startX + i * tile + len * 0.5,
+      y + sway,
+      startX + i * tile + len,
+      y + sway * 0.6,
+    );
+    context.stroke();
+    context.fillStyle = palette.accent + "59";
+    context.beginPath();
+    context.arc(startX + i * tile + len, y + sway * 0.6, 2.2, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.restore();
+}
+
+/** Crystal echo (level 8): giant crystal silhouettes + drifting shards + deep horizon. */
+function drawCrystalBackdrop(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  drawCrystalSpireLayer(context, palette, cameraX, 0.05, timeMs, reducedMotion);
+  drawDriftingCrystalShards(context, palette, cameraX, 0.2, timeMs, reducedMotion);
+  drawHorizonBackdrop(context, palette.iceDeep + "b3", cameraX, 0.34, 190, 62, 660, 9);
+}
+
+/** Crystal spire layer: 1-2 faceted giant crystals per tile. */
+function drawCrystalSpireLayer(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+  factor: number,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const tile = 560;
+  const base = parallaxTileBase(cameraX, factor, tile);
+  const startX = parallaxStart(cameraX, factor, tile);
+  const count = Math.ceil((PLATFORMER_LOGICAL_WIDTH + tile * 2) / tile) + 2;
+  const pulse = reducedMotion ? 0 : 0.5 + 0.5 * Math.sin(timeMs * 0.0007);
+  context.save();
+  for (let i = 0; i <= count; i += 1) {
+    const tileIndex = base + i;
+    const random = tileRandom(`crystal-spire-${factor}`, tileIndex);
+    const n = 1 + Math.floor(random() * 2);
+    for (let s = 0; s < n; s += 1) {
+      const cx = startX + i * tile + random() * tile;
+      const groundY = 620 - random() * 70;
+      const h = 130 + random() * 160;
+      const w = 26 + random() * 30;
+      const tilt = (random() - 0.5) * 0.16;
+      const body = context.createLinearGradient(cx - w, 0, cx + w, 0);
+      body.addColorStop(0, palette.iceDeep + "d9");
+      body.addColorStop(0.5, palette.iceDeep + "b8");
+      body.addColorStop(1, palette.iceDeep + "e6");
+      context.fillStyle = body;
+      context.beginPath();
+      context.moveTo(cx - w * 0.5, groundY);
+      context.lineTo(cx - w * 0.2 - tilt * h, groundY - h * 0.7);
+      context.lineTo(cx, groundY - h);
+      context.lineTo(cx + w * 0.2 - tilt * h, groundY - h * 0.72);
+      context.lineTo(cx + w * 0.5, groundY);
+      context.closePath();
+      context.fill();
+      context.globalAlpha = 0.1 + 0.06 * pulse;
+      context.strokeStyle = palette.accent;
+      context.lineWidth = 1.6;
+      context.beginPath();
+      context.moveTo(cx, groundY);
+      context.lineTo(cx, groundY - h * 0.92);
+      context.stroke();
+      context.globalAlpha = 1;
+    }
+  }
+  context.restore();
+}
+
+/** Drifting shard layer: small diamond crystals slowly sinking and swaying. */
+function drawDriftingCrystalShards(
+  context: CanvasRenderingContext2D,
+  palette: LevelPalette,
+  cameraX: number,
+  factor: number,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const tile = 300;
+  const base = parallaxTileBase(cameraX, factor, tile);
+  const startX = parallaxStart(cameraX, factor, tile);
+  const count = Math.ceil((PLATFORMER_LOGICAL_WIDTH + tile * 2) / tile) + 2;
+  const fall = reducedMotion ? 0 : (timeMs * 0.014) % tile;
+  context.save();
+  for (let i = 0; i <= count; i += 1) {
+    const tileIndex = base + i;
+    const random = tileRandom(`crystal-shard-${factor}`, tileIndex);
+    const sx = startX + i * tile + random() * tile;
+    const sy = 120 + ((random() * tile + fall) % 380);
+    const size = 5 + random() * 9;
+    const pulse = reducedMotion ? 0.6 : 0.45 + 0.35 * Math.sin(timeMs * 0.002 + tileIndex * 2.4);
+    context.globalAlpha = pulse;
+    context.fillStyle = palette.accent;
+    context.save();
+    context.translate(sx, sy);
+    context.rotate(Math.sin(tileIndex * 1.7 + timeMs * 0.0006) * 0.5);
+    context.beginPath();
+    context.moveTo(0, -size);
+    context.lineTo(size * 0.6, 0);
+    context.lineTo(0, size);
+    context.lineTo(-size * 0.6, 0);
+    context.closePath();
+    context.fill();
+    context.restore();
+    context.globalAlpha = 1;
+  }
+  context.restore();
+}
+
 function drawDecorations({ context, level, world, reducedMotion }: DrawState): void {
   const { palette } = level;
   const cameraX = world.camera.x;
@@ -1045,6 +1283,21 @@ function drawDecorations({ context, level, world, reducedMotion }: DrawState): v
       case "bubbleRise":
         drawBubbleRise(context, decoration, palette, world.levelTimeMs, reducedMotion);
         break;
+      case "stormCloud":
+        drawStormCloud(context, decoration, palette, world.levelTimeMs, reducedMotion);
+        break;
+      case "windRibbon":
+        drawWindRibbon(context, decoration, palette, world.levelTimeMs, reducedMotion);
+        break;
+      case "lightningBolt":
+        drawLightningBolt(context, decoration, palette, world.levelTimeMs, reducedMotion);
+        break;
+      case "crystalPillar":
+        drawCrystalPillar(context, decoration, palette, world.levelTimeMs, reducedMotion);
+        break;
+      case "glowMote":
+        drawGlowMote(context, decoration, palette, world.levelTimeMs, reducedMotion);
+        break;
       default:
         break;
     }
@@ -1096,12 +1349,17 @@ function drawSkyAurora(
     const arcOffset = 40 * Math.sin(tileIndex * 0.9);
     const anchorCy = 120 + arcOffset + random() * 40;
     const bob = reducedMotion ? 0 : Math.sin(timeMs * 0.00055 + tileIndex * 1.7) * 9;
-    const pulse = reducedMotion
-      ? 0.6
-      : 0.55 + 0.45 * Math.sin(timeMs * 0.001 + tileIndex * 2.1);
+    const pulse = reducedMotion ? 0.6 : 0.55 + 0.45 * Math.sin(timeMs * 0.001 + tileIndex * 2.1);
     const anchorAlpha = strength * (0.1 + 0.07 * pulse);
     // 主辉光：大范围径向渐变椭圆，边缘完全消隐
-    drawGlow(anchorCx, anchorCy + bob, 320 + random() * 100, 150 + random() * 55, anchorAlpha, palette.accent);
+    drawGlow(
+      anchorCx,
+      anchorCy + bob,
+      320 + random() * 100,
+      150 + random() * 55,
+      anchorAlpha,
+      palette.accent,
+    );
     // 副辉光：两侧略低、略淡，与主辉光大面积重叠，消除任何“单个形状”感
     const satAlpha = strength * (0.06 + 0.05 * pulse);
     drawGlow(
@@ -1268,7 +1526,9 @@ function drawTideWisp(
   const bob = reducedMotion ? 0 : Math.sin(timeMs * 0.0032 + decoration.variant * 2.1) * 7;
   const sway = reducedMotion ? 0 : Math.sin(timeMs * 0.0021 + decoration.variant * 1.7) * 3;
   const cy = decoration.y + decoration.height * 0.5 + bob;
-  const pulse = reducedMotion ? 0.36 : 0.26 + 0.16 * Math.sin(timeMs * 0.006 + decoration.variant * 3);
+  const pulse = reducedMotion
+    ? 0.36
+    : 0.26 + 0.16 * Math.sin(timeMs * 0.006 + decoration.variant * 3);
   context.save();
   context.translate(cx + sway, cy);
   // 钟形伞盖：顶部亮、向下的半透明穹顶
@@ -1296,7 +1556,9 @@ function drawTideWisp(
   context.lineWidth = 1.3;
   for (let i = -1; i <= 1; i += 1) {
     const tx = i * w * 0.24;
-    const wave = reducedMotion ? 0 : Math.sin(timeMs * 0.004 + decoration.variant * 2 + i * 0.9) * 3;
+    const wave = reducedMotion
+      ? 0
+      : Math.sin(timeMs * 0.004 + decoration.variant * 2 + i * 0.9) * 3;
     context.beginPath();
     context.moveTo(tx, 0);
     context.quadraticCurveTo(tx + wave, h * 0.24, tx - wave * 0.35, h * 0.46);
@@ -1677,6 +1939,256 @@ function drawBubbleRise(
   context.restore();
 }
 
+/** Storm cloud: dark cumulus puffs with a slow lightning glow underneath. */
+function drawStormCloud(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const cx = decoration.x + decoration.width * 0.5;
+  const cy = decoration.y + decoration.height * 0.5;
+  const random = createSeededRandom(hashSeed(`storm-cloud-${decoration.id}`));
+  const pulse = reducedMotion
+    ? 0.55
+    : 0.5 + 0.3 * Math.sin(timeMs * 0.003 + decoration.variant * 2.2);
+  context.save();
+  context.fillStyle = palette.iceDeep + "cc";
+  context.beginPath();
+  context.ellipse(
+    cx,
+    cy + decoration.height * 0.22,
+    decoration.width * 0.5,
+    decoration.height * 0.34,
+    0,
+    0,
+    Math.PI * 2,
+  );
+  context.fill();
+  const puffs = 3;
+  for (let p = 0; p < puffs; p += 1) {
+    const px = cx - decoration.width * 0.24 + p * decoration.width * 0.24;
+    const pw = decoration.width * (0.26 + random() * 0.1);
+    const ph = decoration.height * (0.5 + random() * 0.22);
+    context.fillStyle = "rgba(16, 22, 50, 0.92)";
+    context.beginPath();
+    context.ellipse(px, cy - random() * decoration.height * 0.1, pw, ph, 0, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = palette.iceMid + "40";
+    context.beginPath();
+    context.ellipse(px - pw * 0.14, cy - ph * 0.24, pw * 0.6, ph * 0.4, 0, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.globalAlpha = pulse * 0.8;
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.ellipse(
+    cx,
+    cy + decoration.height * 0.3,
+    decoration.width * 0.3,
+    decoration.height * 0.14,
+    0,
+    0,
+    Math.PI * 2,
+  );
+  context.fill();
+  context.globalAlpha = 1;
+  context.restore();
+}
+
+/** Wind ribbon: a slender flowing light band with a few drifting particles. */
+function drawWindRibbon(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const random = createSeededRandom(hashSeed(`wind-ribbon-${decoration.id}`));
+  const alpha = reducedMotion
+    ? 0.4
+    : 0.3 + 0.25 * Math.sin(timeMs * 0.0035 + decoration.variant * 1.9);
+  const y = decoration.y + decoration.height * 0.5;
+  const sway = reducedMotion ? 0 : Math.sin(timeMs * 0.0018 + decoration.variant * 2.1) * 8;
+  context.save();
+  context.globalAlpha = alpha;
+  const gradient = context.createLinearGradient(
+    decoration.x,
+    0,
+    decoration.x + decoration.width,
+    0,
+  );
+  gradient.addColorStop(0, "rgba(143, 166, 255, 0)");
+  gradient.addColorStop(0.5, palette.iceLight);
+  gradient.addColorStop(1, "rgba(143, 166, 255, 0)");
+  context.strokeStyle = gradient;
+  context.lineWidth = 1.8;
+  context.lineCap = "round";
+  context.beginPath();
+  context.moveTo(decoration.x, y);
+  context.quadraticCurveTo(
+    decoration.x + decoration.width * 0.3,
+    y + sway,
+    decoration.x + decoration.width * 0.6,
+    y + sway * 0.4,
+  );
+  context.quadraticCurveTo(
+    decoration.x + decoration.width * 0.8,
+    y + sway * 0.2,
+    decoration.x + decoration.width,
+    y + sway * 0.6,
+  );
+  context.stroke();
+  for (let i = 0; i < 3; i += 1) {
+    const px = decoration.x + random() * decoration.width;
+    context.fillStyle = palette.accent;
+    context.beginPath();
+    context.arc(px, y + sway * 0.4, 1.8, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.restore();
+}
+
+/** Lightning bolt: deterministic jagged bolt with a slow natural flicker. */
+function drawLightningBolt(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const flicker = reducedMotion
+    ? 0.35
+    : Math.max(0.12, Math.sin(timeMs * 0.011 + decoration.variant * 3.1) * 0.5 + 0.4);
+  const cx = decoration.x + decoration.width * 0.5;
+  const random = createSeededRandom(hashSeed(`bolt-${decoration.id}`));
+  context.save();
+  context.globalAlpha = flicker;
+  const glow = context.createRadialGradient(
+    cx,
+    decoration.y,
+    2,
+    cx,
+    decoration.y,
+    decoration.width * 2.2,
+  );
+  glow.addColorStop(0, palette.accent + "99");
+  glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+  context.fillStyle = glow;
+  context.fillRect(
+    cx - decoration.width * 2.2,
+    decoration.y - 30,
+    decoration.width * 4.4,
+    decoration.height + 60,
+  );
+  context.strokeStyle = "#eef2ff";
+  context.lineWidth = 2.2;
+  context.lineJoin = "round";
+  context.beginPath();
+  let bx = cx;
+  let by = decoration.y;
+  context.moveTo(bx, by);
+  const steps = 5;
+  for (let s = 0; s < steps; s += 1) {
+    bx += (random() - 0.5) * decoration.width * 0.9;
+    by += decoration.height / steps;
+    context.lineTo(bx, by);
+  }
+  context.stroke();
+  context.strokeStyle = palette.accent;
+  context.lineWidth = 1.2;
+  const bx2 = cx + (random() - 0.5) * decoration.width * 0.5;
+  const by2 = decoration.y + decoration.height * 0.4;
+  context.beginPath();
+  context.moveTo(bx2, by2);
+  context.lineTo(bx2 + (random() - 0.5) * 30, by2 + 26 + random() * 18);
+  context.stroke();
+  context.globalAlpha = 1;
+  context.restore();
+}
+
+/** Crystal pillar: a faceted crystal monolith rising from the ground with a base glow. */
+function drawCrystalPillar(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const cx = decoration.x + decoration.width * 0.5;
+  const baseY = decoration.y + decoration.height;
+  const pulse = reducedMotion
+    ? 0.5
+    : 0.4 + 0.3 * Math.sin(timeMs * 0.003 + decoration.variant * 2.4);
+  const w = decoration.width;
+  const h = decoration.height;
+  const tilt = decoration.variant % 2 === 0 ? -0.04 : 0.05;
+  context.save();
+  context.globalAlpha = pulse * 0.7;
+  const groundGlow = context.createRadialGradient(cx, baseY, 2, cx, baseY, w * 2);
+  groundGlow.addColorStop(0, palette.accent + "77");
+  groundGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+  context.fillStyle = groundGlow;
+  context.fillRect(cx - w * 2, baseY - 40, w * 4, 60);
+  context.globalAlpha = 1;
+  const body = context.createLinearGradient(cx - w * 0.5, 0, cx + w * 0.5, 0);
+  body.addColorStop(0, palette.iceDeep);
+  body.addColorStop(0.45, palette.iceMid + "cc");
+  body.addColorStop(1, palette.iceDeep);
+  context.fillStyle = body;
+  context.beginPath();
+  context.moveTo(cx - w * 0.42, baseY);
+  context.lineTo(cx - w * 0.18 - tilt * h, baseY - h * 0.72);
+  context.lineTo(cx, baseY - h);
+  context.lineTo(cx + w * 0.18 - tilt * h, baseY - h * 0.7);
+  context.lineTo(cx + w * 0.42, baseY);
+  context.closePath();
+  context.fill();
+  context.strokeStyle = palette.accent;
+  context.globalAlpha = 0.55 + pulse * 0.35;
+  context.lineWidth = 1.6;
+  context.beginPath();
+  context.moveTo(cx, baseY);
+  context.lineTo(cx, baseY - h * 0.92);
+  context.stroke();
+  context.globalAlpha = 1;
+  context.restore();
+}
+
+/** Glow mote: a tiny bobbing luminous orb with a soft halo. */
+function drawGlowMote(
+  context: CanvasRenderingContext2D,
+  decoration: LevelDecoration,
+  palette: LevelPalette,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const cx = decoration.x + decoration.width * 0.5;
+  const cy = decoration.y + decoration.height * 0.5;
+  const bob = reducedMotion ? 0 : Math.sin(timeMs * 0.002 + decoration.variant * 2.3) * 7;
+  const pulse = reducedMotion
+    ? 0.7
+    : 0.55 + 0.35 * Math.sin(timeMs * 0.004 + decoration.variant * 1.7);
+  const r = Math.max(4, decoration.width * 0.4);
+  context.save();
+  context.globalAlpha = pulse;
+  const glow = context.createRadialGradient(cx, cy + bob, 1, cx, cy + bob, r * 3);
+  glow.addColorStop(0, palette.accent);
+  glow.addColorStop(0.45, palette.accent + "88");
+  glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+  context.fillStyle = glow;
+  context.beginPath();
+  context.arc(cx, cy + bob, r * 3, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = palette.iceLight;
+  context.beginPath();
+  context.arc(cx, cy + bob, r * 0.55, 0, Math.PI * 2);
+  context.fill();
+  context.globalAlpha = 1;
+  context.restore();
+}
+
 interface ThemeSurface {
   bodyTop: string;
   bodyBottom: string;
@@ -1764,6 +2276,36 @@ function getThemeSurface(theme: PlatformerTheme, palette: LevelPalette): ThemeSu
         layerAlpha: 0.18,
         hangA: "rgba(255, 158, 198, 0.5)",
         hangB: "rgba(92, 42, 82, 0.5)",
+        glowSeam: true,
+      };
+    case "storm":
+      return {
+        bodyTop: "#232a4d",
+        bodyBottom: "rgba(5, 8, 20, 0.96)",
+        capTop: "rgba(200, 211, 255, 0.85)",
+        capBottom: "rgba(84, 98, 178, 0.5)",
+        edge: "rgba(225, 232, 255, 0.75)",
+        seam: "rgba(0, 0, 12, 0.4)",
+        seamBright: "rgba(158, 178, 255, 0.24)",
+        speckle: "#a9b2d8",
+        layerAlpha: 0.16,
+        hangA: "rgba(143, 166, 255, 0.45)",
+        hangB: "rgba(40, 52, 100, 0.5)",
+        glowSeam: true,
+      };
+    case "crystal":
+      return {
+        bodyTop: "#3a2a5e",
+        bodyBottom: "rgba(8, 4, 18, 0.97)",
+        capTop: "rgba(231, 214, 255, 0.85)",
+        capBottom: "rgba(122, 84, 178, 0.5)",
+        edge: "rgba(240, 226, 255, 0.75)",
+        seam: "rgba(4, 0, 14, 0.42)",
+        seamBright: "rgba(200, 164, 255, 0.3)",
+        speckle: "#cbb7ef",
+        layerAlpha: 0.17,
+        hangA: "rgba(216, 188, 255, 0.45)",
+        hangB: "rgba(78, 44, 118, 0.5)",
         glowSeam: true,
       };
     case "icefield":
@@ -1987,11 +2529,262 @@ function drawSolidPlatform(
   }
 }
 
+/** 弹簧台：深色底座 + 金属之字形弹簧 + 顶部光晕脉冲。 */
+function drawBouncePlatform(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  palette: LevelPalette,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const pulse = reducedMotion ? 0.5 : 0.42 + Math.sin(timeMs * 0.012) * 0.14;
+  const base = context.createLinearGradient(0, y, 0, y + height);
+  base.addColorStop(0, "#3d4560");
+  base.addColorStop(0.55, "#1c2234");
+  base.addColorStop(1, "#0c0f1c");
+  context.fillStyle = base;
+  context.beginPath();
+  context.roundRect(x, y, width, height, 6);
+  context.fill();
+  // 顶面金属板
+  context.fillStyle = "#8e9bc4";
+  context.beginPath();
+  context.roundRect(x + 2, y, width - 4, 5, 2);
+  context.fill();
+  context.fillStyle = "#c6d2ef";
+  context.fillRect(x + 4, y, width - 8, 2);
+  // 之字形弹簧
+  const coils = Math.max(2, Math.floor(height / 9));
+  context.strokeStyle = "#b9c6e8";
+  context.lineWidth = 3;
+  context.beginPath();
+  for (let i = 0; i < coils; i += 1) {
+    const cy = y + 9 + (i * (height - 16)) / Math.max(1, coils - 1);
+    context.moveTo(x + width * 0.32, cy);
+    context.lineTo(x + width * 0.68, cy + 5);
+  }
+  context.stroke();
+  context.strokeStyle = "#e8eefc";
+  context.lineWidth = 1;
+  context.beginPath();
+  for (let i = 0; i < coils; i += 1) {
+    const cy = y + 10 + (i * (height - 16)) / Math.max(1, coils - 1);
+    context.moveTo(x + width * 0.32, cy);
+    context.lineTo(x + width * 0.68, cy + 5);
+  }
+  context.stroke();
+  // 顶部光晕脉冲
+  context.globalAlpha = pulse;
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.ellipse(x + width * 0.5, y + 2, width * 0.3, 3, 0, 0, Math.PI * 2);
+  context.fill();
+  context.globalAlpha = 1;
+}
+
+/** 碎岩台：泥土岩层板，裂纹随震颤加深并飘落碎屑。 */
+function drawCrumblingPlatform(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  shaking: boolean,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const random = createSeededRandom(hashSeed(`crumble-${x}-${y}-${width}`));
+  const body = context.createLinearGradient(0, y, 0, y + height);
+  body.addColorStop(0, "#5a4a3a");
+  body.addColorStop(0.5, "#433527");
+  body.addColorStop(1, "#241b12");
+  context.fillStyle = body;
+  context.beginPath();
+  context.roundRect(x, y, width, height, 3);
+  context.fill();
+  // 顶面苔岩层
+  context.fillStyle = "#6d5a45";
+  context.beginPath();
+  context.roundRect(x, y, width, 6, 3);
+  context.fill();
+  context.fillStyle = "#8a7358";
+  context.fillRect(x + 2, y + 1, width - 4, 2);
+  // 岩块分块线
+  context.strokeStyle = "rgba(16, 10, 6, 0.55)";
+  context.lineWidth = 1.4;
+  const segs = Math.max(1, Math.floor(width / 52));
+  for (let i = 1; i < segs; i += 1) {
+    const sx = x + (i * width) / segs;
+    context.beginPath();
+    context.moveTo(sx, y + 2);
+    context.lineTo(sx + (random() - 0.5) * 5, y + height);
+    context.stroke();
+  }
+  // 裂纹（震颤时加深变亮）
+  const crackAlpha = shaking ? 0.95 : 0.45;
+  context.strokeStyle = `rgba(12, 8, 4, ${crackAlpha})`;
+  context.lineWidth = shaking ? 2.2 : 1.4;
+  const cracks = shaking ? 5 : 3;
+  for (let i = 0; i < cracks; i += 1) {
+    const cx = x + random() * width;
+    const depth = height * (0.5 + random() * 0.5);
+    context.beginPath();
+    context.moveTo(cx, y + 3);
+    context.lineTo(cx + (random() - 0.5) * 10, y + depth);
+    context.stroke();
+    if (shaking) {
+      context.strokeStyle = "rgba(214, 192, 148, 0.5)";
+      context.beginPath();
+      context.moveTo(cx, y + 8);
+      context.lineTo(cx + (random() - 0.5) * 8, y + 14);
+      context.stroke();
+      context.strokeStyle = `rgba(12, 8, 4, ${crackAlpha})`;
+    }
+  }
+  // 震颤时飘落碎屑
+  if (shaking && !reducedMotion) {
+    context.fillStyle = "#8a7358";
+    for (let i = 0; i < 6; i += 1) {
+      const px = x + ((timeMs * (0.05 + i * 0.013)) % (width + 8)) - 4;
+      const py = y + height + 2 + ((timeMs * (0.06 + i * 0.011)) % 22);
+      context.globalAlpha = Math.max(0, 0.7 - (py - y - height) / 32);
+      context.fillRect(px, py, 2.5, 2.5);
+    }
+    context.globalAlpha = 1;
+  }
+}
+
+/** 冰面平台：光洁半透明冰盖 + 高光斜条与细碎闪光。 */
+function drawIcePlatform(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const random = createSeededRandom(hashSeed(`ice-${x}-${y}-${width}`));
+  context.globalAlpha = 0.8;
+  const slab = context.createLinearGradient(0, y, 0, y + height);
+  slab.addColorStop(0, "rgba(214, 244, 255, 0.85)");
+  slab.addColorStop(0.45, "rgba(128, 196, 228, 0.5)");
+  slab.addColorStop(1, "rgba(38, 84, 120, 0.42)");
+  context.fillStyle = slab;
+  context.beginPath();
+  context.roundRect(x, y, width, height, 4);
+  context.fill();
+  context.globalAlpha = 1;
+  // 顶面亮边
+  context.fillStyle = "rgba(244, 253, 255, 0.9)";
+  context.fillRect(x, y, width, 2.5);
+  context.fillStyle = "rgba(244, 253, 255, 0.35)";
+  context.fillRect(x + 2, y + 3, width - 4, 1.5);
+  // 冰内气泡/纹理
+  context.globalAlpha = 0.35;
+  context.fillStyle = "#e8f7ff";
+  for (let i = 0; i < Math.max(2, Math.floor(width / 60)); i += 1) {
+    const bx = x + random() * (width - 10);
+    const by = y + 6 + random() * Math.max(2, height - 12);
+    context.beginPath();
+    context.arc(bx, by, 1.5 + random() * 1.8, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.globalAlpha = 1;
+  // 高光斜条
+  context.globalAlpha = 0.22;
+  context.fillStyle = "#ffffff";
+  context.beginPath();
+  context.moveTo(x + 4, y + 2);
+  context.lineTo(x + width * 0.3, y + 2);
+  context.lineTo(x + width * 0.12, y + height * 0.6);
+  context.lineTo(x + 4, y + height * 0.5);
+  context.closePath();
+  context.fill();
+  context.globalAlpha = 1;
+  // 细碎闪光（稀疏，沿表面游走）
+  if (!reducedMotion) {
+    const sparkle = Math.floor((timeMs / 900) % width);
+    context.fillStyle = "#ffffff";
+    context.globalAlpha = 0.8;
+    context.fillRect(x + sparkle, y + 4, 1.5, 1.5);
+    context.globalAlpha = 0.4;
+    context.fillRect(x + ((sparkle + width * 0.37) % width), y + height * 0.5, 1.5, 1.5);
+    context.globalAlpha = 1;
+  }
+}
+
+/** 可击碎块：岩晶方块，带确定性的裂纹纹理与棱边高光。 */
+function drawBreakablePlatform(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  palette: LevelPalette,
+  timeMs: number,
+  reducedMotion: boolean,
+): void {
+  const random = createSeededRandom(hashSeed(`breakable-${x}-${y}-${width}`));
+  const body = context.createLinearGradient(0, y, 0, y + height);
+  body.addColorStop(0, "#4d4270");
+  body.addColorStop(0.5, "#372d56");
+  body.addColorStop(1, "#1d1634");
+  context.fillStyle = body;
+  context.fillRect(x, y, width, height);
+  // 顶部与左侧受光、右下背光
+  context.fillStyle = "rgba(224, 214, 255, 0.5)";
+  context.fillRect(x, y, width, 3);
+  context.fillRect(x, y, 3, height);
+  context.fillStyle = "rgba(10, 6, 20, 0.6)";
+  context.fillRect(x + width - 3, y, 3, height);
+  context.fillRect(x, y + height - 3, width, 3);
+  // 方块轮廓
+  context.strokeStyle = "rgba(232, 224, 255, 0.35)";
+  context.lineWidth = 1.4;
+  context.strokeRect(x + 1.5, y + 1.5, width - 3, height - 3);
+  // 表面裂纹（确定性）
+  context.strokeStyle = "rgba(12, 6, 26, 0.7)";
+  context.lineWidth = 1.5;
+  const cracks = Math.max(2, Math.floor(width / 42));
+  for (let i = 0; i < cracks; i += 1) {
+    const cx = x + random() * width;
+    const cy = y + random() * height;
+    context.beginPath();
+    context.moveTo(cx, cy);
+    context.lineTo(cx + (random() - 0.5) * 14, cy + (random() - 0.5) * 12);
+    context.lineTo(cx + (random() - 0.5) * 18, cy + (random() - 0.5) * 16);
+    context.stroke();
+  }
+  // 中心棱镜光（轻微脉冲，暗示可击碎）
+  const pulse = reducedMotion ? 0.45 : 0.34 + Math.sin(timeMs * 0.01) * 0.14;
+  context.globalAlpha = pulse;
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.arc(x + width * 0.5, y + height * 0.5, 4, 0, Math.PI * 2);
+  context.fill();
+  context.globalAlpha = 1;
+}
+
 function drawPlatforms({ context, level, world, reducedMotion }: DrawState): void {
   for (const platform of level.platforms) {
+    if (world.destroyedPlatformIds.includes(platform.id)) {
+      continue;
+    }
+    const crumbling = world.crumblingPlatforms[platform.id];
+    if (crumbling?.state === "gone") {
+      continue;
+    }
     const offset = world.platformOffsets[platform.id];
-    const x = platform.x + (offset?.x ?? 0);
-    const y = platform.y + (offset?.y ?? 0);
+    let x = platform.x + (offset?.x ?? 0);
+    let y = platform.y + (offset?.y ?? 0);
+    if (crumbling?.state === "shaking" && !reducedMotion) {
+      x += Math.sin(world.levelTimeMs * 0.03) * 1.6;
+      y += Math.cos(world.levelTimeMs * 0.039) * 0.8;
+    }
     const width = platform.width;
     const height = platform.height;
     const { palette } = level;
@@ -2000,24 +2793,55 @@ function drawPlatforms({ context, level, world, reducedMotion }: DrawState): voi
       continue;
     }
 
-    if (platform.kind === "oneWay") {
-      drawOneWayPlatform(context, x, y, width, height, palette, level.theme);
-      continue;
+    switch (platform.kind) {
+      case "oneWay":
+        drawOneWayPlatform(context, x, y, width, height, palette, level.theme);
+        break;
+      case "bounce":
+        drawBouncePlatform(context, x, y, width, height, palette, world.levelTimeMs, reducedMotion);
+        break;
+      case "crumbling":
+        drawCrumblingPlatform(
+          context,
+          x,
+          y,
+          width,
+          height,
+          crumbling?.state === "shaking",
+          world.levelTimeMs,
+          reducedMotion,
+        );
+        break;
+      case "ice":
+        drawIcePlatform(context, x, y, width, height, world.levelTimeMs, reducedMotion);
+        break;
+      case "breakable":
+        drawBreakablePlatform(
+          context,
+          x,
+          y,
+          width,
+          height,
+          palette,
+          world.levelTimeMs,
+          reducedMotion,
+        );
+        break;
+      default:
+        drawSolidPlatform(
+          context,
+          x,
+          y,
+          width,
+          height,
+          palette,
+          platform.motion,
+          level.height,
+          level.theme,
+          world.levelTimeMs,
+          reducedMotion,
+        );
     }
-
-    drawSolidPlatform(
-      context,
-      x,
-      y,
-      width,
-      height,
-      palette,
-      platform.motion,
-      level.height,
-      level.theme,
-      world.levelTimeMs,
-      reducedMotion,
-    );
   }
 }
 
@@ -2106,6 +2930,10 @@ function drawEnemies({ context, level, world, reducedMotion }: DrawState): void 
       drawCharger(state);
     } else if (kind === "spiker") {
       drawSpiker(state);
+    } else if (kind === "wisp") {
+      drawWisp(state);
+    } else if (kind === "brute") {
+      drawBrute(state);
     } else {
       drawClassicSentinel(state);
     }
@@ -2692,6 +3520,204 @@ function drawSpiker({
 }
 
 /** 投射物：玩家青蓝等离子弹 + 敌方冰晶弹。 */
+/** 闪电灵体：浮游电球，蓄力时闪烁增强、冲刺时拉出电尾残影。 */
+function drawWisp({
+  context,
+  sentinel,
+  top,
+  timeMs,
+  reducedMotion,
+  palette,
+}: EnemyDrawState): void {
+  const definition = sentinel.definition;
+  const cx = sentinel.x + definition.width * 0.5;
+  const cy = top + definition.height * 0.5;
+  const mode = sentinel.mode ?? "patrol";
+  const base = reducedMotion ? 0.55 : 0.5 + Math.sin(timeMs * 0.01) * 0.16;
+  const windup = mode === "windup";
+  const charge = mode === "charge";
+  const glow = windup ? base + 0.34 : charge ? base + 0.2 : base;
+
+  context.save();
+  // 环境电晕
+  const halo = context.createRadialGradient(cx, cy, 2, cx, cy, 30);
+  halo.addColorStop(0, palette.accent);
+  halo.addColorStop(1, "rgba(88, 217, 236, 0)");
+  context.globalAlpha = glow * 0.5;
+  context.fillStyle = halo;
+  context.beginPath();
+  context.arc(cx, cy, 30, 0, Math.PI * 2);
+  context.fill();
+  context.globalAlpha = 1;
+
+  // 冲刺尾迹（残影拖尾）
+  if (charge && !reducedMotion) {
+    const facing = sentinel.direction ?? 1;
+    context.globalAlpha = 0.3;
+    context.fillStyle = palette.accent;
+    for (let i = 1; i <= 3; i += 1) {
+      context.beginPath();
+      context.ellipse(
+        cx - facing * i * 10,
+        cy + (i % 2 === 0 ? 3 : -3),
+        13 - i * 2,
+        8 - i * 1.5,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      context.fill();
+    }
+    context.globalAlpha = 1;
+  }
+
+  // 锯齿闪电光环
+  context.strokeStyle = palette.iceLight;
+  context.lineWidth = 2;
+  context.globalAlpha = windup ? 0.95 : 0.65;
+  context.beginPath();
+  const spikes = 8;
+  for (let i = 0; i <= spikes; i += 1) {
+    const angle = (i / spikes) * Math.PI * 2;
+    const r = (i % 2 === 0 ? 16 : 10) * (windup ? 1.2 : 1);
+    const px = cx + Math.cos(angle) * r;
+    const py = cy + Math.sin(angle) * r;
+    if (i === 0) {
+      context.moveTo(px, py);
+    } else {
+      context.lineTo(px, py);
+    }
+  }
+  context.closePath();
+  context.stroke();
+  context.globalAlpha = 1;
+
+  // 灵体核心
+  const core = context.createRadialGradient(cx, cy, 1, cx, cy, 13);
+  core.addColorStop(0, "#ffffff");
+  core.addColorStop(0.4, palette.iceLight);
+  core.addColorStop(1, palette.accent);
+  context.fillStyle = core;
+  context.beginPath();
+  context.arc(cx, cy, windup ? 14 : 11, 0, Math.PI * 2);
+  context.fill();
+
+  // 内芯亮点
+  context.fillStyle = "#ffffff";
+  context.beginPath();
+  context.arc(cx - 2, cy - 2, 3, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+}
+
+/** 重装尖甲兽：厚重冰甲 + 顶部装甲尖刺，缓慢笨重步伐。 */
+function drawBrute({
+  context,
+  sentinel,
+  top,
+  timeMs,
+  reducedMotion,
+  palette,
+}: EnemyDrawState): void {
+  const definition = sentinel.definition;
+  const spikeHeight = definition.armorSpikeHeight ?? 20;
+  const sy = top - spikeHeight;
+  const facing = sentinel.direction;
+  const walk = reducedMotion ? 0 : Math.sin(timeMs / 180) * 3;
+
+  context.save();
+  context.translate(sentinel.x + definition.width * 0.5, sy);
+  context.scale(facing, 1);
+
+  // 脚下反光
+  context.globalAlpha = 0.14;
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.ellipse(-2, definition.height + spikeHeight + 2, 20, 5, 0, 0, Math.PI * 2);
+  context.fill();
+  context.globalAlpha = 1;
+
+  // 腿部（缓慢重步）
+  const legLift = Math.max(0, walk);
+  context.fillStyle = "#0a1a24";
+  context.beginPath();
+  context.roundRect(
+    -definition.width * 0.42,
+    definition.height * 0.62 + legLift,
+    10,
+    definition.height * 0.38 - legLift,
+    4,
+  );
+  context.fill();
+  context.beginPath();
+  context.roundRect(
+    definition.width * 0.14,
+    definition.height * 0.62 - legLift,
+    10,
+    definition.height * 0.38 + legLift,
+    4,
+  );
+  context.fill();
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.roundRect(-definition.width * 0.42, definition.height * 0.88, 10, 4, 2);
+  context.fill();
+  context.beginPath();
+  context.roundRect(definition.width * 0.14, definition.height * 0.88, 10, 4, 2);
+  context.fill();
+
+  // 厚重冰甲躯干
+  const body = context.createLinearGradient(0, 0, 0, definition.height);
+  body.addColorStop(0, "#5a6d92");
+  body.addColorStop(0.5, palette.iceDeep);
+  body.addColorStop(1, "#0c1826");
+  context.fillStyle = body;
+  context.beginPath();
+  context.roundRect(-definition.width * 0.5, 0, definition.width, definition.height * 0.78, 10);
+  context.fill();
+  // 甲壳高光
+  context.fillStyle = "rgba(216, 247, 251, 0.16)";
+  context.beginPath();
+  context.roundRect(-definition.width * 0.42, 3, definition.width * 0.84, 7, 4);
+  context.fill();
+
+  // 顶部装甲尖刺（始终伸出）
+  context.fillStyle = "#cdd7ef";
+  for (let i = -2; i <= 2; i += 1) {
+    const px = i * definition.width * 0.16;
+    context.beginPath();
+    context.moveTo(px - 6, definition.height * 0.12);
+    context.lineTo(px, -spikeHeight + 2);
+    context.lineTo(px + 6, definition.height * 0.12);
+    context.closePath();
+    context.fill();
+  }
+  context.fillStyle = "rgba(255, 255, 255, 0.5)";
+  context.beginPath();
+  context.moveTo(0, -spikeHeight + 2);
+  context.lineTo(3, -spikeHeight * 0.4);
+  context.lineTo(-1, definition.height * 0.08);
+  context.closePath();
+  context.fill();
+
+  // 眼缝（警惕红光）
+  const eyePulse = reducedMotion ? 0.7 : 0.6 + 0.4 * Math.sin(timeMs * 0.01);
+  context.globalAlpha = eyePulse;
+  context.fillStyle = palette.accent;
+  context.beginPath();
+  context.roundRect(
+    -definition.width * 0.3,
+    definition.height * 0.28,
+    definition.width * 0.6,
+    3.5,
+    1.8,
+  );
+  context.fill();
+  context.globalAlpha = 1;
+
+  context.restore();
+}
+
 function drawProjectiles({ context, level, world, reducedMotion }: DrawState): void {
   const { palette } = level;
   for (const projectile of world.projectiles) {
@@ -3019,4 +4045,3 @@ function drawPlayer({ context, world }: DrawState): void {
 
   context.restore();
 }
-

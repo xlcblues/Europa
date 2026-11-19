@@ -22,7 +22,11 @@ import {
   stepPlatformer,
 } from "./platformerEngine";
 import { getPlatformerLevel } from "./platformerLevels";
-import { PLATFORMER_SAVE_SLOT, PLATFORMER_STEP_MS, PLATFORMER_TOTAL_LEVELS } from "./platformerTypes";
+import {
+  PLATFORMER_SAVE_SLOT,
+  PLATFORMER_STEP_MS,
+  PLATFORMER_TOTAL_LEVELS,
+} from "./platformerTypes";
 import type {
   PlatformerEvent,
   PlatformerInput,
@@ -82,21 +86,24 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
   const nextLevelIndex = world ? world.levelIndex + 1 : 0;
   const nextLevelName =
     nextLevelIndex < PLATFORMER_TOTAL_LEVELS ? getPlatformerLevel(nextLevelIndex).name : null;
-  const crystalsCollected = world && currentLevel
-    ? currentLevel.crystals.filter((crystal) => world.collectedItemIds.includes(crystal.id)).length
-    : 0;
+  const crystalsCollected =
+    world && currentLevel
+      ? currentLevel.crystals.filter((crystal) => world.collectedItemIds.includes(crystal.id))
+          .length
+      : 0;
   const hasSave = Boolean(latestSave);
   const saveLevel = latestSave?.levelId ?? null;
   const elapsedClock = formatClock(
-    phase === "result" ? result?.durationMs ?? 0 : world?.totalDurationMs ?? 0,
+    phase === "result" ? (result?.durationMs ?? 0) : (world?.totalDurationMs ?? 0),
   );
-  const actionLabel = phase === "playing"
-    ? "暂停游戏"
-    : phase === "paused"
-      ? "继续游戏"
-      : phase === "result"
-        ? "新的远征"
-        : "开始远征";
+  const actionLabel =
+    phase === "playing"
+      ? "暂停游戏"
+      : phase === "paused"
+        ? "继续游戏"
+        : phase === "result"
+          ? "新的远征"
+          : "开始远征";
 
   function setPhase(nextPhase: PlatformerPhase): void {
     phaseRef.current = nextPhase;
@@ -187,6 +194,15 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
       case "checkpoint":
         getAudio().play("checkpoint");
         saveCheckpoint();
+        break;
+      case "bounce":
+        getAudio().play("jump");
+        break;
+      case "block_broken":
+        getAudio().play("sentinel");
+        break;
+      case "crumbling_collapse":
+        getAudio().play("pickup");
         break;
       case "damage":
         getAudio().play("damage");
@@ -315,10 +331,7 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
     if (nextLevelIndexValue >= PLATFORMER_TOTAL_LEVELS) {
       return;
     }
-    const nextWorld = createPlatformerWorld(
-      createLevelContext(currentWorld),
-      nextLevelIndexValue,
-    );
+    const nextWorld = createPlatformerWorld(createLevelContext(currentWorld), nextLevelIndexValue);
     inputRef.current = createPlatformerInput(nextWorld.assisted);
     updateWorld(nextWorld);
     setPhase("level_intro");
@@ -636,7 +649,11 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
           <div className="platformer-stage-bar">
             <span className="platformer-stage-code">EUROPA · SECTOR 01</span>
             <div>
-              <span className="platformer-signal" aria-hidden="true"><i /><i /><i /></span>
+              <span className="platformer-signal" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
               <span>{soundEnabled ? "音效开启" : "静音模式"}</span>
             </div>
           </div>
@@ -673,7 +690,8 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
 
           <div className="platformer-stage-footer">
             <span className="platformer-controls-inline">
-              <kbd>A / D</kbd><kbd>← →</kbd>移动
+              <kbd>A / D</kbd>
+              <kbd>← →</kbd>移动
               <kbd>Space</kbd>跳跃
               <kbd>J / X</kbd>射击
               <kbd>Esc</kbd>暂停
@@ -713,7 +731,9 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
               </div>
               <div>
                 <span>关卡进度</span>
-                <strong>{world ? `${world.levelIndex + 1}/${PLATFORMER_TOTAL_LEVELS}` : "—"}</strong>
+                <strong>
+                  {world ? `${world.levelIndex + 1}/${PLATFORMER_TOTAL_LEVELS}` : "—"}
+                </strong>
               </div>
               <div>
                 <span>本关冰晶</span>
@@ -741,24 +761,38 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
             </div>
             <div className="platformer-control-row">
               <span className="platformer-key-cluster" aria-hidden="true">
-                <kbd>A</kbd><kbd>D</kbd>
+                <kbd>A</kbd>
+                <kbd>D</kbd>
               </span>
               <span>移动 · 方向键同样可用</span>
             </div>
             <div className="platformer-control-row is-keys">
-              <span><kbd>Space</kbd><kbd>W</kbd><kbd>↑</kbd></span>
+              <span>
+                <kbd>Space</kbd>
+                <kbd>W</kbd>
+                <kbd>↑</kbd>
+              </span>
               <span>跳跃</span>
             </div>
             <div className="platformer-control-row is-keys">
-              <span><kbd>S</kbd><kbd>↓</kbd></span>
+              <span>
+                <kbd>S</kbd>
+                <kbd>↓</kbd>
+              </span>
               <span>下穿冰台</span>
             </div>
             <div className="platformer-control-row is-keys">
-              <span><kbd>J</kbd><kbd>X</kbd></span>
+              <span>
+                <kbd>J</kbd>
+                <kbd>X</kbd>
+              </span>
               <span>射击（等离子炮）</span>
             </div>
             <div className="platformer-control-row is-keys">
-              <span><kbd>Esc</kbd><kbd>R</kbd></span>
+              <span>
+                <kbd>Esc</kbd>
+                <kbd>R</kbd>
+              </span>
               <span>暂停 / 返回检查点</span>
             </div>
           </section>
@@ -793,8 +827,10 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
 }
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement
-    && Boolean(target.closest("button, input, textarea, select, a[href]"));
+  return (
+    target instanceof HTMLElement &&
+    Boolean(target.closest("button, input, textarea, select, a[href]"))
+  );
 }
 
 function canvasLabel(phase: PlatformerPhase): string {

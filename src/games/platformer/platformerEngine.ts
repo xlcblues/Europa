@@ -2,10 +2,15 @@ import {
   PLATFORMER_ACCELERATION,
   PLATFORMER_ASSISTED_COYOTE_MS,
   PLATFORMER_ASSISTED_JUMP_BUFFER_MS,
+  PLATFORMER_BOUNCE_SPEED,
   PLATFORMER_COYOTE_MS,
+  PLATFORMER_CRUMBLE_GONE_MS,
+  PLATFORMER_CRUMBLE_SHAKE_MS,
   PLATFORMER_DECELERATION,
   PLATFORMER_GRAVITY,
   PLATFORMER_HIT_INVINCIBILITY_MS,
+  PLATFORMER_ICE_ACCELERATION,
+  PLATFORMER_ICE_DECELERATION,
   PLATFORMER_INITIAL_LIVES,
   PLATFORMER_JUMP_BUFFER_MS,
   PLATFORMER_JUMP_CUTOFF,
@@ -104,9 +109,7 @@ export function getPlatformOffset(
   }
   const phase = (Math.max(0, levelTimeMs) / 1000) * platform.motion.speed + platform.motion.phase;
   const displacement = Math.sin(phase) * platform.motion.amplitude;
-  return platform.motion.axis === "x"
-    ? { x: displacement, y: 0 }
-    : { x: 0, y: displacement };
+  return platform.motion.axis === "x" ? { x: displacement, y: 0 } : { x: 0, y: displacement };
 }
 
 export function getActiveCheckpointId(world: PlatformerWorld): string {
@@ -182,6 +185,12 @@ export function createPlatformerWorld(
     player,
     camera,
     platformOffsets,
+    destroyedPlatformIds: [],
+    crumblingPlatforms: Object.fromEntries(
+      level.platforms
+        .filter((platform) => isCrumblingPlatform(platform))
+        .map((platform) => [platform.id, { state: "stable", timerMs: 0 }]),
+    ),
     sentinels: level.sentinels.map((definition) => ({
       definition,
       x: definition.x,
@@ -237,10 +246,15 @@ export function restartAtCheckpoint(world: PlatformerWorld): PlatformerWorld {
       x: clampCamera(getCameraTarget(spawn.x, level.width), level.width),
       previousX: clampCamera(getCameraTarget(spawn.x, level.width), level.width),
     },
+    destroyedPlatformIds: [],
+    crumblingPlatforms: Object.fromEntries(
+      level.platforms
+        .filter((platform) => isCrumblingPlatform(platform))
+        .map((platform) => [platform.id, { state: "stable", timerMs: 0 }]),
+    ),
     sentinels: world.sentinels.map((sentinel) => ({
       ...sentinel,
-      defeated:
-        sentinel.defeated || world.defeatedSentinelIds.includes(sentinel.definition.id),
+      defeated: sentinel.defeated || world.defeatedSentinelIds.includes(sentinel.definition.id),
     })),
     projectiles: [],
     weapon: { ...world.weapon, cooldownMs: 0 },
@@ -305,10 +319,7 @@ function getCheckpointSpawn(
   return { x: checkpoint.spawnX, y: checkpoint.spawnY };
 }
 
-function getPlatformBounds(
-  platform: PlatformDefinition,
-  offsets: Record<string, PlatformOffset>,
-) {
+function getPlatformBounds(platform: PlatformDefinition, offsets: Record<string, PlatformOffset>) {
   const offset = offsets[platform.id] ?? { x: 0, y: 0 };
   return {
     x: platform.x + offset.x,
@@ -322,13 +333,16 @@ function findSupport(
   player: PlayerState,
   level: PlatformerLevel,
   offsets: Record<string, PlatformOffset>,
+  destroyedIds: ReadonlySet<string> = new Set(),
 ): { id: string; top: number } | null {
   let support: { id: string; top: number; distance: number } | null = null;
   for (const platform of level.platforms) {
+    if (isPlatformDestroyed(destroyedIds, platform.id)) {
+      continue;
+    }
     const bounds = getPlatformBounds(platform, offsets);
     const overlapsX =
-      player.x + player.width > bounds.x + EPSILON &&
-      player.x < bounds.x + bounds.width - EPSILON;
+      player.x + player.width > bounds.x + EPSILON && player.x < bounds.x + bounds.width - EPSILON;
     const bottom = player.y + player.height;
     const distance = Math.abs(bottom - bounds.y);
     if (
@@ -344,7 +358,26 @@ function findSupport(
 }
 
 function isSolidPlatform(platform: PlatformDefinition): boolean {
-  return platform.kind === "solid";
+  return platform.kind === "solid" || platform.kind === "breakable";
+}
+
+function isBreakablePlatform(platform: PlatformDefinition): boolean {
+  return platform.kind === "breakable";
+}
+
+function isBouncePlatform(platform: PlatformDefinition): boolean {
+  return platform.kind === "bounce";
+}
+
+function isCrumblingPlatform(platform: PlatformDefinition): boolean {
+  return platform.kind === "crumbling";
+}
+
+function isIcePlatform(level: PlatformerLevel, platformId: string): boolean {
+  return level.platforms.find((item) => item.id === platformId)?.kind === "ice";
+}
+function isPlatformDestroyed(destroyedIds: ReadonlySet<string>, platformId: string): boolean {
+  return destroyedIds.has(platformId);
 }
 
 function rectsOverlap(
@@ -371,7 +404,11 @@ function clamp(value: number, minimum: number, maximum: number): number {
 }
 
 function getCameraTarget(playerX: number, levelWidth: number): number {
-  return clamp(playerX - PLATFORMER_LOGICAL_WIDTH * 0.35, 0, Math.max(0, levelWidth - PLATFORMER_LOGICAL_WIDTH));
+  return clamp(
+    playerX - PLATFORMER_LOGICAL_WIDTH * 0.35,
+    0,
+    Math.max(0, levelWidth - PLATFORMER_LOGICAL_WIDTH),
+  );
 }
 
 function clampCamera(cameraX: number, levelWidth: number): number {
@@ -385,6 +422,10 @@ function cloneWorld(world: PlatformerWorld): PlatformerWorld {
     camera: { ...world.camera },
     platformOffsets: Object.fromEntries(
       Object.entries(world.platformOffsets).map(([id, offset]) => [id, { ...offset }]),
+    ),
+    destroyedPlatformIds: [...world.destroyedPlatformIds],
+    crumblingPlatforms: Object.fromEntries(
+      Object.entries(world.crumblingPlatforms).map(([id, state]) => [id, { ...state }]),
     ),
     sentinels: world.sentinels.map((sentinel) => ({ ...sentinel })),
     projectiles: world.projectiles.map((projectile) => ({ ...projectile })),
@@ -427,13 +468,24 @@ export function stepPlatformer(
   followMovingPlatform(next, level, previousOffsets, nextOffsets);
   next.platformOffsets = nextOffsets;
 
+  updateCrumblingPlatforms(next, level, events);
+  if (
+    next.player.groundPlatformId &&
+    next.destroyedPlatformIds.includes(next.player.groundPlatformId)
+  ) {
+    next.player.onGround = false;
+    next.player.groundPlatformId = null;
+  }
+
   updateRuntimeSentinels(next, level);
   next.player.previousX = next.player.x;
   next.player.previousY = next.player.y;
   const wasGrounded = next.player.onGround;
   const previousGroundId = next.player.groundPlatformId;
 
-  updateHorizontalMotion(next.player, input);
+  const standingOnIce =
+    next.player.groundPlatformId != null && isIcePlatform(level, next.player.groundPlatformId);
+  updateHorizontalMotion(next.player, input, standingOnIce);
   updateJumpTimers(next.player, input, next.assisted);
 
   if (
@@ -461,8 +513,13 @@ export function stepPlatformer(
     next.player.vy = 0;
   }
 
-  resolveHorizontalMotion(next.player, level, next.platformOffsets);
-  resolveVerticalMotion(next.player, level, next.platformOffsets, events, wasGrounded, next.assisted);
+  resolveHorizontalMotion(
+    next.player,
+    level,
+    next.platformOffsets,
+    new Set(next.destroyedPlatformIds),
+  );
+  resolveVerticalMotion(next.player, level, next, events, wasGrounded, next.assisted);
   if (!wasGrounded && next.player.onGround) {
     next.landedFlashMs = 300;
   }
@@ -475,7 +532,7 @@ export function stepPlatformer(
   activateCheckpoint(next, level, events);
   collectWeaponPickups(next, level, events);
   updatePlayerWeapon(next, input, level, events);
-  updateProjectiles(next, level);
+  updateProjectiles(next, level, events);
   resolvePlayerProjectiles(next, level, events);
   resolveEnemyProjectiles(next, level, events);
   resolveSentinelContacts(next, level, events);
@@ -485,23 +542,19 @@ export function stepPlatformer(
   return { world: next, events };
 }
 
-function updateHorizontalMotion(player: PlayerState, input: PlatformerInput): void {
+function updateHorizontalMotion(player: PlayerState, input: PlatformerInput, onIce = false): void {
   const direction = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+  const accel = onIce ? PLATFORMER_ICE_ACCELERATION : PLATFORMER_ACCELERATION;
+  const decel = onIce ? PLATFORMER_ICE_DECELERATION : PLATFORMER_DECELERATION;
   if (direction !== 0) {
     player.facing = direction > 0 ? 1 : -1;
     const targetVelocity = direction * PLATFORMER_MOVE_SPEED;
-    const rate = Math.sign(targetVelocity - player.vx) === direction
-      ? PLATFORMER_ACCELERATION
-      : PLATFORMER_DECELERATION;
-    player.vx = moveTowards(
-      player.vx,
-      targetVelocity,
-      rate * PLATFORMER_STEP_SECONDS,
-    );
+    const rate = Math.sign(targetVelocity - player.vx) === direction ? accel : decel;
+    player.vx = moveTowards(player.vx, targetVelocity, rate * PLATFORMER_STEP_SECONDS);
     return;
   }
 
-  player.vx = moveTowards(player.vx, 0, PLATFORMER_DECELERATION * PLATFORMER_STEP_SECONDS);
+  player.vx = moveTowards(player.vx, 0, decel * PLATFORMER_STEP_SECONDS);
 }
 
 function updateJumpTimers(player: PlayerState, input: PlatformerInput, assisted: boolean): void {
@@ -520,11 +573,7 @@ function updateJumpTimers(player: PlayerState, input: PlatformerInput, assisted:
     player.coyoteMs = Math.max(0, player.coyoteMs - PLATFORMER_STEP_MS);
   }
 
-  if (
-    !input.jumpHeld &&
-    player.jumpHeldLast &&
-    player.vy < 0
-  ) {
+  if (!input.jumpHeld && player.jumpHeldLast && player.vy < 0) {
     player.vy *= PLATFORMER_JUMP_CUTOFF;
   }
 }
@@ -553,16 +602,28 @@ function resolveHorizontalMotion(
   player: PlayerState,
   level: PlatformerLevel,
   offsets: Record<string, PlatformOffset>,
+  destroyedIds: ReadonlySet<string> = new Set(),
 ): void {
   const previousX = player.x;
   player.x += player.vx * PLATFORMER_STEP_SECONDS;
 
   for (const platform of level.platforms) {
-    if (!isSolidPlatform(platform)) {
+    if (!isSolidPlatform(platform) || isPlatformDestroyed(destroyedIds, platform.id)) {
       continue;
     }
     const bounds = getPlatformBounds(platform, offsets);
-    if (!rectsOverlap(player.x, player.y, player.width, player.height, bounds.x, bounds.y, bounds.width, bounds.height)) {
+    if (
+      !rectsOverlap(
+        player.x,
+        player.y,
+        player.width,
+        player.height,
+        bounds.x,
+        bounds.y,
+        bounds.width,
+        bounds.height,
+      )
+    ) {
       continue;
     }
 
@@ -580,11 +641,13 @@ function resolveHorizontalMotion(
 function resolveVerticalMotion(
   player: PlayerState,
   level: PlatformerLevel,
-  offsets: Record<string, PlatformOffset>,
+  world: PlatformerWorld,
   events: PlatformerEvent[],
   wasGrounded: boolean,
   assisted: boolean,
 ): void {
+  const offsets = world.platformOffsets;
+  const destroyedIds = new Set(world.destroyedPlatformIds);
   const previousTop = player.y;
   const previousBottom = player.y + player.height;
   player.y += player.vy * PLATFORMER_STEP_SECONDS;
@@ -595,6 +658,15 @@ function resolveVerticalMotion(
     let landing: { id: string; top: number } | null = null;
     for (const platform of level.platforms) {
       if (player.dropThroughPlatformId === platform.id) {
+        continue;
+      }
+      if (isPlatformDestroyed(destroyedIds, platform.id)) {
+        continue;
+      }
+      if (
+        isCrumblingPlatform(platform) &&
+        world.crumblingPlatforms[platform.id]?.state === "gone"
+      ) {
         continue;
       }
       const bounds = getPlatformBounds(platform, offsets);
@@ -614,11 +686,30 @@ function resolveVerticalMotion(
     }
 
     if (landing) {
+      const platform = level.platforms.find((item) => item.id === landing.id);
       player.y = landing.top - player.height;
+      if (platform && isBouncePlatform(platform)) {
+        player.vy = -PLATFORMER_BOUNCE_SPEED;
+        player.onGround = false;
+        player.groundPlatformId = null;
+        player.dropThroughPlatformId = null;
+        events.push({ type: "bounce" });
+        return;
+      }
       player.vy = 0;
       player.onGround = true;
       player.groundPlatformId = landing.id;
       player.coyoteMs = assisted ? PLATFORMER_ASSISTED_COYOTE_MS : PLATFORMER_COYOTE_MS;
+      if (
+        platform &&
+        isCrumblingPlatform(platform) &&
+        world.crumblingPlatforms[platform.id]?.state === "stable"
+      ) {
+        world.crumblingPlatforms[platform.id] = {
+          state: "shaking",
+          timerMs: PLATFORMER_CRUMBLE_SHAKE_MS,
+        };
+      }
       if (!wasGrounded) {
         events.push({ type: "land" });
       }
@@ -626,28 +717,33 @@ function resolveVerticalMotion(
     return;
   }
 
-  let ceiling: { bottom: number } | null = null;
+  let ceiling: { bottom: number; platform: PlatformDefinition | null } | null = null;
   for (const platform of level.platforms) {
-    if (!isSolidPlatform(platform)) {
+    if (!isSolidPlatform(platform) || isPlatformDestroyed(destroyedIds, platform.id)) {
       continue;
     }
     const bounds = getPlatformBounds(platform, offsets);
     const overlapsX =
-      player.x + player.width > bounds.x + EPSILON &&
-      player.x < bounds.x + bounds.width - EPSILON;
+      player.x + player.width > bounds.x + EPSILON && player.x < bounds.x + bounds.width - EPSILON;
     if (
       overlapsX &&
       previousTop >= bounds.y + bounds.height - EPSILON &&
       player.y <= bounds.y + bounds.height &&
       (!ceiling || bounds.y + bounds.height > ceiling.bottom)
     ) {
-      ceiling = { bottom: bounds.y + bounds.height };
+      ceiling = { bottom: bounds.y + bounds.height, platform };
     }
   }
 
   if (ceiling) {
     player.y = ceiling.bottom;
     player.vy = 0;
+    if (ceiling.platform && isBreakablePlatform(ceiling.platform)) {
+      if (!world.destroyedPlatformIds.includes(ceiling.platform.id)) {
+        world.destroyedPlatformIds.push(ceiling.platform.id);
+        events.push({ type: "block_broken", platformId: ceiling.platform.id });
+      }
+    }
   }
 }
 
@@ -655,12 +751,13 @@ function cleanupDropThrough(
   player: PlayerState,
   level: PlatformerLevel,
   offsets: Record<string, PlatformOffset>,
+  destroyedIds: ReadonlySet<string> = new Set(),
 ): void {
   if (!player.dropThroughPlatformId) {
     return;
   }
   const platform = level.platforms.find((item) => item.id === player.dropThroughPlatformId);
-  if (!platform) {
+  if (!platform || isPlatformDestroyed(destroyedIds, platform.id)) {
     player.dropThroughPlatformId = null;
     return;
   }
@@ -688,6 +785,48 @@ function followMovingPlatform(
   const next = nextOffsets[platform.id] ?? { x: 0, y: 0 };
   player.x += next.x - previous.x;
   player.y += next.y - previous.y;
+}
+
+/** 易碎平台：站在其上开始震颤，计时结束后崩塌并消失一段时间后重生。 */
+function updateCrumblingPlatforms(
+  world: PlatformerWorld,
+  level: PlatformerLevel,
+  events: PlatformerEvent[],
+): void {
+  for (const platform of level.platforms) {
+    if (!isCrumblingPlatform(platform)) {
+      continue;
+    }
+    const state = world.crumblingPlatforms[platform.id];
+    if (!state) {
+      world.crumblingPlatforms[platform.id] = { state: "stable", timerMs: 0 };
+      continue;
+    }
+    if (state.state === "shaking") {
+      const stillStanding = world.player.onGround && world.player.groundPlatformId === platform.id;
+      if (!stillStanding) {
+        world.crumblingPlatforms[platform.id] = { state: "stable", timerMs: 0 };
+        continue;
+      }
+      state.timerMs -= PLATFORMER_STEP_MS;
+      if (state.timerMs <= 0) {
+        world.crumblingPlatforms[platform.id] = {
+          state: "gone",
+          timerMs: PLATFORMER_CRUMBLE_GONE_MS,
+        };
+        events.push({ type: "crumbling_collapse", platformId: platform.id });
+        if (world.player.groundPlatformId === platform.id) {
+          world.player.onGround = false;
+          world.player.groundPlatformId = null;
+        }
+      }
+    } else if (state.state === "gone") {
+      state.timerMs -= PLATFORMER_STEP_MS;
+      if (state.timerMs <= 0) {
+        world.crumblingPlatforms[platform.id] = { state: "stable", timerMs: 0 };
+      }
+    }
+  }
 }
 
 function updateRuntimeSentinels(world: PlatformerWorld, level: PlatformerLevel): void {
@@ -730,10 +869,13 @@ function updateRuntimeSentinels(world: PlatformerWorld, level: PlatformerLevel):
       }
       const player = world.player;
       const dx = player.x - x;
-      const dy = player.y + player.height * 0.4 - (definition.y + sentinel.y + definition.height * 0.5);
+      const dy =
+        player.y + player.height * 0.4 - (definition.y + sentinel.y + definition.height * 0.5);
       const attackTimerMs = Math.max(0, (sentinel.attackTimerMs ?? 0) - PLATFORMER_STEP_MS);
       const inRange =
-        Math.abs(dx) <= (definition.aggroRange ?? 460) && Math.abs(dy) < 150 && world.status === "playing";
+        Math.abs(dx) <= (definition.aggroRange ?? 460) &&
+        Math.abs(dy) < 150 &&
+        world.status === "playing";
       if (inRange) {
         direction = dx >= 0 ? 1 : -1;
         if (attackTimerMs <= 0) {
@@ -742,7 +884,11 @@ function updateRuntimeSentinels(world: PlatformerWorld, level: PlatformerLevel):
           world.projectiles.push({
             id: `crystal-${definition.id}-${phaseMs}`,
             x: x + (direction > 0 ? definition.width : 0) - PLATFORMER_PROJECTILE_WIDTH * 0.5,
-            y: definition.y + sentinel.y + definition.height * 0.5 - PLATFORMER_PROJECTILE_HEIGHT * 0.5,
+            y:
+              definition.y +
+              sentinel.y +
+              definition.height * 0.5 -
+              PLATFORMER_PROJECTILE_HEIGHT * 0.5,
             width: PLATFORMER_PROJECTILE_WIDTH,
             height: PLATFORMER_PROJECTILE_HEIGHT,
             vx: Math.cos(angle) * speed,
@@ -752,7 +898,13 @@ function updateRuntimeSentinels(world: PlatformerWorld, level: PlatformerLevel):
             lifeMs: PLATFORMER_PROJECTILE_LIFE_MS,
             fromSentinelId: definition.id,
           });
-          return { ...sentinel, x, direction, phaseMs, attackTimerMs: definition.fireIntervalMs ?? 1900 };
+          return {
+            ...sentinel,
+            x,
+            direction,
+            phaseMs,
+            attackTimerMs: definition.fireIntervalMs ?? 1900,
+          };
         }
       }
       return { ...sentinel, x, direction, phaseMs, attackTimerMs };
@@ -764,9 +916,17 @@ function updateRuntimeSentinels(world: PlatformerWorld, level: PlatformerLevel):
       const player = world.player;
       if (mode === "charge") {
         const remaining = Math.max(0, (sentinel.attackTimerMs ?? 0) - PLATFORMER_STEP_MS);
-        const nextX = sentinel.x + sentinel.direction * (definition.chargeSpeed ?? 520) * PLATFORMER_STEP_SECONDS;
+        const nextX =
+          sentinel.x +
+          sentinel.direction * (definition.chargeSpeed ?? 520) * PLATFORMER_STEP_SECONDS;
         if (remaining <= 0) {
-          return { ...sentinel, x: nextX, phaseMs, mode: "recover", attackTimerMs: definition.recoverDurationMs ?? 620 };
+          return {
+            ...sentinel,
+            x: nextX,
+            phaseMs,
+            mode: "recover",
+            attackTimerMs: definition.recoverDurationMs ?? 620,
+          };
         }
         return { ...sentinel, x: nextX, phaseMs, attackTimerMs: remaining };
       }
@@ -794,12 +954,97 @@ function updateRuntimeSentinels(world: PlatformerWorld, level: PlatformerLevel):
         Math.sign(dx) === direction &&
         world.status === "playing";
       if (inRange) {
-        return { ...sentinel, x, direction, phaseMs, mode: "charge", attackTimerMs: definition.chargeDurationMs ?? 720 };
+        return {
+          ...sentinel,
+          x,
+          direction,
+          phaseMs,
+          mode: "charge",
+          attackTimerMs: definition.chargeDurationMs ?? 720,
+        };
       }
       return { ...sentinel, x, direction, phaseMs };
     }
 
-    // 爬虫/哨兵/弹跳兽：水平匀速巡逻，并在巡逻边界折返。
+    if (kind === "wisp") {
+      // 闪电灵体：悬浮缓慢漂移；玩家进入射程后先蓄力闪烁，再高速直线冲刺。
+      const mode = sentinel.mode ?? "patrol";
+      const player = world.player;
+      const dx = player.x - sentinel.x;
+      const dy =
+        player.y + player.height * 0.4 - (definition.y + sentinel.y + definition.height * 0.5);
+      const inRange =
+        Math.abs(dx) <= (definition.aggroRange ?? 460) &&
+        Math.abs(dy) < 190 &&
+        world.status === "playing";
+      const bob = (definition.bobAmplitude ?? 6) * Math.sin(phaseMs * 0.0016);
+
+      if (mode === "windup") {
+        const remaining = Math.max(0, (sentinel.attackTimerMs ?? 0) - PLATFORMER_STEP_MS);
+        const direction = sentinel.direction;
+        if (remaining <= 0) {
+          return {
+            ...sentinel,
+            y: bob,
+            phaseMs,
+            direction,
+            mode: "charge",
+            attackTimerMs: definition.chargeDurationMs ?? 620,
+          };
+        }
+        return { ...sentinel, y: bob, phaseMs, direction, attackTimerMs: remaining };
+      }
+
+      if (mode === "charge") {
+        const remaining = Math.max(0, (sentinel.attackTimerMs ?? 0) - PLATFORMER_STEP_MS);
+        let x =
+          sentinel.x +
+          (sentinel.direction ?? 1) * (definition.chargeSpeed ?? 560) * PLATFORMER_STEP_SECONDS;
+        if (x < definition.patrolMinX) {
+          x = definition.patrolMinX;
+        } else if (x + definition.width > definition.patrolMaxX) {
+          x = definition.patrolMaxX - definition.width;
+        }
+        if (remaining <= 0) {
+          return {
+            ...sentinel,
+            x,
+            y: bob,
+            phaseMs,
+            mode: "recover",
+            attackTimerMs: definition.recoverDurationMs ?? 760,
+          };
+        }
+        return { ...sentinel, x, y: bob, phaseMs, attackTimerMs: remaining };
+      }
+
+      if (mode === "recover") {
+        const remaining = Math.max(0, (sentinel.attackTimerMs ?? 0) - PLATFORMER_STEP_MS);
+        if (remaining <= 0) {
+          return { ...sentinel, y: bob, phaseMs, mode: "patrol", attackTimerMs: 0 };
+        }
+        return { ...sentinel, y: bob, phaseMs, attackTimerMs: remaining };
+      }
+
+      const driftRange = definition.patrolMaxX - definition.patrolMinX - definition.width;
+      const driftPeriod = definition.bobPeriodMs ?? 4200;
+      const progress = (phaseMs % driftPeriod) / driftPeriod;
+      const x = definition.patrolMinX + driftRange * (0.5 + 0.5 * Math.sin(progress * Math.PI * 2));
+      if (inRange) {
+        return {
+          ...sentinel,
+          x,
+          y: bob,
+          phaseMs,
+          direction: dx >= 0 ? 1 : -1,
+          mode: "windup",
+          attackTimerMs: definition.windupMs ?? 420,
+        };
+      }
+      return { ...sentinel, x, y: bob, phaseMs };
+    }
+
+    // 爬虫/哨兵/弹跳兽/重装兽：水平匀速巡逻，并在巡逻边界折返。
     let x = sentinel.x + sentinel.direction * definition.speed * PLATFORMER_STEP_SECONDS;
     let direction = sentinel.direction;
     if (x <= definition.patrolMinX) {
@@ -985,7 +1230,11 @@ function applyDamage(
   world.player.invincibleMs = PLATFORMER_HIT_INVINCIBILITY_MS;
 }
 
-function checkFall(world: PlatformerWorld, level: PlatformerLevel, events: PlatformerEvent[]): void {
+function checkFall(
+  world: PlatformerWorld,
+  level: PlatformerLevel,
+  events: PlatformerEvent[],
+): void {
   if (world.player.y > level.height + FALL_MARGIN) {
     applyDamage(world, "fall", events);
   }
@@ -999,7 +1248,19 @@ function resolveBeacon(
   if (world.status !== "playing") {
     return;
   }
-  if (!rectsOverlap(world.player.x, world.player.y, world.player.width, world.player.height, level.beacon.x, level.beacon.y, level.beacon.width, level.beacon.height, 4)) {
+  if (
+    !rectsOverlap(
+      world.player.x,
+      world.player.y,
+      world.player.width,
+      world.player.height,
+      level.beacon.x,
+      level.beacon.y,
+      level.beacon.width,
+      level.beacon.height,
+      4,
+    )
+  ) {
     return;
   }
 
@@ -1024,9 +1285,7 @@ function resolveBeacon(
     addWorldScore(world, PLATFORMER_SCORE_ZERO_DEATH, level.id);
   }
 
-  const allCompleted = PLATFORMER_LEVELS.every((item) =>
-    world.completedLevelIds.includes(item.id),
-  );
+  const allCompleted = PLATFORMER_LEVELS.every((item) => world.completedLevelIds.includes(item.id));
   if (allCompleted) {
     addWorldScore(world, PLATFORMER_SCORE_VICTORY, level.id);
     world.status = "victory";
@@ -1062,12 +1321,15 @@ function countCollectedInLevel(world: PlatformerWorld, levelId: number): number 
 
 function countDefeatedInLevel(world: PlatformerWorld, levelId: number): number {
   const level = getPlatformerLevelById(levelId);
-  return level.sentinels.filter((sentinel) => world.defeatedSentinelIds.includes(sentinel.id)).length;
+  return level.sentinels.filter((sentinel) => world.defeatedSentinelIds.includes(sentinel.id))
+    .length;
 }
 
 function countCheckpointsInLevel(world: PlatformerWorld, levelId: number): number {
   const level = getPlatformerLevelById(levelId);
-  return level.checkpoints.filter((checkpoint) => world.activatedCheckpointIds.includes(checkpoint.id)).length;
+  return level.checkpoints.filter((checkpoint) =>
+    world.activatedCheckpointIds.includes(checkpoint.id),
+  ).length;
 }
 
 function overlapsCheckpoint(player: PlayerState, checkpoint: CheckpointDefinition): boolean {
@@ -1085,12 +1347,17 @@ function overlapsCheckpoint(player: PlayerState, checkpoint: CheckpointDefinitio
 }
 
 function isSpikesExtended(sentinel: RuntimeSentinel): boolean {
-  if ((sentinel.definition.kind ?? "sentinel") !== "spiker") {
+  const kind = sentinel.definition.kind ?? "sentinel";
+  if (kind === "brute") {
+    // 重装兽：顶部装甲尖刺始终伸出，无法踩踏，只能射击。
+    return true;
+  }
+  if (kind !== "spiker") {
     return false;
   }
   const cycle = sentinel.definition.spikeCycleMs ?? 2000;
   const up = sentinel.definition.spikeUpMs ?? 650;
-  return (sentinel.phaseMs % cycle) < up;
+  return sentinel.phaseMs % cycle < up;
 }
 
 function getSentinelHitbox(sentinel: RuntimeSentinel): {
@@ -1100,8 +1367,17 @@ function getSentinelHitbox(sentinel: RuntimeSentinel): {
   height: number;
 } {
   const definition = sentinel.definition;
-  const spikeExtend = isSpikesExtended(sentinel) ? definition.spikeHeight ?? 22 : 0;
-  return { x: sentinel.x, y: definition.y + sentinel.y - spikeExtend, width: definition.width, height: definition.height + spikeExtend };
+  const spikeExtend = isSpikesExtended(sentinel)
+    ? definition.kind === "brute"
+      ? (definition.armorSpikeHeight ?? 20)
+      : (definition.spikeHeight ?? 22)
+    : 0;
+  return {
+    x: sentinel.x,
+    y: definition.y + sentinel.y - spikeExtend,
+    width: definition.width,
+    height: definition.height + spikeExtend,
+  };
 }
 
 function collectWeaponPickups(
@@ -1168,7 +1444,11 @@ function updatePlayerWeapon(
   events.push({ type: "shot_fired" });
 }
 
-function updateProjectiles(world: PlatformerWorld, level: PlatformerLevel): void {
+function updateProjectiles(
+  world: PlatformerWorld,
+  level: PlatformerLevel,
+  events: PlatformerEvent[],
+): void {
   const remaining: ProjectileState[] = [];
   for (const projectile of world.projectiles) {
     const x = projectile.x + projectile.vx * PLATFORMER_STEP_SECONDS;
@@ -1177,7 +1457,27 @@ function updateProjectiles(world: PlatformerWorld, level: PlatformerLevel): void
     if (lifeMs <= 0) {
       continue;
     }
-    if (projectileHitsSolidPlatform(x, y, projectile.width, projectile.height, level, world.platformOffsets)) {
+    const destroyedBefore = world.destroyedPlatformIds.length;
+    if (
+      projectileHitsSolidPlatform(
+        x,
+        y,
+        projectile.width,
+        projectile.height,
+        level,
+        world.platformOffsets,
+        world.destroyedPlatformIds,
+      )
+    ) {
+      if (world.destroyedPlatformIds.length > destroyedBefore) {
+        const addedIds = world.destroyedPlatformIds.slice(destroyedBefore);
+        if (addedIds.length > 0) {
+          events.push({
+            type: "block_broken",
+            platformId: addedIds[0]!,
+          });
+        }
+      }
       continue;
     }
     remaining.push({ ...projectile, x, y, lifeMs });
@@ -1192,13 +1492,17 @@ function projectileHitsSolidPlatform(
   height: number,
   level: PlatformerLevel,
   offsets: Record<string, PlatformOffset>,
+  destroyedIds: string[],
 ): boolean {
   for (const platform of level.platforms) {
-    if (!isSolidPlatform(platform)) {
+    if (!isSolidPlatform(platform) || destroyedIds.includes(platform.id)) {
       continue;
     }
     const bounds = getPlatformBounds(platform, offsets);
     if (rectsOverlap(x, y, width, height, bounds.x, bounds.y, bounds.width, bounds.height, 1)) {
+      if (isBreakablePlatform(platform) && !destroyedIds.includes(platform.id)) {
+        destroyedIds.push(platform.id);
+      }
       return true;
     }
   }
@@ -1303,10 +1607,7 @@ function updateCamera(world: PlatformerWorld, level: PlatformerLevel): void {
   world.camera.previousX = world.camera.x;
   const target = getCameraTarget(world.player.x + world.player.width * 0.5, level.width);
   const response = 0.135;
-  world.camera.x = clampCamera(
-    world.camera.x + (target - world.camera.x) * response,
-    level.width,
-  );
+  world.camera.x = clampCamera(world.camera.x + (target - world.camera.x) * response, level.width);
 }
 
 export function createPlatformerSave(world: PlatformerWorld): PlatformerSaveRecord {
@@ -1391,7 +1692,12 @@ export function parsePlatformerSaveDetails(
     throw new Error("检查点存档槽位无效。");
   }
   const levelId = requireInteger(record.levelId, 1, PLATFORMER_TOTAL_LEVELS, "存档关卡");
-  const levelIndex = requireInteger(details.levelIndex, 0, PLATFORMER_TOTAL_LEVELS - 1, "存档关卡索引");
+  const levelIndex = requireInteger(
+    details.levelIndex,
+    0,
+    PLATFORMER_TOTAL_LEVELS - 1,
+    "存档关卡索引",
+  );
   if (levelIndex !== getPlatformerLevelIndex(levelId)) {
     throw new Error("存档关卡与索引不一致。");
   }
@@ -1446,12 +1752,7 @@ export function parsePlatformerSaveDetails(
     lastCheckpointIdByLevel,
     activatedCheckpointIds,
   );
-  validateProgressConsistency(
-    completedLevelIds,
-    reachedBeaconLevelIds,
-    record.checkpointId,
-    level,
-  );
+  validateProgressConsistency(completedLevelIds, reachedBeaconLevelIds, record.checkpointId, level);
 
   validateCompletedProgress(
     levelIndex,
@@ -1530,7 +1831,7 @@ export function createMatchLevelResult(
   const level = getPlatformerLevelById(levelId);
   const completed = world.completedLevelIds.includes(levelId);
   const durationMs = completed
-    ? world.levelDurations[String(levelId)] ?? 0
+    ? (world.levelDurations[String(levelId)] ?? 0)
     : levelId === world.levelId
       ? world.levelDurationMs
       : 0;
@@ -1550,9 +1851,7 @@ export function createMatchLevelResult(
   };
 }
 
-export function createPlatformerMatchSubmission(
-  world: PlatformerWorld,
-): PlatformerMatchSubmission {
+export function createPlatformerMatchSubmission(world: PlatformerWorld): PlatformerMatchSubmission {
   const levelResults = PLATFORMER_LEVELS.map((level) => createMatchLevelResult(world, level.id));
   const levelsCompleted = levelResults.filter((result) => result.completed).length;
   return {
@@ -1589,8 +1888,12 @@ function validateEntityIds(
   defeatedSentinelIds: string[],
   activatedCheckpointIds: string[],
 ): void {
-  const crystals = new Set(PLATFORMER_LEVELS.flatMap((level) => level.crystals.map((item) => item.id)));
-  const sentinels = new Set(PLATFORMER_LEVELS.flatMap((level) => level.sentinels.map((item) => item.id)));
+  const crystals = new Set(
+    PLATFORMER_LEVELS.flatMap((level) => level.crystals.map((item) => item.id)),
+  );
+  const sentinels = new Set(
+    PLATFORMER_LEVELS.flatMap((level) => level.sentinels.map((item) => item.id)),
+  );
   const checkpoints = new Set(
     PLATFORMER_LEVELS.flatMap((level) => level.checkpoints.map((item) => item.id)),
   );
@@ -1778,7 +2081,11 @@ function validateProgressConsistency(
   if (completedLevelIds.includes(activeLevel.id)) {
     throw new Error("检查点存档不能位于已完成关卡。");
   }
-  if (typeof checkpointId === "string" && checkpointId.startsWith("level-") && checkpointId !== getLevelStartCheckpointId(activeLevel)) {
+  if (
+    typeof checkpointId === "string" &&
+    checkpointId.startsWith("level-") &&
+    checkpointId !== getLevelStartCheckpointId(activeLevel)
+  ) {
     throw new Error("存档检查点格式无效。");
   }
 }
@@ -1798,19 +2105,25 @@ function validateScoreConsistency(context: PlatformerLevelContext): void {
   if (context.score !== expectedTotal) {
     throw new Error("存档总分与收集进度不一致。");
   }
-  if (context.levelScores && Object.values(context.levelScores).reduce((total, value) => total + value, 0) !== context.score) {
+  if (
+    context.levelScores &&
+    Object.values(context.levelScores).reduce((total, value) => total + value, 0) !== context.score
+  ) {
     throw new Error("存档关卡得分总和无效。");
   }
 }
 
-function calculateExpectedLevelScore(
-  context: PlatformerLevelContext,
-  levelId: number,
-): number {
+function calculateExpectedLevelScore(context: PlatformerLevelContext, levelId: number): number {
   const level = getPlatformerLevelById(levelId);
-  const crystals = level.crystals.filter((item) => context.collectedItemIds.includes(item.id)).length;
-  const sentinels = level.sentinels.filter((item) => context.defeatedSentinelIds.includes(item.id)).length;
-  const checkpoints = level.checkpoints.filter((item) => context.activatedCheckpointIds.includes(item.id)).length;
+  const crystals = level.crystals.filter((item) =>
+    context.collectedItemIds.includes(item.id),
+  ).length;
+  const sentinels = level.sentinels.filter((item) =>
+    context.defeatedSentinelIds.includes(item.id),
+  ).length;
+  const checkpoints = level.checkpoints.filter((item) =>
+    context.activatedCheckpointIds.includes(item.id),
+  ).length;
   let score = crystals * PLATFORMER_SCORE_CRYSTAL;
   score += sentinels * PLATFORMER_SCORE_SENTINEL;
   score += checkpoints * PLATFORMER_SCORE_CHECKPOINT;
@@ -1855,12 +2168,7 @@ function requireBoolean(value: unknown, label: string): boolean {
   return value;
 }
 
-function requireInteger(
-  value: unknown,
-  minimum: number,
-  maximum: number,
-  label: string,
-): number {
+function requireInteger(value: unknown, minimum: number, maximum: number, label: string): number {
   if (!Number.isInteger(value) || (value as number) < minimum || (value as number) > maximum) {
     throw new Error(`${label}无效。`);
   }
@@ -1918,7 +2226,3 @@ function requireIntegerNumberMap(
   }
   return result;
 }
-
-
-
-

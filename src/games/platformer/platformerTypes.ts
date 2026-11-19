@@ -2,7 +2,7 @@ export const PLATFORMER_LOGICAL_WIDTH = 1280;
 export const PLATFORMER_LOGICAL_HEIGHT = 720;
 export const PLATFORMER_STEP_SECONDS = 1 / 60;
 export const PLATFORMER_STEP_MS = 1000 / 60;
-export const PLATFORMER_TOTAL_LEVELS = 6;
+export const PLATFORMER_TOTAL_LEVELS = 8;
 export const PLATFORMER_INITIAL_LIVES = 3;
 export const PLATFORMER_SAVE_SLOT = "platformer_main";
 
@@ -27,9 +27,9 @@ export const PLATFORMER_SCORE_ZERO_DEATH = 1000;
 export const PLATFORMER_SCORE_BEACON = 1000;
 export const PLATFORMER_SCORE_VICTORY = 2000;
 
-export const PLATFORMER_LEVEL_CRYSTALS = [15, 18, 21, 24, 27, 30] as const;
-export const PLATFORMER_LEVEL_SENTINELS = [3, 4, 5, 6, 7, 8] as const;
-export const PLATFORMER_LEVEL_CHECKPOINTS = [2, 2, 3, 3, 3, 4] as const;
+export const PLATFORMER_LEVEL_CRYSTALS = [15, 18, 21, 24, 27, 30, 33, 36] as const;
+export const PLATFORMER_LEVEL_SENTINELS = [3, 4, 5, 6, 7, 8, 9, 10] as const;
+export const PLATFORMER_LEVEL_CHECKPOINTS = [2, 2, 3, 3, 3, 4, 4, 4] as const;
 
 // 武器系统常量
 export const PLATFORMER_WEAPON_START_AMMO = 6;
@@ -41,7 +41,14 @@ export const PLATFORMER_PROJECTILE_LIFE_MS = 850;
 export const PLATFORMER_PROJECTILE_WIDTH = 10;
 export const PLATFORMER_PROJECTILE_HEIGHT = 8;
 
-export type PlatformKind = "solid" | "oneWay";
+// 地形交互常量（马里奥式地形）
+export const PLATFORMER_BOUNCE_SPEED = 900;
+export const PLATFORMER_CRUMBLE_SHAKE_MS = 480;
+export const PLATFORMER_CRUMBLE_GONE_MS = 3200;
+export const PLATFORMER_ICE_ACCELERATION = 520;
+export const PLATFORMER_ICE_DECELERATION = 110;
+
+export type PlatformKind = "solid" | "oneWay" | "bounce" | "crumbling" | "ice" | "breakable";
 
 export interface PlatformMotion {
   axis: "x" | "y";
@@ -74,7 +81,9 @@ export type SentinelKind =
   | "hopper"
   | "gunner"
   | "charger"
-  | "spiker";
+  | "spiker"
+  | "wisp"
+  | "brute";
 
 export interface SentinelDefinition {
   id: string;
@@ -113,6 +122,10 @@ export interface SentinelDefinition {
   spikeCycleMs?: number;
   /** 尖刺傀儡尖刺保持时间（毫秒），默认 650。 */
   spikeUpMs?: number;
+  /** 闪电灵体蓄力时间（毫秒），默认 420。 */
+  windupMs?: number;
+  /** 重装兽尖刺高度（像素），默认 20。 */
+  armorSpikeHeight?: number;
 }
 
 export interface CheckpointDefinition {
@@ -142,7 +155,15 @@ export interface WeaponPickupDefinition {
   height: number;
 }
 
-export type PlatformerTheme = "icefield" | "gorge" | "tide" | "night" | "cavern" | "core";
+export type PlatformerTheme =
+  | "icefield"
+  | "gorge"
+  | "tide"
+  | "night"
+  | "cavern"
+  | "core"
+  | "storm"
+  | "crystal";
 
 export type LevelDecorationKind =
   | "nebula"
@@ -159,7 +180,12 @@ export type LevelDecorationKind =
   | "iceberg"
   | "frozenPine"
   | "magmaVein"
-  | "bubbleRise";
+  | "bubbleRise"
+  | "stormCloud"
+  | "windRibbon"
+  | "lightningBolt"
+  | "crystalPillar"
+  | "glowMote";
 
 /** 场景装饰物：仅影响背景渲染，不参与碰撞。 */
 export interface LevelDecoration {
@@ -272,7 +298,7 @@ export interface RuntimeSentinel {
   /** 攻击冷却计时（毫秒）：枪手射击间隔、冲锋兽恢复、尖刺傀儡周期。 */
   attackTimerMs?: number;
   /** 冲锋兽行为状态。 */
-  mode?: "patrol" | "charge" | "recover";
+  mode?: "patrol" | "windup" | "charge" | "recover";
 }
 
 export interface PlatformOffset {
@@ -289,6 +315,10 @@ export interface PlatformerWorld {
   player: PlayerState;
   camera: CameraState;
   platformOffsets: Record<string, PlatformOffset>;
+  /** 已被击碎的方块平台 id（本局内不再参与碰撞与渲染）。 */
+  destroyedPlatformIds: string[];
+  /** 易碎平台状态：stable 稳定 / shaking 震颤 / gone 崩塌后待重生。 */
+  crumblingPlatforms: Record<string, { state: "stable" | "shaking" | "gone"; timerMs: number }>;
   sentinels: RuntimeSentinel[];
   projectiles: ProjectileState[];
   weapon: PlayerWeaponState;
@@ -339,6 +369,9 @@ export type PlatformerEvent =
   | { type: "crystal"; crystalId: string; score: number }
   | { type: "sentinel_stomped"; sentinelId: string; score: number }
   | { type: "sentinel_shot"; sentinelId: string; score: number }
+  | { type: "bounce" }
+  | { type: "block_broken"; platformId: string }
+  | { type: "crumbling_collapse"; platformId: string }
   | { type: "shot_fired" }
   | { type: "projectile_hit"; source: "player" | "enemy" }
   | { type: "weapon_pickup"; pickupId: string; ammo: number }
