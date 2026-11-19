@@ -1,6 +1,6 @@
 [package]
 name = "europa"
-version = "1.2.0"
+version = "1.2.1"
 description = "Europa desktop arcade"
 authors = ["Europa Project"]
 edition = "2021"
