@@ -358,7 +358,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-10",
         "kind": "iceSpire",
-        "x": 2650,
+        "x": 2720,
         "y": 524,
         "width": 58,
         "height": 96,
@@ -376,7 +376,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-12",
         "kind": "iceSpire",
-        "x": 3900,
+        "x": 3810,
         "y": 544,
         "width": 46,
         "height": 76,
@@ -394,7 +394,7 @@ export const PLATFORMER_LEVELS: readonly PlatformerLevel[] = [
       {
         "id": "l1-deco-iceSpire-14",
         "kind": "iceSpire",
-        "x": 5200,
+        "x": 5160,
         "y": 564,
         "width": 34,
         "height": 56,
