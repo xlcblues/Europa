@@ -452,6 +452,8 @@ export type PlatformerPhase =
 
 export type PlatformerSubmissionStatus = "idle" | "saving" | "saved" | "failed";
 
+export type PlatformerMode = "expedition" | "select";
+
 export interface PlatformerRunResult {
   submission: PlatformerMatchSubmission;
   sessionId: string;

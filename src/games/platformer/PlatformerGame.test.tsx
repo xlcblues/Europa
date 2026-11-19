@@ -15,9 +15,7 @@ const submitPlatformerMatchMock = vi.hoisted(() =>
 const savePlatformerCheckpointMock = vi.hoisted(() =>
   vi.fn<(record: IpcModule.PlatformerSave) => Promise<IpcModule.PlatformerSave>>(),
 );
-const clearPlatformerCheckpointMock = vi.hoisted(() =>
-  vi.fn<(slot: string) => Promise<void>>(),
-);
+const clearPlatformerCheckpointMock = vi.hoisted(() => vi.fn<(slot: string) => Promise<void>>());
 const platformerAudioPlayMock = vi.hoisted(() => vi.fn<(sound: string) => void>());
 
 vi.mock("../../services/ipc", async (importOriginal) => {
@@ -238,9 +236,9 @@ describe("PlatformerGame", () => {
     await beginPlaying();
 
     const canvas = document.querySelector("canvas");
-    const context = canvas?.getContext("2d") as unknown as
-      | { clearRect: { mock: { calls: unknown[] } } }
-      | null;
+    const context = canvas?.getContext("2d") as unknown as {
+      clearRect: { mock: { calls: unknown[] } };
+    } | null;
     expect(context).not.toBeNull();
     const drawCount = (): number => context?.clearRect.mock.calls.length ?? 0;
 
@@ -249,7 +247,6 @@ describe("PlatformerGame", () => {
     });
     expect(drawCount()).toBeGreaterThan(0);
   });
-
 
   it("does not auto re-jump on landing while the jump key is held", async () => {
     render(<PlatformerGame onBack={vi.fn()} />);
@@ -271,10 +268,85 @@ describe("PlatformerGame", () => {
       await vi.advanceTimersByTimeAsync(300);
     });
 
-    const jumps = platformerAudioPlayMock.mock.calls.filter(
-      ([sound]) => sound === "jump",
-    ).length;
+    const jumps = platformerAudioPlayMock.mock.calls.filter(([sound]) => sound === "jump").length;
     expect(jumps).toBe(1);
   });
 
+  it("switches to level select and shows one card per level", () => {
+    render(<PlatformerGame onBack={vi.fn()} />);
+
+    expect(screen.getByRole("tab", { name: "远征模式" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "选关模式" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "远征待启" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "选关模式" }));
+    expect(screen.getByRole("heading", { name: "选关模式" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "远征待启" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /冰晶/u }).length).toBe(8);
+  });
+
+  it("starts the chosen select level without writing a checkpoint", async () => {
+    render(<PlatformerGame onBack={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "选关模式" }));
+
+    const fourthCard = screen.getAllByRole("button", { name: /冰晶/u })[3];
+    expect(fourthCard).toBeDefined();
+    fireEvent.click(fourthCard!);
+    expect(screen.getByText("关卡简报")).toBeInTheDocument();
+    expect(savePlatformerCheckpointMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_200);
+    });
+    expect(screen.getByText("运行中")).toBeInTheDocument();
+    expect(savePlatformerCheckpointMock).not.toHaveBeenCalled();
+    expect(submitPlatformerMatchMock).not.toHaveBeenCalled();
+  });
+
+  it("retries the same level with Enter after a select game over", async () => {
+    render(<PlatformerGame onBack={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "选关模式" }));
+    const firstCard = screen.getAllByRole("button", { name: /冰晶/u })[0];
+    expect(firstCard).toBeDefined();
+    fireEvent.click(firstCard!);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_200);
+    });
+    expect(screen.getByText("运行中")).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { code: "KeyA" });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6_000);
+    });
+    expect(screen.getByRole("heading", { name: "本关结束" })).toBeInTheDocument();
+    expect(submitPlatformerMatchMock).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(window, { code: "Enter" });
+    expect(screen.getByText("关卡简报")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "本关结束" })).not.toBeInTheDocument();
+  });
+
+  it("returns to the select grid with Escape after a select game over", async () => {
+    render(<PlatformerGame onBack={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "选关模式" }));
+    const sixthCard = screen.getAllByRole("button", { name: /冰晶/u })[5];
+    expect(sixthCard).toBeDefined();
+    fireEvent.click(sixthCard!);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_200);
+    });
+    expect(screen.getByText("运行中")).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { code: "KeyA" });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6_000);
+    });
+    expect(screen.getByRole("heading", { name: "本关结束" })).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { code: "Escape" });
+    expect(screen.getByRole("heading", { name: "选关模式" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /冰晶/u }).length).toBe(8);
+  });
 });

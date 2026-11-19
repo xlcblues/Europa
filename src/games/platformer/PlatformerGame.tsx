@@ -30,6 +30,7 @@ import {
 import type {
   PlatformerEvent,
   PlatformerInput,
+  PlatformerMode,
   PlatformerPhase,
   PlatformerRunResult,
   PlatformerSubmissionStatus,
@@ -62,10 +63,12 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
   const [phase, setPhaseState] = useState<PlatformerPhase>("ready");
   const [result, setResult] = useState<PlatformerRunResult | null>(null);
   const [submissionStatus, setSubmissionStatus] = useState<PlatformerSubmissionStatus>("idle");
+  const [mode, setModeState] = useState<PlatformerMode>("expedition");
 
   const worldRef = useRef<PlatformerWorld | null>(null);
   const phaseRef = useRef<PlatformerPhase>("ready");
   const resultRef = useRef<PlatformerRunResult | null>(null);
+  const modeRef = useRef<PlatformerMode>("expedition");
   const inputRef = useRef<PlatformerInput>(createPlatformerInput());
   const introTimerRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -103,14 +106,21 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
         ? "继续游戏"
         : phase === "result"
           ? "新的远征"
-          : "开始远征";
+          : mode === "select"
+            ? "开始挑战"
+            : "开始远征";
 
   function setPhase(nextPhase: PlatformerPhase): void {
     phaseRef.current = nextPhase;
     setPhaseState(nextPhase);
   }
 
-  function updateWorld(nextWorld: PlatformerWorld): void {
+  function setMode(nextMode: PlatformerMode): void {
+    modeRef.current = nextMode;
+    setModeState(nextMode);
+  }
+
+  function updateWorld(nextWorld: PlatformerWorld | null): void {
     worldRef.current = nextWorld;
     setWorld(nextWorld);
   }
@@ -250,6 +260,9 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
   }
 
   function saveCheckpoint(): void {
+    if (modeRef.current !== "expedition") {
+      return;
+    }
     const currentWorld = worldRef.current;
     if (!currentWorld || currentWorld.status !== "playing") {
       return;
@@ -269,6 +282,9 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
   }
 
   function clearSave(): void {
+    if (modeRef.current !== "expedition") {
+      return;
+    }
     void clearPlatformerCheckpoint(PLATFORMER_SAVE_SLOT).catch(() => undefined);
     useAppStore.getState().clearLatestPlatformerSave();
   }
@@ -276,6 +292,7 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
   function startRun(mode: "continue" | "new"): void {
     clearIntroTimer();
     stopLoop();
+    setMode("expedition");
     resultRef.current = null;
     setResult(null);
     setSubmissionStatus("idle");
@@ -336,6 +353,46 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
     updateWorld(nextWorld);
     setPhase("level_intro");
     scheduleIntro();
+  }
+
+  function startSelectLevel(levelIndex: number): void {
+    if (levelIndex < 0 || levelIndex >= PLATFORMER_TOTAL_LEVELS) {
+      return;
+    }
+    clearIntroTimer();
+    stopLoop();
+    resultRef.current = null;
+    setResult(null);
+    setSubmissionStatus("idle");
+    setMode("select");
+    const nextWorld = createPlatformerWorld(
+      createInitialPlatformerContext(createPlatformerSessionId()),
+      levelIndex,
+    );
+    inputRef.current = createPlatformerInput(nextWorld.assisted);
+    updateWorld(nextWorld);
+    getAudio().play("start");
+    setPhase("level_intro");
+    scheduleIntro();
+  }
+
+  function retrySelectLevel(): void {
+    const currentWorld = worldRef.current;
+    if (!currentWorld) {
+      return;
+    }
+    startSelectLevel(currentWorld.levelIndex);
+  }
+
+  function backToSelect(): void {
+    clearIntroTimer();
+    stopLoop();
+    resultRef.current = null;
+    setResult(null);
+    setSubmissionStatus("idle");
+    updateWorld(null);
+    setMode("select");
+    setPhase("ready");
   }
 
   function restartAtCheckpointAction(): void {
@@ -436,12 +493,27 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
       return;
     }
     if (currentPhase === "ready") {
+      if (modeRef.current === "select") {
+        startSelectLevel(0);
+        return;
+      }
       startRun(latestSave ? "continue" : "new");
       return;
     }
     if (currentPhase === "result") {
       startRun("new");
     }
+  }
+
+  function handleRestart(): void {
+    if (phaseRef.current === "ready" || phaseRef.current === "level_intro") {
+      return;
+    }
+    if (modeRef.current === "select" && worldRef.current) {
+      retrySelectLevel();
+      return;
+    }
+    startRun("new");
   }
 
   function handleMovementKeyDown(event: KeyboardEvent, input: PlatformerInput): void {
@@ -537,11 +609,21 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
           return;
         }
         if (currentPhase === "ready") {
-          startRun(useAppStore.getState().latestPlatformerSave ? "continue" : "new");
+          if (modeRef.current === "expedition") {
+            startRun(useAppStore.getState().latestPlatformerSave ? "continue" : "new");
+          }
         } else if (currentPhase === "level_complete") {
-          continueToNextLevel();
+          if (modeRef.current === "select") {
+            retrySelectLevel();
+          } else {
+            continueToNextLevel();
+          }
         } else if (currentPhase === "game_over" || currentPhase === "victory") {
-          confirmEnd();
+          if (modeRef.current === "select") {
+            retrySelectLevel();
+          } else {
+            confirmEnd();
+          }
         } else if (currentPhase === "result") {
           startRun("new");
         } else if (currentPhase === "paused") {
@@ -561,6 +643,18 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
           if (!event.repeat) {
             restartAtCheckpointAction();
           }
+        }
+        return;
+      }
+
+      if (
+        event.code === "Escape" &&
+        modeRef.current === "select" &&
+        (currentPhase === "level_complete" || currentPhase === "game_over")
+      ) {
+        event.preventDefault();
+        if (!event.repeat) {
+          backToSelect();
         }
         return;
       }
@@ -640,7 +734,11 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
             <i aria-hidden="true" />
             {PHASE_LABELS[phase]}
           </span>
-          <span className="platformer-mode-label">3 关 · 检查点存档</span>
+          <span className="platformer-mode-label">
+            {mode === "select"
+              ? `选关模式 · ${world ? `第 ${world.levelIndex + 1} 关` : "自由挑战"}`
+              : `远征模式 · ${PLATFORMER_TOTAL_LEVELS} 关 · 检查点存档`}
+          </span>
         </div>
       </header>
 
@@ -668,6 +766,7 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
             ) : null}
             <PlatformerOverlays
               phase={phase}
+              mode={mode}
               currentLevel={currentLevel}
               nextLevelName={nextLevelName}
               hasSave={hasSave}
@@ -685,6 +784,9 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
               onNewRun={() => startRun("new")}
               onBack={onBack}
               onRetrySubmit={retrySubmit}
+              onSwitchMode={setMode}
+              onStartSelectLevel={startSelectLevel}
+              onBackToSelect={backToSelect}
             />
           </div>
 
@@ -721,7 +823,7 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
 
           <section className="platformer-hud-card">
             <div className="platformer-hud-heading">
-              <span>远征读数</span>
+              <span>{mode === "select" ? "选关读数" : "远征读数"}</span>
               <span className="platformer-hud-tag">LIVE DATA</span>
             </div>
             <div className="platformer-metrics">
@@ -810,7 +912,7 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
             <button
               className="button platformer-hud-restart"
               type="button"
-              onClick={() => startRun("new")}
+              onClick={handleRestart}
               disabled={phase === "ready" || phase === "level_intro"}
             >
               <RestartIcon size={15} />
@@ -818,7 +920,9 @@ export function PlatformerGame({ onBack }: PlatformerGameProps) {
             </button>
           </div>
           <p className="platformer-hud-note">
-            失焦自动暂停；检查点与暂停状态会写入本地存档。中断或返回游戏库不会提交本局成绩。
+            {mode === "select"
+              ? "选关模式为独立挑战：不写入远征检查点存档，也不计入远征最高分。失焦自动暂停。"
+              : "失焦自动暂停；检查点与暂停状态会写入本地存档。中断或返回游戏库不会提交本局成绩。"}
           </p>
         </aside>
       </div>
